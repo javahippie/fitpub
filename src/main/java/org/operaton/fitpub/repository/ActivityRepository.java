@@ -1,0 +1,88 @@
+package org.operaton.fitpub.repository;
+
+import org.operaton.fitpub.model.entity.Activity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Repository for Activity entities.
+ */
+@Repository
+public interface ActivityRepository extends JpaRepository<Activity, UUID> {
+
+    /**
+     * Find all activities for a specific user.
+     *
+     * @param userId the user ID
+     * @return list of activities
+     */
+    List<Activity> findByUserIdOrderByStartedAtDesc(UUID userId);
+
+    /**
+     * Find all activities for a user within a date range.
+     *
+     * @param userId the user ID
+     * @param startDate the start date
+     * @param endDate the end date
+     * @return list of activities
+     */
+    List<Activity> findByUserIdAndStartedAtBetweenOrderByStartedAtDesc(
+        UUID userId,
+        LocalDateTime startDate,
+        LocalDateTime endDate
+    );
+
+    /**
+     * Find all public activities for a user.
+     *
+     * @param userId the user ID
+     * @return list of activities
+     */
+    List<Activity> findByUserIdAndVisibilityOrderByStartedAtDesc(
+        UUID userId,
+        Activity.Visibility visibility
+    );
+
+    /**
+     * Find activities by type for a user.
+     *
+     * @param userId the user ID
+     * @param activityType the activity type
+     * @return list of activities
+     */
+    List<Activity> findByUserIdAndActivityTypeOrderByStartedAtDesc(
+        UUID userId,
+        Activity.ActivityType activityType
+    );
+
+    /**
+     * Count activities for a user.
+     *
+     * @param userId the user ID
+     * @return count of activities
+     */
+    long countByUserId(UUID userId);
+
+    /**
+     * Find an activity by ID and user ID.
+     *
+     * @param id the activity ID
+     * @param userId the user ID
+     * @return optional activity
+     */
+    Optional<Activity> findByIdAndUserId(UUID id, UUID userId);
+
+    /**
+     * Delete all activities for a user.
+     *
+     * @param userId the user ID
+     */
+    void deleteByUserId(UUID userId);
+}
