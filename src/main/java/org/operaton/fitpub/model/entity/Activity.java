@@ -90,8 +90,8 @@ public class Activity {
      * Original FIT file for re-processing if needed.
      * Allows us to re-parse with updated algorithms.
      */
-    @Column(name = "raw_fit_file")
     @Lob
+    @Column(name = "raw_fit_file")
     private byte[] rawFitFile;
 
     @OneToOne(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)

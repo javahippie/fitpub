@@ -507,14 +507,102 @@ For ActivityPub federated posts and thumbnails:
 ## Development Roadmap
 
 ### Phase 1: MVP (Minimum Viable Product)
-- [ ] FIT file upload and parsing
-- [ ] Basic activity storage and display
-- [ ] Interactive map rendering with Leaflet
-- [ ] User registration and authentication
-- [ ] ActivityPub actor profile implementation
-- [ ] WebFinger support
-- [ ] Basic federation (Create, Follow, Accept activities)
-- [ ] Public timeline view
+
+**System Component 1: FIT File Processing Module** ✅
+- [x] FIT file upload and parsing (FitParser)
+- [x] FIT file validation (FitFileValidator)
+- [x] Activity entity with JSONB track points and simplified LineString
+- [x] Activity metrics extraction and storage
+- [x] Track simplification using Douglas-Peucker algorithm
+- [x] FIT file service with comprehensive tests
+- [x] Integration test with real FIT file
+
+**User Management & Security**
+- [x] User entity with ActivityPub keys
+- [ ] UserRepository with custom queries
+- [ ] Password hashing with BCrypt
+- [ ] JWT token provider for session management
+- [ ] HTTP Signature validator for ActivityPub federation
+- [ ] UserDetailsService implementation
+- [ ] Security configuration (Spring Security)
+- [ ] User registration endpoint
+- [ ] Login endpoint with JWT response
+
+**Application Infrastructure**
+- [ ] Main application class (FitPubApplication.java)
+- [ ] Application configuration (application.yml)
+- [ ] Database configuration (PostgreSQL + PostGIS)
+- [ ] CORS configuration for frontend
+- [ ] Exception handling (global error handlers)
+- [ ] Logging configuration
+- [ ] Profile-specific configs (dev, prod)
+
+**Activity REST API**
+- [ ] POST /api/activities/upload - Upload FIT file
+- [ ] GET /api/activities/{id} - Get activity details
+- [ ] GET /api/activities - List user's activities (paginated)
+- [ ] PUT /api/activities/{id} - Update activity metadata
+- [ ] DELETE /api/activities/{id} - Delete activity
+- [ ] Activity DTOs for API responses
+- [ ] Controller tests
+
+**ActivityPub Actor Profile**
+- [ ] Actor model classes (Person, PublicKey)
+- [ ] GET /users/{username} - Actor profile endpoint
+- [ ] Actor JSON-LD serialization with @context
+- [ ] Public key embedding in actor profile
+- [ ] Profile metadata (name, bio, avatar)
+
+**WebFinger Support**
+- [ ] WebFinger controller
+- [ ] GET /.well-known/webfinger - User discovery
+- [ ] WebFinger response DTO
+- [ ] Account identifier parsing (acct:user@domain)
+
+**ActivityPub Collections**
+- [ ] GET /users/{username}/inbox - Inbox endpoint
+- [ ] GET /users/{username}/outbox - Outbox endpoint
+- [ ] GET /users/{username}/followers - Followers collection
+- [ ] GET /users/{username}/following - Following collection
+- [ ] OrderedCollection model classes
+- [ ] Collection pagination support
+
+**Basic Federation**
+- [ ] Federation service for outbound activities
+- [ ] HTTP signature signing for outbound requests
+- [ ] HTTP signature verification for inbound requests
+- [ ] Create activity - Post new workout
+- [ ] Follow activity - Remote user follows local user
+- [ ] Accept activity - Accept follow requests
+- [ ] Follow entity and repository
+- [ ] Remote actor entity and repository
+- [ ] Inbox processor for incoming activities
+
+**Public Timeline**
+- [ ] Timeline service
+- [ ] GET /api/timeline - Federated timeline
+- [ ] Merge local and remote activities
+- [ ] Timeline filtering and pagination
+- [ ] Activity visibility enforcement
+
+**Database Migrations**
+- [ ] Flyway or Liquibase setup
+- [ ] Initial schema migration (users table)
+- [ ] Activities table migration
+- [ ] Activity metrics table migration
+- [ ] Follows table migration
+- [ ] Remote actors table migration
+- [ ] Indexes for performance (user lookups, activity queries)
+- [ ] PostGIS spatial indexes
+
+**Testing & Documentation**
+- [ ] Integration tests for REST endpoints
+- [ ] Integration tests for ActivityPub federation
+- [ ] Integration tests for WebFinger
+- [ ] README with setup instructions
+- [ ] API documentation (Swagger/OpenAPI)
+- [ ] Database setup guide
+- [ ] Deployment instructions
 
 ### Phase 2: Social Features
 - [ ] Likes and comments

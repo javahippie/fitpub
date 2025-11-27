@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: fitpub
+
+  # Datasource configuration is handled by Testcontainers in dev mode
+  # For production, set these via environment variables:
+  # - SPRING_DATASOURCE_URL
+  # - SPRING_DATASOURCE_USERNAME
+  # - SPRING_DATASOURCE_PASSWORD
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:}
+    username: ${SPRING_DATASOURCE_USERNAME:}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+    show-sql: false
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      enabled: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
+# FitPub specific configuration
+fitpub:
+  # Domain and URL configuration
+  domain: ${FITPUB_DOMAIN:localhost:8080}
+  base-url: ${FITPUB_BASE_URL:http://localhost:8080}
+
+  # ActivityPub federation settings
+  activitypub:
+    enabled: true
+    max-federation-retries: 3
+    request-timeout-seconds: 30
+
+  # Security settings
+  security:
+    jwt:
+      secret: ${JWT_SECRET:change-this-secret-key-in-production-must-be-at-least-32-characters-long}
+      expiration: 86400000 # 24 hours in milliseconds
+
+  # Storage settings
+  storage:
+    fit-files:
+      enabled: true
+      retention-days: 365
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    org.operaton.fitpub: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.security: DEBUG
+
+# Server configuration
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
