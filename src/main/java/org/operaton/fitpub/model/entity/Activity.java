@@ -9,7 +9,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.locationtech.jts.geom.LineString;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -77,8 +76,8 @@ public class Activity {
     @Column(name = "total_distance", precision = 10, scale = 2)
     private BigDecimal totalDistance;
 
-    @Column(name = "total_duration")
-    private Duration totalDuration;
+    @Column(name = "total_duration_seconds")
+    private Long totalDurationSeconds;
 
     @Column(name = "elevation_gain", precision = 8, scale = 2)
     private BigDecimal elevationGain;

@@ -55,8 +55,8 @@ public class ActivityDTO {
             .createdAt(activity.getCreatedAt())
             .updatedAt(activity.getUpdatedAt());
 
-        if (activity.getTotalDuration() != null) {
-            builder.totalDurationSeconds(activity.getTotalDuration().getSeconds());
+        if (activity.getTotalDurationSeconds() != null) {
+            builder.totalDurationSeconds(activity.getTotalDurationSeconds());
         }
 
         if (activity.getMetrics() != null) {

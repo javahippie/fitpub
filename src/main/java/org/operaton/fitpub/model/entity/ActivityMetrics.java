@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.UUID;
 
 /**
@@ -34,8 +33,8 @@ public class ActivityMetrics {
     @Column(name = "max_speed", precision = 8, scale = 2)
     private BigDecimal maxSpeed;
 
-    @Column(name = "average_pace")
-    private Duration averagePace;
+    @Column(name = "average_pace_seconds")
+    private Long averagePaceSeconds;
 
     @Column(name = "average_heart_rate")
     private Integer averageHeartRate;
@@ -76,11 +75,11 @@ public class ActivityMetrics {
     @Column(name = "total_descent", precision = 8, scale = 2)
     private BigDecimal totalDescent;
 
-    @Column(name = "moving_time")
-    private Duration movingTime;
+    @Column(name = "moving_time_seconds")
+    private Long movingTimeSeconds;
 
-    @Column(name = "stopped_time")
-    private Duration stoppedTime;
+    @Column(name = "stopped_time_seconds")
+    private Long stoppedTimeSeconds;
 
     @Column(name = "total_steps")
     private Integer totalSteps;

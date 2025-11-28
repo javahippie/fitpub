@@ -7,11 +7,14 @@ import org.operaton.fitpub.model.dto.ActivityDTO;
 import org.operaton.fitpub.model.dto.ActivityUpdateRequest;
 import org.operaton.fitpub.model.dto.ActivityUploadRequest;
 import org.operaton.fitpub.model.entity.Activity;
+import org.operaton.fitpub.model.entity.User;
+import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.service.FitFileService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +33,20 @@ import java.util.stream.Collectors;
 public class ActivityController {
 
     private final FitFileService fitFileService;
+    private final UserRepository userRepository;
+
+    /**
+     * Helper method to get user ID from authenticated UserDetails.
+     *
+     * @param userDetails the authenticated user details
+     * @return the user's UUID
+     * @throws UsernameNotFoundException if user not found
+     */
+    private UUID getUserId(UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userDetails.getUsername()));
+        return user.getId();
+    }
 
     /**
      * Uploads a FIT file and creates a new activity.
@@ -47,8 +64,7 @@ public class ActivityController {
     ) {
         log.info("User {} uploading FIT file: {}", userDetails.getUsername(), file.getOriginalFilename());
 
-        // TODO: Get actual user ID from UserDetails
-        UUID userId = UUID.randomUUID(); // Temporary - will be replaced with actual user lookup
+        UUID userId = getUserId(userDetails);
 
         Activity activity = fitFileService.processFitFile(
             file,
@@ -74,8 +90,7 @@ public class ActivityController {
         @PathVariable UUID id,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        // TODO: Get actual user ID from UserDetails
-        UUID userId = UUID.randomUUID(); // Temporary
+        UUID userId = getUserId(userDetails);
 
         Activity activity = fitFileService.getActivity(id, userId);
         if (activity == null) {
@@ -98,8 +113,7 @@ public class ActivityController {
     ) {
         log.info("User {} retrieving activities", userDetails.getUsername());
 
-        // TODO: Get actual user ID from UserDetails
-        UUID userId = UUID.randomUUID(); // Temporary
+        UUID userId = getUserId(userDetails);
 
         List<Activity> activities = fitFileService.getUserActivities(userId);
         List<ActivityDTO> dtos = activities.stream()
@@ -125,8 +139,7 @@ public class ActivityController {
     ) {
         log.info("User {} updating activity {}", userDetails.getUsername(), id);
 
-        // TODO: Get actual user ID from UserDetails
-        UUID userId = UUID.randomUUID(); // Temporary
+        UUID userId = getUserId(userDetails);
 
         Activity activity = fitFileService.getActivity(id, userId);
         if (activity == null) {
@@ -138,10 +151,9 @@ public class ActivityController {
         activity.setDescription(request.getDescription());
         activity.setVisibility(request.getVisibility());
 
-        // TODO: Add update method to FitFileService
-        // Activity updated = fitFileService.updateActivity(activity);
+        Activity updated = fitFileService.updateActivity(activity);
 
-        ActivityDTO dto = ActivityDTO.fromEntity(activity);
+        ActivityDTO dto = ActivityDTO.fromEntity(updated);
         return ResponseEntity.ok(dto);
     }
 
@@ -159,8 +171,7 @@ public class ActivityController {
     ) {
         log.info("User {} deleting activity {}", userDetails.getUsername(), id);
 
-        // TODO: Get actual user ID from UserDetails
-        UUID userId = UUID.randomUUID(); // Temporary
+        UUID userId = getUserId(userDetails);
 
         boolean deleted = fitFileService.deleteActivity(id, userId);
         if (!deleted) {

@@ -322,7 +322,7 @@ class FitFileServiceTest {
         assertNotNull(savedActivity.getTrackPointsJson());
         assertNotNull(savedActivity.getMetrics());
         assertEquals(testParsedData.getTotalDistance(), savedActivity.getTotalDistance());
-        assertEquals(testParsedData.getTotalDuration(), savedActivity.getTotalDuration());
+        assertEquals(testParsedData.getTotalDuration().getSeconds(), savedActivity.getTotalDurationSeconds());
     }
 
     /**

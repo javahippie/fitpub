@@ -148,7 +148,7 @@ public class FitFileService {
             .endedAt(parsedData.getEndTime())
             .visibility(visibility)
             .totalDistance(parsedData.getTotalDistance())
-            .totalDuration(parsedData.getTotalDuration())
+            .totalDurationSeconds(parsedData.getTotalDuration() != null ? parsedData.getTotalDuration().getSeconds() : null)
             .elevationGain(parsedData.getElevationGain())
             .elevationLoss(parsedData.getElevationLoss())
             .rawFitFile(rawFile)
@@ -345,5 +345,30 @@ public class FitFileService {
     @Transactional(readOnly = true)
     public List<Activity> getUserActivities(UUID userId) {
         return activityRepository.findByUserIdOrderByStartedAtDesc(userId);
+    }
+
+    /**
+     * Update an existing activity's metadata.
+     *
+     * @param activity the activity with updated fields
+     * @return the updated activity
+     * @throws IllegalArgumentException if activity doesn't exist or user doesn't own it
+     */
+    @Transactional
+    public Activity updateActivity(Activity activity) {
+        // Verify activity exists and belongs to the user
+        Activity existing = activityRepository.findById(activity.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Activity not found: " + activity.getId()));
+
+        if (!existing.getUserId().equals(activity.getUserId())) {
+            throw new IllegalArgumentException("User does not own this activity");
+        }
+
+        // Update allowed fields
+        existing.setTitle(activity.getTitle());
+        existing.setDescription(activity.getDescription());
+        existing.setVisibility(activity.getVisibility());
+
+        return activityRepository.save(existing);
     }
 }

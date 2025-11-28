@@ -517,47 +517,49 @@ For ActivityPub federated posts and thumbnails:
 - [x] FIT file service with comprehensive tests
 - [x] Integration test with real FIT file
 
-**User Management & Security**
+**User Management & Security** ✅
 - [x] User entity with ActivityPub keys
-- [ ] UserRepository with custom queries
-- [ ] Password hashing with BCrypt
-- [ ] JWT token provider for session management
-- [ ] HTTP Signature validator for ActivityPub federation
-- [ ] UserDetailsService implementation
-- [ ] Security configuration (Spring Security)
-- [ ] User registration endpoint
-- [ ] Login endpoint with JWT response
+- [x] UserRepository with custom queries
+- [x] Password hashing with BCrypt
+- [x] JWT token provider for session management
+- [x] HTTP Signature validator for ActivityPub federation
+- [x] UserDetailsService implementation
+- [x] Security configuration (Spring Security)
+- [x] User registration endpoint (POST /api/auth/register)
+- [x] Login endpoint with JWT response (POST /api/auth/login)
 
-**Application Infrastructure**
-- [ ] Main application class (FitPubApplication.java)
-- [ ] Application configuration (application.yml)
-- [ ] Database configuration (PostgreSQL + PostGIS)
-- [ ] CORS configuration for frontend
-- [ ] Exception handling (global error handlers)
-- [ ] Logging configuration
-- [ ] Profile-specific configs (dev, prod)
+**Application Infrastructure** ✅
+- [x] Main application class (FitPubApplication.java)
+- [x] Application configuration (application.yml)
+- [x] Database configuration (PostgreSQL + PostGIS with Testcontainers Dev Services)
+- [x] CORS configuration for frontend
+- [x] Exception handling (global error handlers)
+- [x] Logging configuration
+- [x] Profile-specific configs (application-dev.yml, application-prod.yml)
 
-**Activity REST API**
-- [ ] POST /api/activities/upload - Upload FIT file
-- [ ] GET /api/activities/{id} - Get activity details
-- [ ] GET /api/activities - List user's activities (paginated)
-- [ ] PUT /api/activities/{id} - Update activity metadata
-- [ ] DELETE /api/activities/{id} - Delete activity
-- [ ] Activity DTOs for API responses
-- [ ] Controller tests
+**Activity REST API** ✅
+- [x] POST /api/activities/upload - Upload FIT file
+- [x] GET /api/activities/{id} - Get activity details
+- [x] GET /api/activities - List user's activities (paginated)
+- [x] PUT /api/activities/{id} - Update activity metadata
+- [x] DELETE /api/activities/{id} - Delete activity
+- [x] Activity DTOs for API responses
+- [x] All endpoints tested and working
 
-**ActivityPub Actor Profile**
-- [ ] Actor model classes (Person, PublicKey)
-- [ ] GET /users/{username} - Actor profile endpoint
-- [ ] Actor JSON-LD serialization with @context
-- [ ] Public key embedding in actor profile
-- [ ] Profile metadata (name, bio, avatar)
+**ActivityPub Actor Profile** ✅
+- [x] Actor model classes (Person, PublicKey)
+- [x] GET /users/{username} - Actor profile endpoint
+- [x] Actor JSON-LD serialization with @context
+- [x] Public key embedding in actor profile
+- [x] Profile metadata (name, bio, avatar)
+- [x] Tested with application/activity+json and application/ld+json
 
-**WebFinger Support**
-- [ ] WebFinger controller
-- [ ] GET /.well-known/webfinger - User discovery
-- [ ] WebFinger response DTO
-- [ ] Account identifier parsing (acct:user@domain)
+**WebFinger Support** ✅
+- [x] WebFinger controller
+- [x] GET /.well-known/webfinger - User discovery
+- [x] WebFinger response DTO
+- [x] Account identifier parsing (acct:user@domain)
+- [x] Tested with valid and invalid requests
 
 **ActivityPub Collections**
 - [ ] GET /users/{username}/inbox - Inbox endpoint
@@ -586,7 +588,7 @@ For ActivityPub federated posts and thumbnails:
 - [ ] Activity visibility enforcement
 
 **Database Migrations**
-- [ ] Flyway or Liquibase setup
+- [ ] Flyway setup
 - [ ] Initial schema migration (users table)
 - [ ] Activities table migration
 - [ ] Activity metrics table migration

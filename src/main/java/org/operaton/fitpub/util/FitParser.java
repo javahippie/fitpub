@@ -361,7 +361,7 @@ public class FitParser {
                 .activity(activity)
                 .averageSpeed(averageSpeed)
                 .maxSpeed(maxSpeed)
-                .averagePace(averagePace)
+                .averagePaceSeconds(averagePace != null ? averagePace.getSeconds() : null)
                 .averageHeartRate(averageHeartRate)
                 .maxHeartRate(maxHeartRate)
                 .averageCadence(averageCadence)
@@ -375,8 +375,8 @@ public class FitParser {
                 .minElevation(minElevation)
                 .totalAscent(totalAscent)
                 .totalDescent(totalDescent)
-                .movingTime(movingTime)
-                .stoppedTime(stoppedTime)
+                .movingTimeSeconds(movingTime != null ? movingTime.getSeconds() : null)
+                .stoppedTimeSeconds(stoppedTime != null ? stoppedTime.getSeconds() : null)
                 .totalSteps(totalSteps)
                 .build();
         }

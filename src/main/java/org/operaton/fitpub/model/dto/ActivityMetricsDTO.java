@@ -61,16 +61,16 @@ public class ActivityMetricsDTO {
             .totalSteps(metrics.getTotalSteps())
             .trainingStressScore(metrics.getTrainingStressScore());
 
-        if (metrics.getAveragePace() != null) {
-            builder.averagePaceSeconds(metrics.getAveragePace().getSeconds());
+        if (metrics.getAveragePaceSeconds() != null) {
+            builder.averagePaceSeconds(metrics.getAveragePaceSeconds());
         }
 
-        if (metrics.getMovingTime() != null) {
-            builder.movingTimeSeconds(metrics.getMovingTime().getSeconds());
+        if (metrics.getMovingTimeSeconds() != null) {
+            builder.movingTimeSeconds(metrics.getMovingTimeSeconds());
         }
 
-        if (metrics.getStoppedTime() != null) {
-            builder.stoppedTimeSeconds(metrics.getStoppedTime().getSeconds());
+        if (metrics.getStoppedTimeSeconds() != null) {
+            builder.stoppedTimeSeconds(metrics.getStoppedTimeSeconds());
         }
 
         return builder.build();

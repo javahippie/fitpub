@@ -1,0 +1,86 @@
+# Production profile configuration
+# Activated with: java -jar fitpub.jar --spring.profiles.active=prod
+
+spring:
+  # Production datasource - must be configured via environment variables
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Never auto-update schema in production!
+    show-sql: false  # Don't log SQL in production
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+# Production-specific FitPub configuration
+fitpub:
+  # Must be configured via environment variables
+  domain: ${FITPUB_DOMAIN}
+  base-url: ${FITPUB_BASE_URL}
+
+  activitypub:
+    enabled: true
+    max-federation-retries: 3
+    request-timeout-seconds: 30
+
+  security:
+    jwt:
+      # Must be configured via environment variables
+      secret: ${JWT_SECRET}
+      expiration: 86400000  # 24 hours
+
+  storage:
+    fit-files:
+      enabled: true
+      retention-days: 365
+
+# Logging - minimal in production
+logging:
+  level:
+    root: WARN
+    org.operaton.fitpub: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+  file:
+    name: /var/log/fitpub/application.log
+    max-size: 10MB
+    max-history: 30
+
+# Server configuration
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never  # Don't expose error details
+    include-binding-errors: never
+    include-stacktrace: never
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+  http2:
+    enabled: true
+
+# Actuator for monitoring (optional - configure with care)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
