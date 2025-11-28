@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Login</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow-sm">
+                    <div class="card-body p-5">
+                        <h2 class="text-center mb-4">
+                            <i class="bi bi-box-arrow-in-right text-primary"></i>
+                            Sign In
+                        </h2>
+
+                        <p class="text-muted text-center mb-4">
+                            Welcome back to FitPub
+                        </p>
+
+                        <!-- Login Form -->
+                        <form id="loginForm">
+                            <!-- Error Alert -->
+                            <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span id="errorMessage"></span>
+                            </div>
+
+                            <!-- Username or Email -->
+                            <div class="mb-3">
+                                <label for="usernameOrEmail" class="form-label">
+                                    Username or Email
+                                </label>
+                                <input type="text"
+                                       class="form-control form-control-lg"
+                                       id="usernameOrEmail"
+                                       name="usernameOrEmail"
+                                       placeholder="Enter username or email"
+                                       required
+                                       autocomplete="username">
+                                <div class="invalid-feedback">
+                                    Please enter your username or email.
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-4">
+                                <label for="password" class="form-label">
+                                    Password
+                                </label>
+                                <input type="password"
+                                       class="form-control form-control-lg"
+                                       id="password"
+                                       name="password"
+                                       placeholder="Enter password"
+                                       required
+                                       autocomplete="current-password">
+                                <div class="invalid-feedback">
+                                    Please enter your password.
+                                </div>
+                            </div>
+
+                            <!-- Remember Me (Optional for future) -->
+                            <div class="mb-3 form-check">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="rememberMe"
+                                       name="rememberMe">
+                                <label class="form-check-label" for="rememberMe">
+                                    Remember me
+                                </label>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
+                                    <span id="loginBtnText">
+                                        <i class="bi bi-box-arrow-in-right"></i> Sign In
+                                    </span>
+                                    <span id="loginBtnSpinner" class="d-none">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        Signing in...
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Divider -->
+                        <div class="text-center my-3">
+                            <hr>
+                        </div>
+
+                        <!-- Register Link -->
+                        <div class="text-center">
+                            <p class="text-muted mb-0">
+                                Don't have an account?
+                                <a th:href="@{/register}" class="text-decoration-none fw-bold">Create one</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help Box -->
+                <div class="card border-0 bg-light mt-4">
+                    <div class="card-body">
+                        <h6><i class="bi bi-question-circle text-primary"></i> Need Help?</h6>
+                        <p class="text-muted small mb-0">
+                            Forgot your password? Contact your instance administrator or create a new account.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('loginForm');
+                const loginBtn = document.getElementById('loginBtn');
+                const loginBtnText = document.getElementById('loginBtnText');
+                const loginBtnSpinner = document.getElementById('loginBtnSpinner');
+                const errorAlert = document.getElementById('errorAlert');
+                const errorMessage = document.getElementById('errorMessage');
+
+                // Form submission
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    // Validate form
+                    if (!form.checkValidity()) {
+                        form.classList.add('was-validated');
+                        return;
+                    }
+
+                    // Hide error alert
+                    errorAlert.classList.add('d-none');
+
+                    // Show loading state
+                    loginBtn.disabled = true;
+                    loginBtnText.classList.add('d-none');
+                    loginBtnSpinner.classList.remove('d-none');
+
+                    // Prepare request data
+                    const formData = {
+                        usernameOrEmail: document.getElementById('usernameOrEmail').value,
+                        password: document.getElementById('password').value
+                    };
+
+                    try {
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData)
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            // Store JWT token
+                            localStorage.setItem('jwtToken', data.token);
+                            localStorage.setItem('username', data.username);
+
+                            // Redirect to activities page
+                            window.location.href = '/activities';
+                        } else {
+                            // Show error message
+                            errorMessage.textContent = data.message || 'Invalid username/email or password.';
+                            errorAlert.classList.remove('d-none');
+
+                            // Reset button state
+                            loginBtn.disabled = false;
+                            loginBtnText.classList.remove('d-none');
+                            loginBtnSpinner.classList.add('d-none');
+                        }
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        errorMessage.textContent = 'An unexpected error occurred. Please try again.';
+                        errorAlert.classList.remove('d-none');
+
+                        // Reset button state
+                        loginBtn.disabled = false;
+                        loginBtnText.classList.remove('d-none');
+                        loginBtnSpinner.classList.add('d-none');
+                    }
+                });
+            });
+        </script>
+    </th:block>
+</body>
+</html>

@@ -49,17 +49,35 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
+                // Public endpoints - Static resources
+                .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico").permitAll()
+
+                // Public endpoints - Error pages
+                .requestMatchers("/error").permitAll()
+
+                // Public endpoints - Web UI pages
+                .requestMatchers("/", "/login", "/register", "/timeline", "/activities", "/activities/**").permitAll()
+
                 // Public endpoints - ActivityPub federation
                 .requestMatchers("/.well-known/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/users/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/users/*/inbox").permitAll()
 
-                // Public endpoints - Authentication
+                // Public endpoints - Authentication API
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/users/register").permitAll()
 
-                // Protected endpoints - Activities
+                // Public endpoints - Timeline API (read-only)
+                .requestMatchers(HttpMethod.GET, "/api/timeline/public").permitAll()
+
+                // Protected endpoints - Activities API
                 .requestMatchers("/api/activities/**").authenticated()
+
+                // Protected endpoints - Timeline API (user-specific)
+                .requestMatchers("/api/timeline/**").authenticated()
+
+                // Protected web pages
+                .requestMatchers("/profile", "/settings").authenticated()
 
                 // All other requests require authentication
                 .anyRequest().authenticated()

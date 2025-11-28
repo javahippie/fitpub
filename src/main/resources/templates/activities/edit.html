@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Edit Activity</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h2 class="mb-4">
+                    <i class="bi bi-pencil text-primary"></i>
+                    Edit Activity
+                </h2>
+
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading activity...</p>
+                </div>
+
+                <!-- Success Alert -->
+                <div id="successAlert" class="alert alert-success d-none" role="alert">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span id="successMessage">Activity updated successfully!</span>
+                </div>
+
+                <!-- Error Alert -->
+                <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span id="errorMessage"></span>
+                </div>
+
+                <!-- Edit Form -->
+                <div class="card shadow-sm d-none" id="editCard">
+                    <div class="card-body p-4">
+                        <form id="editForm">
+                            <!-- Title -->
+                            <div class="mb-3">
+                                <label for="title" class="form-label">
+                                    Title <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="title"
+                                       name="title"
+                                       placeholder="e.g., Morning Run"
+                                       maxlength="200"
+                                       required>
+                                <div class="invalid-feedback">
+                                    Please provide a title for your activity.
+                                </div>
+                            </div>
+
+                            <!-- Activity Type -->
+                            <div class="mb-3">
+                                <label for="activityType" class="form-label">
+                                    Activity Type <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="activityType" name="activityType" required>
+                                    <option value="RUN">Run</option>
+                                    <option value="RIDE">Ride</option>
+                                    <option value="HIKE">Hike</option>
+                                    <option value="WALK">Walk</option>
+                                    <option value="SWIM">Swim</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="mb-3">
+                                <label for="description" class="form-label">
+                                    Description
+                                </label>
+                                <textarea class="form-control"
+                                          id="description"
+                                          name="description"
+                                          rows="4"
+                                          placeholder="Share details about your activity..."
+                                          maxlength="5000"></textarea>
+                                <div class="form-text">
+                                    <span id="descCharCount">0</span>/5000 characters
+                                </div>
+                            </div>
+
+                            <!-- Visibility -->
+                            <div class="mb-4">
+                                <label for="visibility" class="form-label">
+                                    Visibility <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="visibility" name="visibility" required>
+                                    <option value="PUBLIC">Public - Anyone can see</option>
+                                    <option value="FOLLOWERS">Followers Only - Only your followers can see</option>
+                                    <option value="PRIVATE">Private - Only you can see</option>
+                                </select>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle"></i>
+                                    Public activities will be shared on the Fediverse
+                                </div>
+                            </div>
+
+                            <!-- Activity Summary (Read-only) -->
+                            <div class="alert alert-info">
+                                <h6><i class="bi bi-info-circle"></i> Activity Summary</h6>
+                                <div id="summaryContent">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Submit Buttons -->
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a th:href="@{/activities}" class="btn btn-outline-secondary" id="cancelBtn">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary" id="saveBtn">
+                                    <span id="saveBtnText">
+                                        <i class="bi bi-check-circle"></i> Save Changes
+                                    </span>
+                                    <span id="saveBtnSpinner" class="d-none">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        Saving...
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Activity Preview Map (Optional) -->
+                <div class="card mt-4 d-none" id="mapPreview">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-map"></i> Route Preview
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="activityMap" class="map-container-large"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                const activityId = window.location.pathname.split('/').slice(-2, -1)[0];
+                const form = document.getElementById('editForm');
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const editCard = document.getElementById('editCard');
+                const errorAlert = document.getElementById('errorAlert');
+                const successAlert = document.getElementById('successAlert');
+                const errorMessage = document.getElementById('errorMessage');
+                const saveBtn = document.getElementById('saveBtn');
+                const saveBtnText = document.getElementById('saveBtnText');
+                const saveBtnSpinner = document.getElementById('saveBtnSpinner');
+                const descriptionInput = document.getElementById('description');
+                const descCharCount = document.getElementById('descCharCount');
+                const cancelBtn = document.getElementById('cancelBtn');
+
+                // Load activity data
+                loadActivity();
+
+                async function loadActivity() {
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch(`/api/activities/${activityId}`);
+
+                        if (response.ok) {
+                            const activity = await response.json();
+                            populateForm(activity);
+
+                            // Hide loading, show form
+                            loadingIndicator.classList.add('d-none');
+                            editCard.classList.remove('d-none');
+
+                            // Show map if track exists
+                            if (activity.simplifiedTrack) {
+                                document.getElementById('mapPreview').classList.remove('d-none');
+                                renderMap(activity.simplifiedTrack);
+                            }
+                        } else {
+                            throw new Error('Failed to load activity');
+                        }
+                    } catch (error) {
+                        console.error('Error loading activity:', error);
+                        loadingIndicator.classList.add('d-none');
+                        errorMessage.textContent = 'Failed to load activity. Please try again.';
+                        errorAlert.classList.remove('d-none');
+                    }
+                }
+
+                function populateForm(activity) {
+                    // Populate form fields
+                    document.getElementById('title').value = activity.title || '';
+                    document.getElementById('activityType').value = activity.activityType || 'OTHER';
+                    document.getElementById('description').value = activity.description || '';
+                    document.getElementById('visibility').value = activity.visibility || 'PUBLIC';
+
+                    // Update character count
+                    descCharCount.textContent = (activity.description || '').length;
+
+                    // Populate summary
+                    document.getElementById('summaryContent').innerHTML = `
+                        <p class="mb-1"><strong>Date:</strong> ${new Date(activity.startedAt).toLocaleString()}</p>
+                        <p class="mb-1"><strong>Distance:</strong> ${formatDistance(activity.totalDistance)}</p>
+                        <p class="mb-1"><strong>Duration:</strong> ${formatDuration(activity.totalDuration)}</p>
+                        <p class="mb-0"><strong>Elevation Gain:</strong> ${activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A'}</p>
+                    `;
+
+                    // Update cancel button to go back to activity detail
+                    cancelBtn.href = `/activities/${activityId}`;
+                }
+
+                function renderMap(simplifiedTrack) {
+                    const geoJson = {
+                        type: 'LineString',
+                        coordinates: simplifiedTrack.coordinates
+                    };
+
+                    FitPub.createActivityMap('activityMap', geoJson, {
+                        showStartEnd: true,
+                        fitBounds: true
+                    });
+                }
+
+                // Description character count
+                descriptionInput.addEventListener('input', function() {
+                    descCharCount.textContent = this.value.length;
+                });
+
+                // Form submission
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    // Validate form
+                    if (!form.checkValidity()) {
+                        form.classList.add('was-validated');
+                        return;
+                    }
+
+                    // Hide alerts
+                    errorAlert.classList.add('d-none');
+                    successAlert.classList.add('d-none');
+
+                    // Show loading state
+                    saveBtn.disabled = true;
+                    saveBtnText.classList.add('d-none');
+                    saveBtnSpinner.classList.remove('d-none');
+
+                    // Prepare update data
+                    const updateData = {
+                        title: document.getElementById('title').value,
+                        activityType: document.getElementById('activityType').value,
+                        description: document.getElementById('description').value,
+                        visibility: document.getElementById('visibility').value
+                    };
+
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch(
+                            `/api/activities/${activityId}`,
+                            {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(updateData)
+                            }
+                        );
+
+                        if (response.ok) {
+                            // Show success
+                            successAlert.classList.remove('d-none');
+
+                            // Redirect to activity detail page
+                            setTimeout(() => {
+                                window.location.href = `/activities/${activityId}`;
+                            }, 1500);
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || 'Failed to update activity');
+                        }
+                    } catch (error) {
+                        console.error('Update error:', error);
+                        errorMessage.textContent = error.message || 'An error occurred while updating. Please try again.';
+                        errorAlert.classList.remove('d-none');
+
+                        // Reset button state
+                        saveBtn.disabled = false;
+                        saveBtnText.classList.remove('d-none');
+                        saveBtnSpinner.classList.add('d-none');
+
+                        // Scroll to error
+                        errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+
+                // Helper functions
+                function formatDistance(meters) {
+                    if (!meters) return 'N/A';
+                    if (meters >= 1000) {
+                        return (meters / 1000).toFixed(2) + ' km';
+                    }
+                    return Math.round(meters) + ' m';
+                }
+
+                function formatDuration(seconds) {
+                    if (!seconds) return 'N/A';
+                    const hours = Math.floor(seconds / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = Math.floor(seconds % 60);
+
+                    const parts = [];
+                    if (hours > 0) parts.push(hours + 'h');
+                    if (minutes > 0) parts.push(minutes + 'm');
+                    if (secs > 0 || parts.length === 0) parts.push(secs + 's');
+
+                    return parts.join(' ');
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

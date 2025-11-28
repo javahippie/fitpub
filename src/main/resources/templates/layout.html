@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title th:text="${pageTitle != null ? pageTitle + ' - FitPub' : 'FitPub - Federated Fitness Tracking'}">FitPub</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+          crossorigin="anonymous">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="anonymous"/>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" th:href="@{/css/fitpub.css}">
+
+    <!-- Additional head content from child templates -->
+    <th:block layout:fragment="head"></th:block>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" th:href="@{/}">
+                <i class="bi bi-activity"></i> FitPub
+            </a>
+
+            <button class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                    aria-controls="navbarNav"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Left side navigation -->
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/timeline}">
+                            <i class="bi bi-globe"></i> Timeline
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/activities}" id="myActivitiesLink" style="display: none;">
+                            <i class="bi bi-list-task"></i> My Activities
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/activities/upload}" id="uploadLink" style="display: none;">
+                            <i class="bi bi-cloud-upload"></i> Upload
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Right side navigation -->
+                <ul class="navbar-nav">
+                    <!-- Authenticated user menu (hidden by default, shown by JS if JWT exists) -->
+                    <li class="nav-item dropdown d-none" id="authUserMenu">
+                        <a class="nav-link dropdown-toggle"
+                           href="#"
+                           id="userDropdown"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="bi bi-person-circle"></i>
+                            <span id="usernameDisplay">User</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item" th:href="@{/profile}">
+                                    <i class="bi bi-person"></i> Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" th:href="@{/settings}">
+                                    <i class="bi bi-gear"></i> Settings
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a href="#" class="dropdown-item" onclick="event.preventDefault(); FitPubAuth.logout();">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Guest menu (shown by default, hidden by JS if JWT exists) -->
+                    <div id="guestMenu">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/login}">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/register}">
+                                <i class="bi bi-person-plus"></i> Register
+                            </a>
+                        </li>
+                    </div>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash messages / Alerts -->
+    <div class="container mt-3" th:if="${message}">
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <span th:text="${message}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <div class="container mt-3" th:if="${error}">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <div class="container mt-3" th:if="${success}">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <!-- Main content area -->
+    <main class="container my-4">
+        <th:block layout:fragment="content">
+            <!-- Page content will be inserted here -->
+        </th:block>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>FitPub</h5>
+                    <p class="text-muted">Federated Fitness Tracking</p>
+                    <p class="text-small text-muted">
+                        Share your fitness activities on the Fediverse
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <h6>Links</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-decoration-none">About</a></li>
+                        <li><a href="#" class="text-decoration-none">Privacy</a></li>
+                        <li><a href="#" class="text-decoration-none">Terms</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6>Federation</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-decoration-none">ActivityPub</a></li>
+                        <li><a href="#" class="text-decoration-none">API Docs</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center text-muted text-small">
+                <p>&copy; 2024 FitPub. Open Source Software.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+            crossorigin="anonymous"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"
+            integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+            crossorigin="anonymous"></script>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin="anonymous"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+            crossorigin="anonymous"></script>
+
+    <!-- Custom JS -->
+    <script th:src="@{/js/auth.js}"></script>
+    <script th:src="@{/js/fitpub.js}"></script>
+
+    <!-- Additional scripts from child templates -->
+    <th:block layout:fragment="scripts"></th:block>
+</body>
+</html>

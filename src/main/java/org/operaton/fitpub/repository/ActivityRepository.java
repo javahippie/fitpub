@@ -1,6 +1,8 @@
 package org.operaton.fitpub.repository;
 
 import org.operaton.fitpub.model.entity.Activity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -85,4 +87,41 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
      * @param userId the user ID
      */
     void deleteByUserId(UUID userId);
+
+    /**
+     * Find activities for a user with pagination.
+     *
+     * @param userId the user ID
+     * @param pageable pagination parameters
+     * @return page of activities
+     */
+    Page<Activity> findByUserIdOrderByStartedAtDesc(UUID userId, Pageable pageable);
+
+    /**
+     * Find activities by user IDs and visibility with pagination.
+     * Used for federated timeline.
+     *
+     * @param userIds list of user IDs
+     * @param visibilities list of visibility values
+     * @param pageable pagination parameters
+     * @return page of activities
+     */
+    Page<Activity> findByUserIdInAndVisibilityInOrderByStartedAtDesc(
+        List<UUID> userIds,
+        List<Activity.Visibility> visibilities,
+        Pageable pageable
+    );
+
+    /**
+     * Find all public activities with pagination.
+     * Used for public timeline.
+     *
+     * @param visibility the visibility level
+     * @param pageable pagination parameters
+     * @return page of activities
+     */
+    Page<Activity> findByVisibilityOrderByStartedAtDesc(
+        Activity.Visibility visibility,
+        Pageable pageable
+    );
 }

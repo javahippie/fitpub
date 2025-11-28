@@ -3,6 +3,7 @@ package org.operaton.fitpub.config;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -11,8 +12,11 @@ import org.testcontainers.utility.DockerImageName;
  * Automatically starts a PostgreSQL container with PostGIS extension when running in dev mode.
  *
  * This ensures development environment matches production (PostgreSQL + PostGIS).
+ *
+ * Only active when NOT running in production profile.
  */
 @Configuration(proxyBeanMethods = false)
+@Profile("!prod")
 public class TestcontainersConfiguration {
 
     /**

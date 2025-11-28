@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Upload Activity</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h2 class="mb-4">
+                    <i class="bi bi-cloud-upload text-primary"></i>
+                    Upload Activity
+                </h2>
+
+                <!-- Success Alert -->
+                <div id="successAlert" class="alert alert-success d-none" role="alert">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span id="successMessage">Activity uploaded successfully!</span>
+                    <a href="#" id="viewActivityLink" class="alert-link">View activity</a>
+                </div>
+
+                <!-- Error Alert -->
+                <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span id="errorMessage"></span>
+                </div>
+
+                <!-- Upload Form -->
+                <div class="card shadow-sm" id="uploadCard">
+                    <div class="card-body p-4">
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            <!-- File Upload Area -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    FIT File <span class="text-danger">*</span>
+                                </label>
+                                <div class="file-upload-area" id="fileUploadArea">
+                                    <input type="file"
+                                           id="fitFile"
+                                           name="file"
+                                           accept=".fit"
+                                           class="d-none"
+                                           required>
+                                    <div class="file-upload-icon">
+                                        <i class="bi bi-cloud-arrow-up"></i>
+                                    </div>
+                                    <p class="mb-2"><strong>Drop your FIT file here</strong></p>
+                                    <p class="text-muted mb-2">or click to browse</p>
+                                    <p class="file-upload-label text-primary fw-bold" id="fileLabel">
+                                        No file selected
+                                    </p>
+                                    <small class="text-muted">Supported: .fit files from Garmin, Wahoo, etc. (Max 50MB)</small>
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please select a FIT file to upload.
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="mb-4 d-none" id="progressContainer">
+                                <label class="form-label">Upload Progress</label>
+                                <div class="progress" style="height: 25px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                         id="progressBar"
+                                         role="progressbar"
+                                         style="width: 0%"
+                                         aria-valuenow="0"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                        <span id="progressText">0%</span>
+                                    </div>
+                                </div>
+                                <small class="text-muted" id="progressStatus">Uploading...</small>
+                            </div>
+
+                            <!-- Activity Metadata (shown after upload) -->
+                            <div id="metadataSection" class="d-none">
+                                <hr class="my-4">
+                                <h5 class="mb-3">Activity Details</h5>
+
+                                <!-- Title -->
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">
+                                        Title <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="title"
+                                           name="title"
+                                           placeholder="e.g., Morning Run"
+                                           maxlength="200">
+                                    <div class="invalid-feedback">
+                                        Please provide a title for your activity.
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">
+                                        Description
+                                    </label>
+                                    <textarea class="form-control"
+                                              id="description"
+                                              name="description"
+                                              rows="4"
+                                              placeholder="Share details about your activity..."
+                                              maxlength="5000"></textarea>
+                                    <div class="form-text">
+                                        <span id="descCharCount">0</span>/5000 characters
+                                    </div>
+                                </div>
+
+                                <!-- Visibility -->
+                                <div class="mb-4">
+                                    <label for="visibility" class="form-label">
+                                        Visibility <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="visibility" name="visibility">
+                                        <option value="PUBLIC" selected>Public - Anyone can see</option>
+                                        <option value="FOLLOWERS">Followers Only - Only your followers can see</option>
+                                        <option value="PRIVATE">Private - Only you can see</option>
+                                    </select>
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle"></i>
+                                        Public activities will be shared on the Fediverse
+                                    </div>
+                                </div>
+
+                                <!-- Activity Summary (from uploaded file) -->
+                                <div id="activitySummary" class="alert alert-info">
+                                    <h6><i class="bi bi-info-circle"></i> Activity Summary</h6>
+                                    <div id="summaryContent">
+                                        <!-- Will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Buttons -->
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="button" class="btn btn-outline-secondary" id="cancelBtn">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                    <span id="uploadBtnText">
+                                        <i class="bi bi-cloud-upload"></i> Upload Activity
+                                    </span>
+                                    <span id="uploadBtnSpinner" class="d-none">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        Processing...
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Upload Tips -->
+                <div class="card border-0 bg-light mt-4">
+                    <div class="card-body">
+                        <h6><i class="bi bi-lightbulb text-warning"></i> Upload Tips</h6>
+                        <ul class="mb-0 small">
+                            <li>FIT files can be exported from Garmin Connect, Strava, Wahoo, and most GPS devices</li>
+                            <li>The activity will be processed to extract GPS tracks, metrics, and statistics</li>
+                            <li>You can add a title and description after uploading</li>
+                            <li>Public activities will appear in your followers' timelines on the Fediverse</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('uploadForm');
+                const fitFileInput = document.getElementById('fitFile');
+                const fileLabel = document.getElementById('fileLabel');
+                const uploadBtn = document.getElementById('uploadBtn');
+                const uploadBtnText = document.getElementById('uploadBtnText');
+                const uploadBtnSpinner = document.getElementById('uploadBtnSpinner');
+                const cancelBtn = document.getElementById('cancelBtn');
+                const errorAlert = document.getElementById('errorAlert');
+                const successAlert = document.getElementById('successAlert');
+                const errorMessage = document.getElementById('errorMessage');
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                const progressStatus = document.getElementById('progressStatus');
+                const metadataSection = document.getElementById('metadataSection');
+                const descriptionInput = document.getElementById('description');
+                const descCharCount = document.getElementById('descCharCount');
+
+                let uploadedActivityId = null;
+
+                // File selection handler
+                fitFileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        const file = this.files[0];
+                        fileLabel.textContent = file.name;
+                        fileLabel.classList.add('text-success');
+                    }
+                });
+
+                // Description character count
+                if (descriptionInput) {
+                    descriptionInput.addEventListener('input', function() {
+                        descCharCount.textContent = this.value.length;
+                    });
+                }
+
+                // Cancel button
+                cancelBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+                        window.location.href = '/activities';
+                    }
+                });
+
+                // Form submission
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    console.log('Form submitted');
+                    console.log('File input files:', fitFileInput.files);
+
+                    // Validate form
+                    if (!form.checkValidity()) {
+                        console.log('Form validation failed');
+                        form.classList.add('was-validated');
+                        return;
+                    }
+
+                    // Check if file is selected
+                    if (!fitFileInput.files || fitFileInput.files.length === 0) {
+                        console.error('No file selected');
+                        errorMessage.textContent = 'Please select a FIT file to upload.';
+                        errorAlert.classList.remove('d-none');
+                        return;
+                    }
+
+                    console.log('Starting upload...');
+
+                    // Hide alerts
+                    errorAlert.classList.add('d-none');
+                    successAlert.classList.add('d-none');
+
+                    // Show progress
+                    progressContainer.classList.remove('d-none');
+                    uploadBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                    uploadBtnText.classList.add('d-none');
+                    uploadBtnSpinner.classList.remove('d-none');
+
+                    // Prepare form data
+                    const formData = new FormData();
+                    formData.append('file', fitFileInput.files[0]);
+
+                    // If metadata is filled, include it
+                    if (!metadataSection.classList.contains('d-none')) {
+                        formData.append('title', document.getElementById('title').value);
+                        formData.append('description', document.getElementById('description').value);
+                        formData.append('visibility', document.getElementById('visibility').value);
+                    }
+
+                    try {
+                        // Upload with progress tracking
+                        const xhr = new XMLHttpRequest();
+
+                        xhr.upload.addEventListener('progress', function(e) {
+                            if (e.lengthComputable) {
+                                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                                progressBar.style.width = percentComplete + '%';
+                                progressBar.setAttribute('aria-valuenow', percentComplete);
+                                progressText.textContent = percentComplete + '%';
+                            }
+                        });
+
+                        xhr.addEventListener('load', function() {
+                            console.log('XHR load event, status:', xhr.status);
+                            console.log('Response:', xhr.responseText);
+
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                try {
+                                    const response = JSON.parse(xhr.responseText);
+                                    uploadedActivityId = response.id;
+
+                                    progressStatus.textContent = 'Processing complete!';
+                                    progressBar.classList.remove('progress-bar-animated');
+                                    progressBar.classList.add('bg-success');
+
+                                    // Show success message
+                                    successAlert.classList.remove('d-none');
+                                    document.getElementById('viewActivityLink').href = '/activities/' + uploadedActivityId;
+
+                                    // Show metadata section if not already shown
+                                    if (metadataSection.classList.contains('d-none')) {
+                                        metadataSection.classList.remove('d-none');
+
+                                        // Populate summary
+                                        document.getElementById('summaryContent').innerHTML = `
+                                            <p class="mb-1"><strong>Type:</strong> ${response.activityType || 'Unknown'}</p>
+                                            <p class="mb-1"><strong>Distance:</strong> ${formatDistance(response.totalDistance)}</p>
+                                            <p class="mb-1"><strong>Duration:</strong> ${formatDuration(response.totalDurationSeconds)}</p>
+                                            <p class="mb-0"><strong>Date:</strong> ${new Date(response.startedAt).toLocaleString()}</p>
+                                        `;
+
+                                        // Pre-fill title with activity type and date
+                                        const activityDate = new Date(response.startedAt);
+                                        document.getElementById('title').value = `${response.activityType || 'Activity'} - ${activityDate.toLocaleDateString()}`;
+                                    }
+
+                                    // Reset form state
+                                    uploadBtn.disabled = false;
+                                    cancelBtn.disabled = false;
+                                    uploadBtnText.classList.remove('d-none');
+                                    uploadBtnSpinner.classList.add('d-none');
+                                    uploadBtn.innerHTML = '<i class="bi bi-check-circle"></i> Save Details';
+                                } catch (parseError) {
+                                    console.error('Error parsing response:', parseError);
+                                    errorMessage.textContent = 'Error processing server response: ' + parseError.message;
+                                    errorAlert.classList.remove('d-none');
+
+                                    // Reset button state
+                                    uploadBtn.disabled = false;
+                                    cancelBtn.disabled = false;
+                                    uploadBtnText.classList.remove('d-none');
+                                    uploadBtnSpinner.classList.add('d-none');
+                                    progressContainer.classList.add('d-none');
+                                }
+                            } else {
+                                console.error('Upload failed with status:', xhr.status);
+                                let errorMsg = 'Upload failed';
+                                try {
+                                    const errorData = JSON.parse(xhr.responseText);
+                                    errorMsg = errorData.message || errorMsg;
+                                } catch (e) {
+                                    errorMsg = xhr.responseText || errorMsg;
+                                }
+                                errorMessage.textContent = errorMsg;
+                                errorAlert.classList.remove('d-none');
+
+                                // Reset button state
+                                uploadBtn.disabled = false;
+                                cancelBtn.disabled = false;
+                                uploadBtnText.classList.remove('d-none');
+                                uploadBtnSpinner.classList.add('d-none');
+                                progressContainer.classList.add('d-none');
+                            }
+                        });
+
+                        xhr.addEventListener('error', function() {
+                            console.error('XHR error event');
+                            errorMessage.textContent = 'Network error during upload';
+                            errorAlert.classList.remove('d-none');
+
+                            // Reset button state
+                            uploadBtn.disabled = false;
+                            cancelBtn.disabled = false;
+                            uploadBtnText.classList.remove('d-none');
+                            uploadBtnSpinner.classList.add('d-none');
+                            progressContainer.classList.add('d-none');
+                        });
+
+                        // Add JWT token
+                        const token = localStorage.getItem('jwtToken');
+                        if (token) {
+                            xhr.open('POST', '/api/activities/upload');
+                            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                            xhr.send(formData);
+                        } else {
+                            throw new Error('Not authenticated. Please login first.');
+                        }
+
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        errorMessage.textContent = error.message || 'An error occurred during upload. Please try again.';
+                        errorAlert.classList.remove('d-none');
+
+                        // Reset button state
+                        uploadBtn.disabled = false;
+                        cancelBtn.disabled = false;
+                        uploadBtnText.classList.remove('d-none');
+                        uploadBtnSpinner.classList.add('d-none');
+                        progressContainer.classList.add('d-none');
+                    }
+                });
+
+                // Helper functions
+                function formatDistance(meters) {
+                    if (!meters) return 'N/A';
+                    if (meters >= 1000) {
+                        return (meters / 1000).toFixed(2) + ' km';
+                    }
+                    return Math.round(meters) + ' m';
+                }
+
+                function formatDuration(seconds) {
+                    if (!seconds) return 'N/A';
+                    const hours = Math.floor(seconds / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = Math.floor(seconds % 60);
+
+                    const parts = [];
+                    if (hours > 0) parts.push(hours + 'h');
+                    if (minutes > 0) parts.push(minutes + 'm');
+                    if (secs > 0 || parts.length === 0) parts.push(secs + 's');
+
+                    return parts.join(' ');
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

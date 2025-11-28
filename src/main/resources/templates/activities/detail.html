@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Activity Details</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading activity...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span id="errorMessage"></span>
+        </div>
+
+        <!-- Activity Content -->
+        <div id="activityContent" class="d-none">
+            <!-- Activity Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h2 id="activityTitle">Activity Title</h2>
+                            <p class="text-muted mb-2">
+                                <span id="activityType" class="activity-type-badge"></span>
+                                <span class="ms-2">
+                                    <i class="bi bi-calendar"></i>
+                                    <span id="activityDate"></span>
+                                </span>
+                                <span class="ms-2" id="visibilityBadge">
+                                    <i class="bi bi-globe"></i>
+                                    <span id="activityVisibility"></span>
+                                </span>
+                            </p>
+                            <p id="activityDescription" class="text-muted"></p>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <a href="#" id="editBtn" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            <button id="deleteBtn" class="btn btn-outline-danger">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Metrics -->
+            <div class="row mb-4">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary mb-0" id="metricDistance">--</h3>
+                            <p class="text-muted mb-0">Distance</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary mb-0" id="metricDuration">--</h3>
+                            <p class="text-muted mb-0">Duration</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary mb-0" id="metricElevation">--</h3>
+                            <p class="text-muted mb-0">Elevation Gain</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary mb-0" id="metricPace">--</h3>
+                            <p class="text-muted mb-0">Avg Pace</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-map"></i> Route Map
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="activityMap" class="map-container-large"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Elevation Chart -->
+            <div class="row mb-4" id="elevationSection" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-graph-up"></i> Elevation Profile
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="elevationChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Metrics -->
+            <div class="row mb-4" id="additionalMetrics" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-speedometer2"></i> Additional Metrics
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3" id="avgHeartRateContainer" style="display: none;">
+                                    <strong>Average Heart Rate:</strong>
+                                    <span id="avgHeartRate" class="float-end">-- bpm</span>
+                                </div>
+                                <div class="col-md-4 mb-3" id="maxHeartRateContainer" style="display: none;">
+                                    <strong>Max Heart Rate:</strong>
+                                    <span id="maxHeartRate" class="float-end">-- bpm</span>
+                                </div>
+                                <div class="col-md-4 mb-3" id="avgCadenceContainer" style="display: none;">
+                                    <strong>Average Cadence:</strong>
+                                    <span id="avgCadence" class="float-end">-- rpm</span>
+                                </div>
+                                <div class="col-md-4 mb-3" id="avgSpeedContainer" style="display: none;">
+                                    <strong>Average Speed:</strong>
+                                    <span id="avgSpeed" class="float-end">-- km/h</span>
+                                </div>
+                                <div class="col-md-4 mb-3" id="maxSpeedContainer" style="display: none;">
+                                    <strong>Max Speed:</strong>
+                                    <span id="maxSpeed" class="float-end">-- km/h</span>
+                                </div>
+                                <div class="col-md-4 mb-3" id="caloriesContainer" style="display: none;">
+                                    <strong>Calories:</strong>
+                                    <span id="calories" class="float-end">-- kcal</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <div class="row">
+                <div class="col-12">
+                    <a th:href="@{/activities}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Activities
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">
+                            <i class="bi bi-exclamation-triangle text-danger"></i>
+                            Delete Activity
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this activity?</p>
+                        <p class="text-danger mb-0"><strong>This action cannot be undone.</strong></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                const activityId = window.location.pathname.split('/').pop();
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const errorAlert = document.getElementById('errorAlert');
+                const errorMessage = document.getElementById('errorMessage');
+                const activityContent = document.getElementById('activityContent');
+
+                // Load activity details
+                loadActivity();
+
+                async function loadActivity() {
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch(`/api/activities/${activityId}`);
+
+                        if (response.ok) {
+                            const activity = await response.json();
+                            renderActivity(activity);
+
+                            // Hide loading, show content
+                            loadingIndicator.classList.add('d-none');
+                            activityContent.classList.remove('d-none');
+                        } else {
+                            throw new Error('Failed to load activity');
+                        }
+                    } catch (error) {
+                        console.error('Error loading activity:', error);
+                        loadingIndicator.classList.add('d-none');
+                        errorMessage.textContent = 'Failed to load activity. Please try again.';
+                        errorAlert.classList.remove('d-none');
+                    }
+                }
+
+                function renderActivity(activity) {
+                    // Header
+                    document.getElementById('activityTitle').textContent = activity.title || 'Untitled Activity';
+                    document.getElementById('activityType').textContent = activity.activityType;
+                    document.getElementById('activityType').className = `activity-type-badge activity-type-${activity.activityType.toLowerCase()}`;
+                    document.getElementById('activityDate').textContent = new Date(activity.startedAt).toLocaleString();
+                    document.getElementById('activityVisibility').textContent = activity.visibility;
+
+                    // Visibility icon
+                    const visIcon = getVisibilityIcon(activity.visibility);
+                    document.querySelector('#visibilityBadge i').className = `bi bi-${visIcon}`;
+                    document.getElementById('visibilityBadge').className = `ms-2 visibility-${activity.visibility.toLowerCase()}`;
+
+                    // Description
+                    if (activity.description) {
+                        document.getElementById('activityDescription').textContent = activity.description;
+                    } else {
+                        document.getElementById('activityDescription').style.display = 'none';
+                    }
+
+                    // Edit button
+                    document.getElementById('editBtn').href = `/activities/${activity.id}/edit`;
+
+                    // Metrics
+                    document.getElementById('metricDistance').textContent = formatDistance(activity.totalDistance);
+                    document.getElementById('metricDuration').textContent = formatDuration(activity.totalDuration);
+                    document.getElementById('metricElevation').textContent = activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A';
+
+                    // Calculate pace
+                    if (activity.totalDistance && activity.totalDuration) {
+                        const paceSeconds = activity.totalDuration / (activity.totalDistance / 1000);
+                        document.getElementById('metricPace').textContent = formatPace(paceSeconds);
+                    }
+
+                    // Render map if track data exists
+                    if (activity.simplifiedTrack) {
+                        renderMap(activity.simplifiedTrack);
+                    }
+
+                    // Render elevation chart if data exists
+                    if (activity.trackPoints && activity.trackPoints.length > 0) {
+                        const hasElevation = activity.trackPoints.some(p => p.elevation != null);
+                        if (hasElevation) {
+                            document.getElementById('elevationSection').style.display = 'block';
+                            renderElevationChart(activity.trackPoints);
+                        }
+                    }
+
+                    // Additional metrics
+                    renderAdditionalMetrics(activity);
+                }
+
+                function renderMap(simplifiedTrack) {
+                    // Parse GeoJSON from simplifiedTrack
+                    const geoJson = {
+                        type: 'LineString',
+                        coordinates: simplifiedTrack.coordinates
+                    };
+
+                    // Create map
+                    FitPub.createActivityMap('activityMap', geoJson, {
+                        showStartEnd: true,
+                        fitBounds: true
+                    });
+                }
+
+                function renderElevationChart(trackPoints) {
+                    const elevationData = trackPoints
+                        .filter(p => p.elevation != null)
+                        .map((p, index) => ({
+                            x: index,
+                            y: p.elevation
+                        }));
+
+                    if (elevationData.length > 0) {
+                        FitPub.createElevationChart('elevationChart', elevationData);
+                    }
+                }
+
+                function renderAdditionalMetrics(activity) {
+                    let hasAdditionalMetrics = false;
+
+                    // Average Heart Rate
+                    if (activity.averageHeartRate) {
+                        document.getElementById('avgHeartRate').textContent = Math.round(activity.averageHeartRate) + ' bpm';
+                        document.getElementById('avgHeartRateContainer').style.display = 'block';
+                        hasAdditionalMetrics = true;
+                    }
+
+                    // Max Heart Rate
+                    if (activity.maxHeartRate) {
+                        document.getElementById('maxHeartRate').textContent = Math.round(activity.maxHeartRate) + ' bpm';
+                        document.getElementById('maxHeartRateContainer').style.display = 'block';
+                        hasAdditionalMetrics = true;
+                    }
+
+                    // Average Cadence
+                    if (activity.averageCadence) {
+                        document.getElementById('avgCadence').textContent = Math.round(activity.averageCadence) + ' rpm';
+                        document.getElementById('avgCadenceContainer').style.display = 'block';
+                        hasAdditionalMetrics = true;
+                    }
+
+                    // Average Speed
+                    if (activity.averageSpeed) {
+                        document.getElementById('avgSpeed').textContent = (activity.averageSpeed * 3.6).toFixed(1) + ' km/h';
+                        document.getElementById('avgSpeedContainer').style.display = 'block';
+                        hasAdditionalMetrics = true;
+                    }
+
+                    // Max Speed
+                    if (activity.maxSpeed) {
+                        document.getElementById('maxSpeed').textContent = (activity.maxSpeed * 3.6).toFixed(1) + ' km/h';
+                        document.getElementById('maxSpeedContainer').style.display = 'block';
+                        hasAdditionalMetrics = true;
+                    }
+
+                    // Calories
+                    if (activity.calories) {
+                        document.getElementById('calories').textContent = Math.round(activity.calories) + ' kcal';
+                        document.getElementById('caloriesContainer').style.display = 'block';
+                        hasAdditionalMetrics = true;
+                    }
+
+                    if (hasAdditionalMetrics) {
+                        document.getElementById('additionalMetrics').style.display = 'block';
+                    }
+                }
+
+                // Delete functionality
+                document.getElementById('deleteBtn').addEventListener('click', function() {
+                    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                    modal.show();
+                });
+
+                document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch(
+                            `/api/activities/${activityId}`,
+                            { method: 'DELETE' }
+                        );
+
+                        if (response.ok) {
+                            // Close modal and redirect
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                            modal.hide();
+
+                            FitPub.showAlert('Activity deleted successfully', 'success');
+
+                            setTimeout(() => {
+                                window.location.href = '/activities';
+                            }, 1000);
+                        } else {
+                            throw new Error('Failed to delete activity');
+                        }
+                    } catch (error) {
+                        console.error('Delete error:', error);
+                        FitPub.showAlert('Failed to delete activity. Please try again.', 'danger');
+                    }
+                });
+
+                // Helper functions
+                function formatDistance(meters) {
+                    if (!meters) return 'N/A';
+                    if (meters >= 1000) {
+                        return (meters / 1000).toFixed(2) + ' km';
+                    }
+                    return Math.round(meters) + ' m';
+                }
+
+                function formatDuration(seconds) {
+                    if (!seconds) return 'N/A';
+                    const hours = Math.floor(seconds / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+                    const secs = Math.floor(seconds % 60);
+
+                    const parts = [];
+                    if (hours > 0) parts.push(hours + 'h');
+                    if (minutes > 0) parts.push(minutes + 'm');
+                    if (secs > 0 || parts.length === 0) parts.push(secs + 's');
+
+                    return parts.join(' ');
+                }
+
+                function formatPace(secondsPerKm) {
+                    if (!secondsPerKm) return 'N/A';
+                    const minutes = Math.floor(secondsPerKm / 60);
+                    const seconds = Math.floor(secondsPerKm % 60);
+                    return `${minutes}:${seconds.toString().padStart(2, '0')}/km`;
+                }
+
+                function getVisibilityIcon(visibility) {
+                    switch (visibility) {
+                        case 'PUBLIC': return 'globe';
+                        case 'FOLLOWERS': return 'people';
+                        case 'PRIVATE': return 'lock';
+                        default: return 'question-circle';
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: fitpub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fitpub-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitpub-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # Hibernate Configuration
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: ${JPA_FORMAT_SQL:-false}
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.spatial.dialect.postgis.PostgisDialect
+
+      # Flyway Configuration
+      SPRING_FLYWAY_ENABLED: true
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: true
+
+      # Server Configuration
+      SERVER_PORT: ${APP_PORT:-8080}
+
+      # Application Configuration
+      APP_DOMAIN: ${APP_DOMAIN}
+      APP_BASE_URL: ${APP_BASE_URL}
+
+      # Security Configuration
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+
+      # ActivityPub Configuration
+      ACTIVITYPUB_ENABLED: ${ACTIVITYPUB_ENABLED:-true}
+
+      # File Storage
+      FILE_UPLOAD_MAX_SIZE: ${FILE_UPLOAD_MAX_SIZE:-50MB}
+      FILE_UPLOAD_DIR: ${FILE_UPLOAD_DIR:-/app/uploads}
+
+      # Logging
+      LOGGING_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-INFO}
+      LOGGING_LEVEL_ORG_OPERATON: ${LOG_LEVEL_APP:-INFO}
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: ${LOG_LEVEL_SPRING:-INFO}
+      LOGGING_LEVEL_ORG_HIBERNATE: ${LOG_LEVEL_HIBERNATE:-WARN}
+      LOGGING_LEVEL_ORG_FLYWAYDB: ${LOG_LEVEL_FLYWAY:-INFO}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - app_uploads:/app/uploads
+      - app_logs:/app/logs
+    networks:
+      - fitpub-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+    driver: local
+  app_uploads:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  fitpub-network:
+    driver: bridge

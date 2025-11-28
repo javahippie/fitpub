@@ -196,4 +196,57 @@ public class HttpSignatureValidator {
 
         return Base64.getEncoder().encodeToString(signature);
     }
+
+    /**
+     * Signs an outbound HTTP request for ActivityPub federation.
+     *
+     * @param method the HTTP method (e.g., "POST")
+     * @param targetUrl the target URL
+     * @param body the request body
+     * @param privateKeyPem the sender's private key
+     * @param keyId the public key ID
+     * @return the Signature header value
+     */
+    public String signRequest(String method, String targetUrl, String body, String privateKeyPem, String keyId) {
+        try {
+            java.net.URI uri = new java.net.URI(targetUrl);
+            String host = uri.getHost();
+            String path = uri.getPath();
+            if (uri.getQuery() != null) {
+                path += "?" + uri.getQuery();
+            }
+
+            // Build request-target
+            String requestTarget = method.toLowerCase() + " " + path;
+
+            // Calculate digest
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(body.getBytes(StandardCharsets.UTF_8));
+            String digestValue = "SHA-256=" + Base64.getEncoder().encodeToString(hash);
+
+            // Get current date in RFC 1123 format
+            java.time.ZonedDateTime now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC);
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
+            String date = now.format(formatter);
+
+            // Build signing string
+            String signingString = String.format(
+                "(request-target): %s\nhost: %s\ndate: %s\ndigest: %s",
+                requestTarget, host, date, digestValue
+            );
+
+            // Sign
+            String signatureBase64 = sign(signingString, privateKeyPem);
+
+            // Build signature header
+            return String.format(
+                "keyId=\"%s\",algorithm=\"rsa-sha256\",headers=\"(request-target) host date digest\",signature=\"%s\"",
+                keyId, signatureBase64
+            );
+
+        } catch (Exception e) {
+            log.error("Failed to sign request", e);
+            throw new RuntimeException("Failed to sign request", e);
+        }
+    }
 }

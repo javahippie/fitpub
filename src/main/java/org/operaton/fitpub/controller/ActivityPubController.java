@@ -27,6 +27,7 @@ import java.util.Optional;
 public class ActivityPubController {
 
     private final UserRepository userRepository;
+    private final org.operaton.fitpub.service.InboxProcessor inboxProcessor;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -79,10 +80,16 @@ public class ActivityPubController {
     ) {
         log.info("Received ActivityPub activity for user {}: {}", username, activity.get("type"));
 
-        // TODO: Validate HTTP signature
-        // TODO: Process activity based on type (Follow, Like, Create, etc.)
+        // TODO: Validate HTTP signature (signature validation can be added later)
 
-        // For MVP, just accept all activities
+        // Process activity asynchronously to avoid blocking the sender
+        try {
+            inboxProcessor.processActivity(username, activity);
+        } catch (Exception e) {
+            log.error("Error processing inbox activity", e);
+        }
+
+        // Always return 202 Accepted per ActivityPub spec
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 

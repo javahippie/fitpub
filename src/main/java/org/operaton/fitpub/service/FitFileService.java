@@ -139,6 +139,9 @@ public class FitFileService {
             ? title
             : generateTitle(parsedData);
 
+        // Default to PUBLIC if visibility not specified
+        Activity.Visibility activityVisibility = visibility != null ? visibility : Activity.Visibility.PUBLIC;
+
         return Activity.builder()
             .userId(userId)
             .activityType(parsedData.getActivityType())
@@ -146,7 +149,7 @@ public class FitFileService {
             .description(description)
             .startedAt(parsedData.getStartTime())
             .endedAt(parsedData.getEndTime())
-            .visibility(visibility)
+            .visibility(activityVisibility)
             .totalDistance(parsedData.getTotalDistance())
             .totalDurationSeconds(parsedData.getTotalDuration() != null ? parsedData.getTotalDuration().getSeconds() : null)
             .elevationGain(parsedData.getElevationGain())
