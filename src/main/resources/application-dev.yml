@@ -2,8 +2,11 @@
 # Activated with: mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 spring:
-  # Development datasource is handled by Testcontainers (see TestcontainersConfiguration)
-  # No need to configure datasource here - it's automatically configured
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fitpub
+    username: fitpub
+    password: change_me_in_production
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:

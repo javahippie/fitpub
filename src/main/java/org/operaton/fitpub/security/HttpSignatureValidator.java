@@ -198,6 +198,23 @@ public class HttpSignatureValidator {
     }
 
     /**
+     * Container for HTTP signature headers.
+     */
+    public static class SignatureHeaders {
+        public final String host;
+        public final String date;
+        public final String digest;
+        public final String signature;
+
+        public SignatureHeaders(String host, String date, String digest, String signature) {
+            this.host = host;
+            this.date = date;
+            this.digest = digest;
+            this.signature = signature;
+        }
+    }
+
+    /**
      * Signs an outbound HTTP request for ActivityPub federation.
      *
      * @param method the HTTP method (e.g., "POST")
@@ -205,9 +222,9 @@ public class HttpSignatureValidator {
      * @param body the request body
      * @param privateKeyPem the sender's private key
      * @param keyId the public key ID
-     * @return the Signature header value
+     * @return SignatureHeaders containing all headers needed for the signed request
      */
-    public String signRequest(String method, String targetUrl, String body, String privateKeyPem, String keyId) {
+    public SignatureHeaders signRequest(String method, String targetUrl, String body, String privateKeyPem, String keyId) {
         try {
             java.net.URI uri = new java.net.URI(targetUrl);
             String host = uri.getHost();
@@ -239,10 +256,12 @@ public class HttpSignatureValidator {
             String signatureBase64 = sign(signingString, privateKeyPem);
 
             // Build signature header
-            return String.format(
+            String signatureHeader = String.format(
                 "keyId=\"%s\",algorithm=\"rsa-sha256\",headers=\"(request-target) host date digest\",signature=\"%s\"",
                 keyId, signatureBase64
             );
+
+            return new SignatureHeaders(host, date, digestValue, signatureHeader);
 
         } catch (Exception e) {
             log.error("Failed to sign request", e);

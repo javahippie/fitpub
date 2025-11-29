@@ -166,19 +166,24 @@ public class FederationService {
         try {
             String activityJson = objectMapper.writeValueAsString(activity);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/activity+json");
-            headers.set("Accept", "application/activity+json");
-
-            // Add HTTP signature
-            String signature = signatureValidator.signRequest(
+            // Generate HTTP signature with all required headers
+            HttpSignatureValidator.SignatureHeaders signatureHeaders = signatureValidator.signRequest(
                 HttpMethod.POST.name(),
                 inboxUrl,
                 activityJson,
                 sender.getPrivateKey(),
                 baseUrl + "/users/" + sender.getUsername() + "#main-key"
             );
-            headers.set("Signature", signature);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Content-Type", "application/activity+json");
+            headers.set("Accept", "application/activity+json");
+
+            // Add all signature-related headers
+            headers.set("Host", signatureHeaders.host);
+            headers.set("Date", signatureHeaders.date);
+            headers.set("Digest", signatureHeaders.digest);
+            headers.set("Signature", signatureHeaders.signature);
 
             HttpEntity<String> entity = new HttpEntity<>(activityJson, headers);
 
