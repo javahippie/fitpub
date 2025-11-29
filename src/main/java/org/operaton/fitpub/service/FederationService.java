@@ -128,7 +128,14 @@ public class FederationService {
     @Transactional
     public void sendAcceptActivity(Follow follow, User localUser) {
         try {
-            RemoteActor remoteActor = fetchRemoteActor(follow.getFollowingActorUri());
+            // Get the remote actor who sent the follow request
+            String remoteActorUri = follow.getRemoteActorUri();
+            if (remoteActorUri == null) {
+                log.error("Cannot send Accept: Follow has no remote actor URI");
+                return;
+            }
+
+            RemoteActor remoteActor = fetchRemoteActor(remoteActorUri);
 
             String acceptId = baseUrl + "/activities/" + UUID.randomUUID();
             String actorUri = baseUrl + "/users/" + localUser.getUsername();

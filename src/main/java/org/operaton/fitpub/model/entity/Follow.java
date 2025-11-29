@@ -31,13 +31,22 @@ public class Follow {
 
     /**
      * The local user who is following.
+     * NULL if this is a remote user following a local user.
      */
-    @Column(name = "follower_id", nullable = false)
+    @Column(name = "follower_id")
     private UUID followerId;
 
     /**
-     * The ActivityPub actor URI being followed (local or remote).
+     * The remote actor URI of the follower (for remote-to-local follows).
      * Example: https://mastodon.social/users/alice
+     * NULL if followerId is set (local follower).
+     */
+    @Column(name = "remote_actor_uri", length = 512)
+    private String remoteActorUri;
+
+    /**
+     * The ActivityPub actor URI being followed (local or remote).
+     * Example: https://example.com/users/bob
      */
     @Column(name = "following_actor_uri", nullable = false, length = 512)
     private String followingActorUri;

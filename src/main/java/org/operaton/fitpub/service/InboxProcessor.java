@@ -95,6 +95,7 @@ public class InboxProcessor {
             // Note: We're storing it from the perspective of "who is following whom"
             Follow follow = Follow.builder()
                 .followerId(null) // Remote actor, so no local user ID
+                .remoteActorUri(actor) // The remote actor who is following
                 .followingActorUri(expectedObjectUri) // The local user being followed
                 .status(Follow.FollowStatus.ACCEPTED) // Auto-accept for now
                 .activityId(activityId)
