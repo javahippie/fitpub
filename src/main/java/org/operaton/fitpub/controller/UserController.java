@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.operaton.fitpub.model.dto.UserDTO;
 import org.operaton.fitpub.model.dto.UserUpdateRequest;
 import org.operaton.fitpub.model.entity.User;
+import org.operaton.fitpub.repository.FollowRepository;
 import org.operaton.fitpub.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,6 +27,26 @@ import java.util.UUID;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final FollowRepository followRepository;
+
+    @Value("${fitpub.base-url}")
+    private String baseUrl;
+
+    /**
+     * Helper method to populate follower/following counts in UserDTO.
+     */
+    private void populateSocialCounts(UserDTO dto, User user) {
+        String actorUri = user.getActorUri(baseUrl);
+
+        // Count followers (people following this user)
+        long followersCount = followRepository.countAcceptedFollowersByActorUri(actorUri);
+
+        // Count following (people this user follows)
+        long followingCount = followRepository.findAcceptedFollowingByUserId(user.getId()).size();
+
+        dto.setFollowersCount(followersCount);
+        dto.setFollowingCount((long) followingCount);
+    }
 
     /**
      * Get current user's profile.
@@ -39,7 +61,10 @@ public class UserController {
         User user = userRepository.findByUsername(userDetails.getUsername())
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        return ResponseEntity.ok(UserDTO.fromEntity(user));
+        UserDTO dto = UserDTO.fromEntity(user);
+        populateSocialCounts(dto, user);
+
+        return ResponseEntity.ok(dto);
     }
 
     /**
@@ -72,7 +97,10 @@ public class UserController {
 
         User updated = userRepository.save(user);
 
-        return ResponseEntity.ok(UserDTO.fromEntity(updated));
+        UserDTO dto = UserDTO.fromEntity(updated);
+        populateSocialCounts(dto, updated);
+
+        return ResponseEntity.ok(dto);
     }
 
     /**
@@ -88,7 +116,10 @@ public class UserController {
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        return ResponseEntity.ok(UserDTO.fromEntity(user));
+        UserDTO dto = UserDTO.fromEntity(user);
+        populateSocialCounts(dto, user);
+
+        return ResponseEntity.ok(dto);
     }
 
     /**
@@ -104,6 +135,9 @@ public class UserController {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        return ResponseEntity.ok(UserDTO.fromEntity(user));
+        UserDTO dto = UserDTO.fromEntity(user);
+        populateSocialCounts(dto, user);
+
+        return ResponseEntity.ok(dto);
     }
 }

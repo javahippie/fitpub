@@ -28,9 +28,14 @@ public class UserDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Social counts (populated separately)
+    private Long followersCount;
+    private Long followingCount;
+
     /**
      * Creates a DTO from a User entity.
      * Note: email should only be included when user is viewing their own profile.
+     * Note: follower/following counts are not populated by this method - set them separately.
      */
     public static UserDTO fromEntity(User user) {
         return UserDTO.builder()
