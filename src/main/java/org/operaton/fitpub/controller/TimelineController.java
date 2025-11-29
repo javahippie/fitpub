@@ -3,12 +3,16 @@ package org.operaton.fitpub.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.operaton.fitpub.model.dto.TimelineActivityDTO;
+import org.operaton.fitpub.model.entity.User;
+import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.service.TimelineService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -24,6 +28,20 @@ import java.util.UUID;
 public class TimelineController {
 
     private final TimelineService timelineService;
+    private final UserRepository userRepository;
+
+    /**
+     * Helper method to get user ID from authenticated UserDetails.
+     *
+     * @param userDetails the authenticated user details
+     * @return the user's UUID
+     * @throws UsernameNotFoundException if user not found
+     */
+    private UUID getUserId(UserDetails userDetails) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userDetails.getUsername()));
+        return user.getId();
+    }
 
     /**
      * Get the federated timeline for the authenticated user.
@@ -31,18 +49,18 @@ public class TimelineController {
      *
      * GET /api/timeline/federated?page=0&size=20
      *
-     * @param authentication the authenticated user
+     * @param userDetails the authenticated user details
      * @param page page number (default: 0)
      * @param size page size (default: 20)
      * @return page of timeline activities
      */
     @GetMapping("/federated")
     public ResponseEntity<Page<TimelineActivityDTO>> getFederatedTimeline(
-        Authentication authentication,
+        @AuthenticationPrincipal UserDetails userDetails,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = getUserId(userDetails);
         log.debug("Federated timeline request from user: {}", userId);
 
         Pageable pageable = PageRequest.of(page, size);
@@ -80,18 +98,18 @@ public class TimelineController {
      *
      * GET /api/timeline/user?page=0&size=20
      *
-     * @param authentication the authenticated user
+     * @param userDetails the authenticated user details
      * @param page page number (default: 0)
      * @param size page size (default: 20)
      * @return page of timeline activities
      */
     @GetMapping("/user")
     public ResponseEntity<Page<TimelineActivityDTO>> getUserTimeline(
-        Authentication authentication,
+        @AuthenticationPrincipal UserDetails userDetails,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        UUID userId = UUID.fromString(authentication.getName());
+        UUID userId = getUserId(userDetails);
         log.debug("User timeline request from user: {}", userId);
 
         Pageable pageable = PageRequest.of(page, size);
