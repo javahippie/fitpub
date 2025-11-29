@@ -71,6 +71,8 @@ logging:
 # Server configuration
 server:
   port: ${PORT:8080}
+  # Trust proxy headers (X-Forwarded-* headers from nginx)
+  forward-headers-strategy: framework
   error:
     include-message: never  # Don't expose error details
     include-binding-errors: never
@@ -80,6 +82,12 @@ server:
     mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
   http2:
     enabled: true
+  # Tomcat specific settings for proxy
+  tomcat:
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+      internal-proxies: 10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3}|169\\.254\\.\\d{1,3}\\.\\d{1,3}|127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}
 
 # Actuator for monitoring (optional - configure with care)
 management:
