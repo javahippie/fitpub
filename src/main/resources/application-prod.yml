@@ -2,6 +2,12 @@
 # Activated with: java -jar fitpub.jar --spring.profiles.active=prod
 
 spring:
+  # Disable Testcontainers auto-configuration in production
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.testcontainers.service.connection.ContainerConnectionDetailsAutoConfiguration
+      - org.springframework.boot.testcontainers.lifecycle.TestcontainersLifecycleBeanPostProcessor
+
   # Production datasource - must be configured via environment variables
   datasource:
     url: ${SPRING_DATASOURCE_URL}

@@ -262,7 +262,35 @@ public class ActivityController {
         // Build GeoJSON FeatureCollection
         ActivityDTO dto = ActivityDTO.fromEntity(activity);
 
-        if (dto.getSimplifiedTrack() == null) {
+        // Use high-resolution track points if available, otherwise fall back to simplified track
+        java.util.List<java.util.List<Double>> coordinates = new java.util.ArrayList<>();
+
+        if (dto.getTrackPoints() != null && !dto.getTrackPoints().isEmpty()) {
+            // Use high-resolution track points
+            for (java.util.Map<String, Object> point : dto.getTrackPoints()) {
+                Double longitude = (Double) point.get("longitude");
+                Double latitude = (Double) point.get("latitude");
+                Double elevation = (Double) point.get("elevation");
+
+                if (longitude != null && latitude != null) {
+                    if (elevation != null) {
+                        coordinates.add(java.util.List.of(longitude, latitude, elevation));
+                    } else {
+                        coordinates.add(java.util.List.of(longitude, latitude));
+                    }
+                }
+            }
+        } else if (dto.getSimplifiedTrack() != null) {
+            // Fall back to simplified track if high-res not available
+            @SuppressWarnings("unchecked")
+            java.util.List<java.util.List<Double>> simplifiedCoords =
+                (java.util.List<java.util.List<Double>>) dto.getSimplifiedTrack().get("coordinates");
+            if (simplifiedCoords != null) {
+                coordinates = simplifiedCoords;
+            }
+        }
+
+        if (coordinates.isEmpty()) {
             // Return empty FeatureCollection if no track data
             return ResponseEntity.ok(java.util.Map.of(
                 "type", "FeatureCollection",
@@ -270,10 +298,15 @@ public class ActivityController {
             ));
         }
 
+        // Create GeoJSON geometry
+        java.util.Map<String, Object> geometry = new java.util.LinkedHashMap<>();
+        geometry.put("type", "LineString");
+        geometry.put("coordinates", coordinates);
+
         // Create GeoJSON Feature with the track
         java.util.Map<String, Object> feature = new java.util.LinkedHashMap<>();
         feature.put("type", "Feature");
-        feature.put("geometry", dto.getSimplifiedTrack());
+        feature.put("geometry", geometry);
 
         // Add properties
         java.util.Map<String, Object> properties = new java.util.LinkedHashMap<>();

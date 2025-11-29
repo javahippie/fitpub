@@ -1,5 +1,6 @@
 package org.operaton.fitpub.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +14,11 @@ import org.testcontainers.utility.DockerImageName;
  *
  * This ensures development environment matches production (PostgreSQL + PostGIS).
  *
- * Only active when NOT running in production profile.
+ * Only active when NOT running in production profile AND Testcontainers is on the classpath.
  */
 @Configuration(proxyBeanMethods = false)
 @Profile("!prod")
+@ConditionalOnClass(PostgreSQLContainer.class)
 public class TestcontainersConfiguration {
 
     /**

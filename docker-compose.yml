@@ -44,7 +44,7 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_JPA_SHOW_SQL: ${JPA_SHOW_SQL:-false}
       SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: ${JPA_FORMAT_SQL:-false}
-      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.spatial.dialect.postgis.PostgisDialect
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
 
       # Flyway Configuration
       SPRING_FLYWAY_ENABLED: true
@@ -55,8 +55,8 @@ services:
       SERVER_PORT: ${APP_PORT:-8080}
 
       # Application Configuration
-      APP_DOMAIN: ${APP_DOMAIN}
-      APP_BASE_URL: ${APP_BASE_URL}
+      FITPUB_DOMAIN: ${APP_DOMAIN}
+      FITPUB_BASE_URL: ${APP_BASE_URL}
 
       # Security Configuration
       JWT_SECRET: ${JWT_SECRET}

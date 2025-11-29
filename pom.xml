@@ -78,6 +78,7 @@
         </dependency>
 
         <!-- Testcontainers for Dev Services -->
+        <!-- These are excluded from production builds via Maven profile -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-testcontainers</artifactId>
@@ -172,6 +173,27 @@
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                        </exclude>
+                        <!-- Exclude Testcontainers from production JAR -->
+                        <exclude>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-testcontainers</artifactId>
+                        </exclude>
+                        <exclude>
+                            <groupId>org.testcontainers</groupId>
+                            <artifactId>testcontainers</artifactId>
+                        </exclude>
+                        <exclude>
+                            <groupId>org.testcontainers</groupId>
+                            <artifactId>postgresql</artifactId>
+                        </exclude>
+                        <exclude>
+                            <groupId>org.testcontainers</groupId>
+                            <artifactId>jdbc</artifactId>
+                        </exclude>
+                        <exclude>
+                            <groupId>org.testcontainers</groupId>
+                            <artifactId>database-commons</artifactId>
                         </exclude>
                     </excludes>
                 </configuration>
