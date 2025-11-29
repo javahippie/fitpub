@@ -77,6 +77,16 @@ public class SecurityConfig {
                 // Public endpoints - User's public activities
                 .requestMatchers(HttpMethod.GET, "/api/activities/user/*").permitAll()
 
+                // Public endpoints - Likes and Comments (GET only)
+                .requestMatchers(HttpMethod.GET, "/api/activities/*/likes").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/activities/*/comments").permitAll()
+
+                // Protected endpoints - Likes and Comments (POST/DELETE)
+                .requestMatchers(HttpMethod.POST, "/api/activities/*/likes").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/activities/*/likes").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/activities/*/comments").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/activities/*/comments/*").authenticated()
+
                 // Protected endpoints - Activities API
                 .requestMatchers("/api/activities/**").authenticated()
 

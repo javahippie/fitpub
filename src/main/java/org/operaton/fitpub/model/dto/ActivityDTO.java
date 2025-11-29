@@ -49,6 +49,11 @@ public class ActivityDTO {
     private Map<String, Object> simplifiedTrack; // GeoJSON LineString
     private List<Map<String, Object>> trackPoints; // Full track points from JSONB
 
+    // Social interaction counts (populated separately)
+    private Long likesCount;
+    private Long commentsCount;
+    private Boolean likedByCurrentUser; // True if current user has liked this activity
+
     // Convenience getters for flattened metrics (for frontend compatibility)
     public Integer getAverageHeartRate() {
         return metrics != null ? metrics.getAverageHeartRate() : null;
