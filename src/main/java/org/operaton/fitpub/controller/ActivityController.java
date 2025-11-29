@@ -102,25 +102,31 @@ public class ActivityController {
     }
 
     /**
-     * Lists all activities for the authenticated user.
+     * Lists all activities for the authenticated user with pagination.
      *
      * @param userDetails the authenticated user
-     * @return list of activities
+     * @param page page number (default: 0)
+     * @param size page size (default: 10)
+     * @return page of activities
      */
     @GetMapping
-    public ResponseEntity<List<ActivityDTO>> getUserActivities(
-        @AuthenticationPrincipal UserDetails userDetails
+    public ResponseEntity<?> getUserActivities(
+        @AuthenticationPrincipal UserDetails userDetails,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
     ) {
-        log.info("User {} retrieving activities", userDetails.getUsername());
+        log.info("User {} retrieving activities (page: {}, size: {})", userDetails.getUsername(), page, size);
 
         UUID userId = getUserId(userDetails);
 
-        List<Activity> activities = fitFileService.getUserActivities(userId);
-        List<ActivityDTO> dtos = activities.stream()
-            .map(ActivityDTO::fromEntity)
-            .collect(Collectors.toList());
+        org.springframework.data.domain.Page<Activity> activityPage =
+            fitFileService.getUserActivitiesPaginated(userId, page, size);
 
-        return ResponseEntity.ok(dtos);
+        // Convert to DTOs
+        org.springframework.data.domain.Page<ActivityDTO> dtoPage = activityPage.map(ActivityDTO::fromEntity);
+
+        // Return Spring Page object with all pagination metadata
+        return ResponseEntity.ok(dtoPage);
     }
 
     /**
@@ -179,5 +185,109 @@ public class ActivityController {
         }
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Lists public activities for a specific user by username.
+     *
+     * @param username the username
+     * @param page page number (default: 0)
+     * @param size page size (default: 10)
+     * @return page of public activities
+     */
+    @GetMapping("/user/{username}")
+    public ResponseEntity<?> getUserPublicActivities(
+        @PathVariable String username,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        log.debug("Retrieving public activities for user: {}", username);
+
+        // Get user by username
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        // Get public activities only
+        org.springframework.data.domain.Pageable pageable =
+            org.springframework.data.domain.PageRequest.of(page, size,
+                org.springframework.data.domain.Sort.by("startedAt").descending());
+
+        org.springframework.data.domain.Page<Activity> activityPage =
+            fitFileService.getPublicActivitiesByUserId(user.getId(), pageable);
+
+        // Convert to DTOs
+        org.springframework.data.domain.Page<ActivityDTO> dtoPage = activityPage.map(ActivityDTO::fromEntity);
+
+        return ResponseEntity.ok(dtoPage);
+    }
+
+    /**
+     * Gets the GPS track data for an activity in GeoJSON format.
+     * Public activities can be accessed without authentication.
+     * Private/followers activities require authentication and proper access.
+     *
+     * @param id the activity ID
+     * @param userDetails the authenticated user (optional for public activities)
+     * @return GeoJSON FeatureCollection with track data
+     */
+    @GetMapping("/{id}/track")
+    public ResponseEntity<?> getActivityTrack(
+        @PathVariable UUID id,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.debug("Retrieving track data for activity {}", id);
+
+        // First try to get the activity regardless of user
+        Activity activity = fitFileService.getActivityById(id);
+        if (activity == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Check visibility and access permissions
+        if (activity.getVisibility() != Activity.Visibility.PUBLIC) {
+            // Non-public activities require authentication
+            if (userDetails == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            UUID userId = getUserId(userDetails);
+
+            // Check if user owns the activity
+            if (!activity.getUserId().equals(userId)) {
+                // TODO: Check if user is following the activity owner (for FOLLOWERS visibility)
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+
+        // Build GeoJSON FeatureCollection
+        ActivityDTO dto = ActivityDTO.fromEntity(activity);
+
+        if (dto.getSimplifiedTrack() == null) {
+            // Return empty FeatureCollection if no track data
+            return ResponseEntity.ok(java.util.Map.of(
+                "type", "FeatureCollection",
+                "features", java.util.List.of()
+            ));
+        }
+
+        // Create GeoJSON Feature with the track
+        java.util.Map<String, Object> feature = new java.util.LinkedHashMap<>();
+        feature.put("type", "Feature");
+        feature.put("geometry", dto.getSimplifiedTrack());
+
+        // Add properties
+        java.util.Map<String, Object> properties = new java.util.LinkedHashMap<>();
+        properties.put("title", activity.getTitle());
+        properties.put("activityType", activity.getActivityType().name());
+        properties.put("distance", activity.getTotalDistance());
+        properties.put("duration", activity.getTotalDurationSeconds());
+        feature.put("properties", properties);
+
+        // Create FeatureCollection
+        java.util.Map<String, Object> geoJson = new java.util.LinkedHashMap<>();
+        geoJson.put("type", "FeatureCollection");
+        geoJson.put("features", java.util.List.of(feature));
+
+        return ResponseEntity.ok(geoJson);
     }
 }

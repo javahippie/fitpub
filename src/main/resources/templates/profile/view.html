@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>My Profile</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading profile...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span id="errorMessage"></span>
+        </div>
+
+        <!-- Profile Content -->
+        <div id="profileContent" class="d-none">
+            <!-- Profile Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2 text-center">
+                            <!-- Avatar -->
+                            <div id="avatarContainer" class="mb-3">
+                                <img id="avatarImage" src="" alt="Avatar" class="rounded-circle d-none" width="120" height="120">
+                                <div id="avatarPlaceholder" class="avatar-placeholder-large rounded-circle mx-auto">
+                                    <i class="bi bi-person-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-10">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h2 id="displayName" class="mb-1"></h2>
+                                    <p class="text-muted mb-2">
+                                        <span id="username"></span>
+                                    </p>
+                                    <p id="bio" class="mb-3"></p>
+                                </div>
+                                <div>
+                                    <a th:href="@{/profile/edit}" class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil"></i> Edit Profile
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Stats -->
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="activitiesCount">0</div>
+                                        <div class="stat-label">Activities</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="followersCount">0</div>
+                                        <div class="stat-label">Followers</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="followingCount">0</div>
+                                        <div class="stat-label">Following</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Info -->
+                            <div class="mt-3 text-muted small">
+                                <i class="bi bi-envelope"></i> <span id="email"></span>
+                                <span class="ms-3">
+                                    <i class="bi bi-calendar"></i> Joined <span id="joinedDate"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activities -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-task"></i> Recent Activities
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Loading Indicator for Activities -->
+                    <div id="activitiesLoading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Activities List -->
+                    <div id="activitiesList" class="d-none">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="activitiesEmpty" class="text-center py-4 d-none">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #d1d5db;"></i>
+                        <p class="text-muted mt-2">No activities yet</p>
+                        <a th:href="@{/activities/upload}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-cloud-upload"></i> Upload Activity
+                        </a>
+                    </div>
+
+                    <!-- View All Link -->
+                    <div id="viewAllActivities" class="text-center mt-3 d-none">
+                        <a th:href="@{/activities}" class="btn btn-sm btn-outline-primary">
+                            View All Activities
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                // Redirect to login if not authenticated
+                if (!FitPubAuth.isAuthenticated()) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                loadProfile();
+
+                async function loadProfile() {
+                    try {
+                        // Fetch user profile
+                        const response = await FitPubAuth.authenticatedFetch('/api/users/me');
+
+                        if (response.ok) {
+                            const user = await response.json();
+                            renderProfile(user);
+                            loadRecentActivities();
+                        } else {
+                            throw new Error('Failed to load profile');
+                        }
+                    } catch (error) {
+                        console.error('Error loading profile:', error);
+                        document.getElementById('loadingIndicator').classList.add('d-none');
+                        document.getElementById('errorMessage').textContent = 'Failed to load profile. Please try again.';
+                        document.getElementById('errorAlert').classList.remove('d-none');
+                    }
+                }
+
+                function renderProfile(user) {
+                    // Hide loading, show content
+                    document.getElementById('loadingIndicator').classList.add('d-none');
+                    document.getElementById('profileContent').classList.remove('d-none');
+
+                    // Display name
+                    document.getElementById('displayName').textContent = user.displayName || user.username;
+
+                    // Username
+                    document.getElementById('username').textContent = '@' + user.username;
+
+                    // Bio
+                    const bioElement = document.getElementById('bio');
+                    if (user.bio) {
+                        bioElement.textContent = user.bio;
+                    } else {
+                        bioElement.innerHTML = '<span class="text-muted">No bio yet. <a href="/profile/edit">Add one?</a></span>';
+                    }
+
+                    // Avatar
+                    if (user.avatarUrl) {
+                        document.getElementById('avatarImage').src = user.avatarUrl;
+                        document.getElementById('avatarImage').classList.remove('d-none');
+                        document.getElementById('avatarPlaceholder').classList.add('d-none');
+                    }
+
+                    // Email
+                    document.getElementById('email').textContent = user.email;
+
+                    // Joined date
+                    const joinedDate = new Date(user.createdAt);
+                    document.getElementById('joinedDate').textContent = joinedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+                    // Stats (activities count will be loaded separately)
+                    // Followers/Following counts TODO: implement when federation is ready
+                }
+
+                async function loadRecentActivities() {
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch('/api/activities?page=0&size=5');
+
+                        if (response.ok) {
+                            const data = await response.json();
+
+                            document.getElementById('activitiesLoading').classList.add('d-none');
+
+                            // Update activities count
+                            document.getElementById('activitiesCount').textContent = data.totalElements || 0;
+
+                            if (data.content && data.content.length > 0) {
+                                renderActivities(data.content);
+                                document.getElementById('activitiesList').classList.remove('d-none');
+
+                                if (data.totalElements > 5) {
+                                    document.getElementById('viewAllActivities').classList.remove('d-none');
+                                }
+                            } else {
+                                document.getElementById('activitiesEmpty').classList.remove('d-none');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error loading activities:', error);
+                        document.getElementById('activitiesLoading').classList.add('d-none');
+                        document.getElementById('activitiesEmpty').classList.remove('d-none');
+                    }
+                }
+
+                function renderActivities(activities) {
+                    const list = document.getElementById('activitiesList');
+                    list.innerHTML = activities.map(activity => `
+                        <div class="activity-item mb-3 pb-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        <a href="/activities/${activity.id}" class="text-decoration-none">
+                                            ${escapeHtml(activity.title || 'Untitled Activity')}
+                                        </a>
+                                    </h6>
+                                    <p class="text-muted small mb-2">
+                                        <span class="activity-type-badge activity-type-${activity.activityType.toLowerCase()}">
+                                            ${activity.activityType}
+                                        </span>
+                                        <span class="ms-2">
+                                            <i class="bi bi-calendar"></i>
+                                            ${new Date(activity.startedAt).toLocaleDateString()}
+                                        </span>
+                                    </p>
+                                    <div class="d-flex gap-3 text-muted small">
+                                        <span><i class="bi bi-arrow-left-right"></i> ${formatDistance(activity.totalDistance)}</span>
+                                        <span><i class="bi bi-clock"></i> ${formatDuration(activity.totalDuration)}</span>
+                                        ${activity.elevationGain ? `<span><i class="bi bi-arrow-up"></i> ${Math.round(activity.elevationGain)}m</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                function formatDistance(meters) {
+                    if (!meters) return 'N/A';
+                    if (meters >= 1000) {
+                        return (meters / 1000).toFixed(1) + ' km';
+                    }
+                    return Math.round(meters) + ' m';
+                }
+
+                function formatDuration(seconds) {
+                    if (!seconds) return 'N/A';
+                    const hours = Math.floor(seconds / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+
+                    if (hours > 0) {
+                        return hours + 'h ' + minutes + 'm';
+                    }
+                    return minutes + 'm';
+                }
+
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

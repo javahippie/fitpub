@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Edit Profile</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="bi bi-pencil"></i> Edit Profile
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Loading Indicator -->
+                        <div id="loadingIndicator" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading profile...</p>
+                        </div>
+
+                        <!-- Edit Form -->
+                        <form id="editProfileForm" class="d-none">
+                            <!-- Display Name -->
+                            <div class="mb-3">
+                                <label for="displayName" class="form-label">Display Name</label>
+                                <input type="text" class="form-control" id="displayName" name="displayName" maxlength="100">
+                                <div class="form-text">Your name as it appears to others</div>
+                            </div>
+
+                            <!-- Bio -->
+                            <div class="mb-3">
+                                <label for="bio" class="form-label">Bio</label>
+                                <textarea class="form-control" id="bio" name="bio" rows="4" maxlength="500"></textarea>
+                                <div class="form-text">
+                                    <span id="bioCharCount">0</span>/500 characters
+                                </div>
+                            </div>
+
+                            <!-- Avatar URL -->
+                            <div class="mb-3">
+                                <label for="avatarUrl" class="form-label">Avatar URL</label>
+                                <input type="url" class="form-control" id="avatarUrl" name="avatarUrl" placeholder="https://example.com/avatar.jpg">
+                                <div class="form-text">URL to your profile picture</div>
+                            </div>
+
+                            <!-- Avatar Preview -->
+                            <div class="mb-3" id="avatarPreviewContainer" style="display: none;">
+                                <label class="form-label">Avatar Preview</label>
+                                <div>
+                                    <img id="avatarPreview" src="" alt="Avatar preview" class="rounded-circle" width="100" height="100">
+                                </div>
+                            </div>
+
+                            <!-- Email (read-only for now) -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" readonly>
+                                <div class="form-text">Email cannot be changed here</div>
+                            </div>
+
+                            <!-- Username (read-only) -->
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" readonly>
+                                <div class="form-text">Username cannot be changed</div>
+                            </div>
+
+                            <!-- Error Alert -->
+                            <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span id="errorMessage"></span>
+                            </div>
+
+                            <!-- Success Alert -->
+                            <div id="successAlert" class="alert alert-success d-none" role="alert">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Profile updated successfully!
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-between">
+                                <a th:href="@{/profile}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary" id="saveBtn">
+                                    <span id="saveBtnText">
+                                        <i class="bi bi-save"></i> Save Changes
+                                    </span>
+                                    <span id="saveBtnLoading" class="d-none">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        Saving...
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                // Redirect to login if not authenticated
+                if (!FitPubAuth.isAuthenticated()) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const form = document.getElementById('editProfileForm');
+                const bioInput = document.getElementById('bio');
+                const bioCharCount = document.getElementById('bioCharCount');
+                const avatarUrlInput = document.getElementById('avatarUrl');
+                const avatarPreview = document.getElementById('avatarPreview');
+                const avatarPreviewContainer = document.getElementById('avatarPreviewContainer');
+
+                loadProfile();
+
+                // Bio character counter
+                bioInput.addEventListener('input', function() {
+                    bioCharCount.textContent = bioInput.value.length;
+                });
+
+                // Avatar preview
+                avatarUrlInput.addEventListener('input', function() {
+                    const url = avatarUrlInput.value.trim();
+                    if (url) {
+                        avatarPreview.src = url;
+                        avatarPreviewContainer.style.display = 'block';
+                    } else {
+                        avatarPreviewContainer.style.display = 'none';
+                    }
+                });
+
+                // Form submission
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    // Hide alerts
+                    document.getElementById('errorAlert').classList.add('d-none');
+                    document.getElementById('successAlert').classList.add('d-none');
+
+                    // Show loading state
+                    document.getElementById('saveBtnText').classList.add('d-none');
+                    document.getElementById('saveBtnLoading').classList.remove('d-none');
+                    document.getElementById('saveBtn').disabled = true;
+
+                    try {
+                        const formData = {
+                            displayName: document.getElementById('displayName').value.trim(),
+                            bio: document.getElementById('bio').value.trim(),
+                            avatarUrl: document.getElementById('avatarUrl').value.trim()
+                        };
+
+                        const response = await FitPubAuth.authenticatedFetch('/api/users/me', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(formData)
+                        });
+
+                        if (response.ok) {
+                            // Show success message
+                            document.getElementById('successAlert').classList.remove('d-none');
+
+                            // Scroll to top
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                            // Redirect to profile after 2 seconds
+                            setTimeout(() => {
+                                window.location.href = '/profile';
+                            }, 2000);
+                        } else {
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || 'Failed to update profile');
+                        }
+                    } catch (error) {
+                        console.error('Error updating profile:', error);
+                        document.getElementById('errorMessage').textContent = error.message;
+                        document.getElementById('errorAlert').classList.remove('d-none');
+
+                        // Reset button state
+                        document.getElementById('saveBtnText').classList.remove('d-none');
+                        document.getElementById('saveBtnLoading').classList.add('d-none');
+                        document.getElementById('saveBtn').disabled = false;
+                    }
+                });
+
+                async function loadProfile() {
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch('/api/users/me');
+
+                        if (response.ok) {
+                            const user = await response.json();
+                            populateForm(user);
+
+                            // Show form, hide loading
+                            document.getElementById('loadingIndicator').classList.add('d-none');
+                            document.getElementById('editProfileForm').classList.remove('d-none');
+                        } else {
+                            throw new Error('Failed to load profile');
+                        }
+                    } catch (error) {
+                        console.error('Error loading profile:', error);
+                        document.getElementById('loadingIndicator').classList.add('d-none');
+                        document.getElementById('errorMessage').textContent = 'Failed to load profile. Please try again.';
+                        document.getElementById('errorAlert').classList.remove('d-none');
+                    }
+                }
+
+                function populateForm(user) {
+                    document.getElementById('displayName').value = user.displayName || '';
+                    document.getElementById('bio').value = user.bio || '';
+                    document.getElementById('avatarUrl').value = user.avatarUrl || '';
+                    document.getElementById('email').value = user.email || '';
+                    document.getElementById('username').value = user.username || '';
+
+                    // Update character count
+                    bioCharCount.textContent = (user.bio || '').length;
+
+                    // Show avatar preview if URL exists
+                    if (user.avatarUrl) {
+                        avatarPreview.src = user.avatarUrl;
+                        avatarPreviewContainer.style.display = 'block';
+                    }
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

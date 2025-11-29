@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>User Profile</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading profile...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span id="errorMessage"></span>
+        </div>
+
+        <!-- Profile Content -->
+        <div id="profileContent" class="d-none">
+            <!-- Profile Header -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2 text-center">
+                            <!-- Avatar -->
+                            <div id="avatarContainer" class="mb-3">
+                                <img id="avatarImage" src="" alt="Avatar" class="rounded-circle d-none" width="120" height="120">
+                                <div id="avatarPlaceholder" class="avatar-placeholder-large rounded-circle mx-auto">
+                                    <i class="bi bi-person-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-10">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h2 id="displayName" class="mb-1"></h2>
+                                    <p class="text-muted mb-2">
+                                        <span id="username"></span>
+                                    </p>
+                                    <p id="bio" class="mb-3"></p>
+                                </div>
+                                <div id="followButtonContainer" class="d-none">
+                                    <button class="btn btn-primary" id="followBtn">
+                                        <i class="bi bi-person-plus"></i> Follow
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Stats -->
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="activitiesCount">0</div>
+                                        <div class="stat-label">Activities</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="followersCount">0</div>
+                                        <div class="stat-label">Followers</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="followingCount">0</div>
+                                        <div class="stat-label">Following</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Info -->
+                            <div class="mt-3 text-muted small">
+                                <i class="bi bi-calendar"></i> Joined <span id="joinedDate"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Public Activities -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-task"></i> Public Activities
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Loading Indicator for Activities -->
+                    <div id="activitiesLoading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Activities List -->
+                    <div id="activitiesList" class="d-none">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="activitiesEmpty" class="text-center py-4 d-none">
+                        <i class="bi bi-inbox" style="font-size: 3rem; color: #d1d5db;"></i>
+                        <p class="text-muted mt-2">No public activities yet</p>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav id="pagination" aria-label="Activities pagination" class="mt-3 d-none">
+                        <ul class="pagination justify-content-center" id="paginationList">
+                            <!-- Will be populated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const targetUsername = /*[[${username}]]*/ '';
+
+            document.addEventListener('DOMContentLoaded', function() {
+                loadProfile();
+
+                function loadProfile() {
+                    // For now, we'll fetch from the user API endpoint
+                    // In the future, this should use /api/users/{username}
+                    fetch(`/api/users/${targetUsername}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('User not found');
+                            }
+                            return response.json();
+                        })
+                        .then(user => {
+                            renderProfile(user);
+                            loadPublicActivities(user.id);
+                        })
+                        .catch(error => {
+                            console.error('Error loading profile:', error);
+                            document.getElementById('loadingIndicator').classList.add('d-none');
+                            document.getElementById('errorMessage').textContent = 'User not found or profile could not be loaded.';
+                            document.getElementById('errorAlert').classList.remove('d-none');
+                        });
+                }
+
+                function renderProfile(user) {
+                    // Hide loading, show content
+                    document.getElementById('loadingIndicator').classList.add('d-none');
+                    document.getElementById('profileContent').classList.remove('d-none');
+
+                    // Display name
+                    document.getElementById('displayName').textContent = user.displayName || user.username;
+
+                    // Username
+                    document.getElementById('username').textContent = '@' + user.username;
+
+                    // Bio
+                    const bioElement = document.getElementById('bio');
+                    if (user.bio) {
+                        bioElement.textContent = user.bio;
+                    } else {
+                        bioElement.innerHTML = '<span class="text-muted">No bio</span>';
+                    }
+
+                    // Avatar
+                    if (user.avatarUrl) {
+                        document.getElementById('avatarImage').src = user.avatarUrl;
+                        document.getElementById('avatarImage').classList.remove('d-none');
+                        document.getElementById('avatarPlaceholder').classList.add('d-none');
+                    }
+
+                    // Joined date
+                    const joinedDate = new Date(user.createdAt);
+                    document.getElementById('joinedDate').textContent = joinedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+                    // Show follow button if viewing another user's profile
+                    // TODO: implement follow functionality
+                }
+
+                let currentPage = 0;
+
+                async function loadPublicActivities(userId) {
+                    try {
+                        const response = await fetch(`/api/activities/user/${targetUsername}?page=${currentPage}&size=10`);
+
+                        if (response.ok) {
+                            const data = await response.json();
+
+                            document.getElementById('activitiesLoading').classList.add('d-none');
+
+                            // Update count
+                            document.getElementById('activitiesCount').textContent = data.totalElements || 0;
+
+                            if (data.content && data.content.length > 0) {
+                                renderActivities(data.content);
+                                renderPagination(data);
+                                document.getElementById('activitiesList').classList.remove('d-none');
+
+                                if (data.totalPages > 1) {
+                                    document.getElementById('pagination').classList.remove('d-none');
+                                }
+                            } else {
+                                document.getElementById('activitiesEmpty').classList.remove('d-none');
+                            }
+                        } else {
+                            throw new Error('Failed to load activities');
+                        }
+                    } catch (error) {
+                        console.error('Error loading activities:', error);
+                        document.getElementById('activitiesLoading').classList.add('d-none');
+                        document.getElementById('activitiesEmpty').classList.remove('d-none');
+                    }
+                }
+
+                function renderActivities(activities) {
+                    const list = document.getElementById('activitiesList');
+                    list.innerHTML = activities.map(activity => `
+                        <div class="activity-item mb-3 pb-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        <a href="/activities/${activity.id}" class="text-decoration-none">
+                                            ${escapeHtml(activity.title || 'Untitled Activity')}
+                                        </a>
+                                    </h6>
+                                    <p class="text-muted small mb-2">
+                                        <span class="activity-type-badge activity-type-${activity.activityType.toLowerCase()}">
+                                            ${activity.activityType}
+                                        </span>
+                                        <span class="ms-2">
+                                            <i class="bi bi-calendar"></i>
+                                            ${new Date(activity.startedAt).toLocaleDateString()}
+                                        </span>
+                                    </p>
+                                    <div class="d-flex gap-3 text-muted small">
+                                        <span><i class="bi bi-arrow-left-right"></i> ${formatDistance(activity.totalDistance)}</span>
+                                        <span><i class="bi bi-clock"></i> ${formatDuration(activity.totalDuration)}</span>
+                                        ${activity.elevationGain ? `<span><i class="bi bi-arrow-up"></i> ${Math.round(activity.elevationGain)}m</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                function renderPagination(data) {
+                    const paginationList = document.getElementById('paginationList');
+                    let html = '';
+
+                    // Previous button
+                    html += `
+                        <li class="page-item ${data.first ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="changePage(${data.number - 1}); return false;">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                    `;
+
+                    // Page numbers
+                    const startPage = Math.max(0, data.number - 2);
+                    const endPage = Math.min(data.totalPages - 1, data.number + 2);
+
+                    for (let i = startPage; i <= endPage; i++) {
+                        html += `
+                            <li class="page-item ${i === data.number ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i + 1}</a>
+                            </li>
+                        `;
+                    }
+
+                    // Next button
+                    html += `
+                        <li class="page-item ${data.last ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="changePage(${data.number + 1}); return false;">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    `;
+
+                    paginationList.innerHTML = html;
+                }
+
+                window.changePage = function(page) {
+                    currentPage = page;
+                    loadPublicActivities();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                function formatDistance(meters) {
+                    if (!meters) return 'N/A';
+                    if (meters >= 1000) {
+                        return (meters / 1000).toFixed(1) + ' km';
+                    }
+                    return Math.round(meters) + ' m';
+                }
+
+                function formatDuration(seconds) {
+                    if (!seconds) return 'N/A';
+                    const hours = Math.floor(seconds / 3600);
+                    const minutes = Math.floor((seconds % 3600) / 60);
+
+                    if (hours > 0) {
+                        return hours + 'h ' + minutes + 'm';
+                    }
+                    return minutes + 'm';
+                }
+
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

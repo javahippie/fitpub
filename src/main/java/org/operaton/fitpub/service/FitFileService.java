@@ -340,6 +340,19 @@ public class FitFileService {
     }
 
     /**
+     * Retrieves an activity by ID without user authorization check.
+     * This is used for public activity access (e.g., viewing public tracks).
+     * Caller is responsible for checking visibility and access permissions.
+     *
+     * @param activityId the activity ID
+     * @return the activity or null if not found
+     */
+    @Transactional(readOnly = true)
+    public Activity getActivityById(UUID activityId) {
+        return activityRepository.findById(activityId).orElse(null);
+    }
+
+    /**
      * Retrieves all activities for a user.
      *
      * @param userId the user ID
@@ -348,6 +361,33 @@ public class FitFileService {
     @Transactional(readOnly = true)
     public List<Activity> getUserActivities(UUID userId) {
         return activityRepository.findByUserIdOrderByStartedAtDesc(userId);
+    }
+
+    /**
+     * Retrieves activities for a user with pagination.
+     *
+     * @param userId the user ID
+     * @param page page number (0-indexed)
+     * @param size page size
+     * @return page of activities
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Activity> getUserActivitiesPaginated(UUID userId, int page, int size) {
+        org.springframework.data.domain.Pageable pageable =
+            org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("startedAt").descending());
+        return activityRepository.findByUserIdOrderByStartedAtDesc(userId, pageable);
+    }
+
+    /**
+     * Retrieves public activities for a user with pagination.
+     *
+     * @param userId the user ID
+     * @param pageable pagination parameters
+     * @return page of public activities
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Activity> getPublicActivitiesByUserId(UUID userId, org.springframework.data.domain.Pageable pageable) {
+        return activityRepository.findByUserIdAndVisibilityOrderByStartedAtDesc(userId, Activity.Visibility.PUBLIC, pageable);
     }
 
     /**

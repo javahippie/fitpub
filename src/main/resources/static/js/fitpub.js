@@ -222,8 +222,12 @@ function createActivityMap(containerId, geoJsonData, options = {}) {
         if (mapOptions.fitBounds) {
             try {
                 const bounds = trackLayer.getBounds();
+                console.log('Track bounds:', bounds);
                 if (bounds.isValid()) {
                     map.fitBounds(bounds, { padding: [50, 50] });
+                    console.log('Map bounds fitted successfully');
+                } else {
+                    console.warn('Track bounds are invalid');
                 }
             } catch (e) {
                 console.warn('Could not fit map bounds:', e);
@@ -243,9 +247,22 @@ function createActivityMap(containerId, geoJsonData, options = {}) {
         map.setView([0, 0], 2);
     }
 
-    // Invalidate size to ensure proper rendering
+    // Invalidate size to ensure proper rendering and re-fit bounds
     setTimeout(() => {
         map.invalidateSize();
+
+        // Re-fit bounds after size invalidation if we have a track
+        if (mapOptions.fitBounds && map.trackLayer) {
+            try {
+                const bounds = map.trackLayer.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                    console.log('Map bounds re-fitted after invalidateSize');
+                }
+            } catch (e) {
+                console.warn('Could not re-fit bounds after invalidateSize:', e);
+            }
+        }
     }, 100);
 
     return map;

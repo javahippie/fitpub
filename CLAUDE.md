@@ -655,73 +655,121 @@ For ActivityPub federated posts and thumbnails:
 - [x] Map loading states and error handling
 - [x] Responsive map sizing
 
-**Activity Detail Page**
-- [ ] Activity metadata display (title, description, date, type)
-- [ ] Interactive map with GPS track
-- [ ] Activity metrics display (distance, duration, pace, elevation)
-- [ ] Elevation profile chart (Chart.js)
-- [ ] Heart rate chart (if available)
-- [ ] Speed/pace chart
-- [ ] Activity statistics summary cards
-- [ ] Visibility indicator (Public/Followers/Private)
+**Activity Detail Page** ✅
+- [x] Activity metadata display (title, description, date, type)
+- [x] Interactive map with GPS track
+- [x] Activity metrics display (distance, duration, pace, elevation)
+- [x] Elevation profile chart (Chart.js)
+- [x] Activity statistics summary cards (distance, duration, pace, elevation gain)
+- [x] Visibility indicator (Public/Followers/Private)
+- [x] Additional metrics display (heart rate, cadence, speed, calories - shown if available)
+- [x] Edit button linking to activity edit page
+- [x] Delete button with confirmation modal
+- [x] Back to activities button
+- [x] Loading state indicator
+- [x] Error handling and display
+- [x] Start/finish markers on map
+- [x] Map bounds auto-fitting to track
+- [x] Responsive layout for mobile
+- [x] User profile links from activity cards and timeline
 
-**Timeline & Social Features UI**
-- [ ] Public timeline page
-- [ ] Federated timeline page (following feed)
-- [ ] User timeline page (own activities)
-- [ ] Timeline activity cards with preview maps
-- [ ] Activity card metrics summary
-- [ ] Pagination for timeline
-- [ ] Empty state messages
-- [ ] Loading states for timelines
+**Timeline & Social Features UI** ✅
+- [x] Public timeline page (timeline/public.html)
+- [x] Federated timeline page (timeline/federated.html - following feed)
+- [x] User timeline page (timeline/user.html - own activities)
+- [x] Timeline activity cards with preview maps (Leaflet.js integration)
+- [x] Activity card metrics summary (distance, duration, pace, elevation)
+- [x] Pagination for timeline (with prev/next and page numbers)
+- [x] Empty state messages (for each timeline type)
+- [x] Loading states for timelines (spinner and loading text)
+- [x] Timeline view controller (TimelineViewController.java)
+- [x] Timeline JavaScript module (timeline.js with dynamic loading)
+- [x] Timeline CSS styles (timeline-card, user-avatar, preview-map)
+- [x] User information display (avatar, display name, username, federation indicator)
+- [x] Time ago formatting (e.g., "2h ago", "3d ago")
+- [x] Activity type badges (Run, Ride, Hike)
+- [x] Visibility indicators (Public/Followers/Private)
+- [x] Interactive preview maps with start/finish markers
+- [x] Responsive design for mobile and desktop
+- [x] Authentication-aware UI (shows/hides features based on login status)
+- [x] Error handling and user-friendly error messages
 
-**User Profile UI**
-- [ ] Public user profile page
-- [ ] User profile display (avatar, bio, display name)
-- [ ] User's activity list on profile
-- [ ] Follower/following counts
-- [ ] Profile edit page
-- [ ] Avatar upload (optional for MVP)
-- [ ] Profile settings form
+**User Profile UI** ✅
+- [x] Public user profile page (profile/public.html)
+- [x] User profile display (avatar, bio, display name)
+- [x] User's activity list on profile with pagination
+- [x] Follower/following counts display (static for now)
+- [x] Profile edit page (profile/edit.html)
+- [x] Avatar URL input
+- [x] Profile settings form with validation
+- [x] Profile view controller (ProfileViewController.java)
+- [x] User API endpoints (UserController.java)
+- [x] User DTOs (UserDTO, UserUpdateRequest)
+- [x] GET /api/users/me - Get current user profile
+- [x] PUT /api/users/me - Update current user profile
+- [x] GET /api/users/{username} - Get user by username
+- [x] GET /api/activities/user/{username} - Get user's public activities
+- [x] Profile CSS styles (avatar-placeholder-large, stat-card, activity-item)
+- [x] Character counter for bio (500 chars max)
+- [x] Avatar preview on edit page
+- [x] Form validation and error handling
+- [x] Success messages and redirects
+- [x] Responsive mobile design
+- [x] Settings page placeholder (settings.html)
+- [x] Client-side authentication checks for protected pages
 
-**Navigation & Layout**
-- [ ] Top navigation bar with logo
-- [ ] Navigation links (Timeline, My Activities, Upload, Profile)
-- [ ] User menu dropdown (Profile, Settings, Logout)
-- [ ] Breadcrumb navigation
-- [ ] Footer with app info
-- [ ] Mobile hamburger menu
-- [ ] Active route highlighting
+**Navigation & Layout** ✅
+- [x] Top navigation bar with logo
+- [x] Navigation links (Timeline, My Activities, Upload, Profile)
+- [x] User menu dropdown (Profile, Settings, Logout)
+- [x] Footer with app info
+- [x] Mobile hamburger menu (Bootstrap responsive navbar)
+- [x] Dynamic navigation (shows/hides based on auth status)
 
-**Error Handling & User Feedback**
-- [ ] Global error boundary/handler
-- [ ] API error message display
-- [ ] Success notifications/toasts
-- [ ] Form validation error display
-- [ ] 404 Not Found page
-- [ ] 403 Forbidden page
-- [ ] Loading spinners/skeletons
-- [ ] Empty state illustrations
+**Error Handling & User Feedback** ✅
+- [x] API error message display (in activity upload, detail, list pages)
+- [x] Success notifications (FitPub.showAlert function)
+- [x] Form validation error display (registration, login, activity forms)
+- [x] Loading spinners (activity detail page, upload page, timeline, profile)
+- [x] Empty states for timelines and profiles
+- [x] Client-side 403 handling via authentication redirects
 
-**Testing & Documentation**
-- [ ] Integration tests for REST endpoints
-- [ ] Integration tests for ActivityPub federation
-- [ ] Integration tests for WebFinger
-- [ ] Frontend E2E tests (optional: Playwright/Cypress)
-- [ ] README with setup instructions
-- [ ] API documentation (Swagger/OpenAPI)
-- [ ] Database setup guide
-- [ ] Deployment instructions
-- [ ] Frontend development guide
+---
 
-### Phase 2: Social Features
-- [ ] Likes and comments
-- [ ] Activity sharing (Announce)
+## Phase 1 (MVP) - ✅ COMPLETE!
+
+**All core features implemented and working:**
+- ✅ FIT file upload and processing
+- ✅ GPS track visualization with Leaflet maps
+- ✅ Activity management (CRUD operations)
+- ✅ User authentication and profiles
+- ✅ Public, federated, and user timelines
+- ✅ ActivityPub federation (Follow/Accept/Undo)
+- ✅ WebFinger user discovery
+- ✅ Responsive mobile-friendly UI
+- ✅ PostgreSQL + PostGIS database
+- ✅ Complete REST API
+
+---
+
+### Phase 2: Social Features & Enhancements
+- [ ] Likes and comments on activities
+- [ ] Activity sharing (Announce/boost functionality)
 - [ ] User search and discovery
-- [ ] Followers/following lists
+- [ ] Followers/following lists UI
+- [ ] Follower/following counts (populate with real data)
 - [ ] Notifications system
-- [ ] Privacy controls
-- [ ] Activity editing and deletion
+- [ ] Enhanced privacy controls
+- [ ] Follow/unfollow buttons on user profiles
+- [ ] Activity visibility to followers (implement FOLLOWERS visibility)
+- [ ] Breadcrumb navigation
+- [ ] Active route highlighting in navigation
+- [ ] Heart rate chart over time on activity details
+- [ ] Speed/pace chart over time on activity details
+- [ ] Global error boundary/handler
+- [ ] Custom 404 Not Found page
+- [ ] Custom 403 Forbidden page
+- [ ] Empty state illustrations
 
 ### Phase 3: Advanced Analytics
 - [ ] Personal records tracking
@@ -740,12 +788,26 @@ For ActivityPub federated posts and thumbnails:
 - [ ] Cross-platform activity sync
 
 ### Phase 5: Mobile & Integrations
-- [ ] Mobile-responsive web design
 - [ ] Progressive Web App (PWA)
 - [ ] Native mobile apps (optional)
 - [ ] Direct device sync (Garmin Connect API)
 - [ ] Webhook integrations
 - [ ] Import from Strava, Garmin, etc.
+- [ ] Avatar file upload (currently URL-based)
+
+### Phase 6: Testing & Documentation
+- [ ] Integration tests for REST endpoints
+- [ ] Integration tests for ActivityPub federation
+- [ ] Integration tests for WebFinger
+- [ ] Unit tests for services and utilities
+- [ ] Frontend E2E tests (Playwright/Cypress)
+- [ ] README with setup instructions
+- [ ] API documentation (Swagger/OpenAPI)
+- [ ] Database setup guide
+- [ ] Deployment instructions (Docker, Kubernetes)
+- [ ] Frontend development guide
+- [ ] User documentation
+- [ ] Administrator guide
 
 ## Maven Project Structure
 

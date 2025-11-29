@@ -56,7 +56,8 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
 
                 // Public endpoints - Web UI pages
-                .requestMatchers("/", "/login", "/register", "/timeline", "/activities", "/activities/**").permitAll()
+                .requestMatchers("/", "/login", "/register", "/timeline", "/timeline/**", "/activities", "/activities/**").permitAll()
+                .requestMatchers("/profile", "/profile/**", "/settings").permitAll() // Auth checked client-side
 
                 // Public endpoints - ActivityPub federation
                 .requestMatchers("/.well-known/**").permitAll()
@@ -70,14 +71,23 @@ public class SecurityConfig {
                 // Public endpoints - Timeline API (read-only)
                 .requestMatchers(HttpMethod.GET, "/api/timeline/public").permitAll()
 
+                // Public endpoints - Activity track data (for public activities)
+                .requestMatchers(HttpMethod.GET, "/api/activities/*/track").permitAll()
+
+                // Public endpoints - User's public activities
+                .requestMatchers(HttpMethod.GET, "/api/activities/user/*").permitAll()
+
                 // Protected endpoints - Activities API
                 .requestMatchers("/api/activities/**").authenticated()
 
                 // Protected endpoints - Timeline API (user-specific)
                 .requestMatchers("/api/timeline/**").authenticated()
 
-                // Protected web pages
-                .requestMatchers("/profile", "/settings").authenticated()
+                // User API endpoints
+                .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/users/{username}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/id/*").permitAll()
 
                 // All other requests require authentication
                 .anyRequest().authenticated()

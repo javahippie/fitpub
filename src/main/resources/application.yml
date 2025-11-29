@@ -2,6 +2,10 @@ spring:
   application:
     name: fitpub
 
+  # Default to dev profile if not specified
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
   # Datasource configuration is handled by Testcontainers in dev mode
   # For production, set these via environment variables:
   # - SPRING_DATASOURCE_URL

@@ -45,11 +45,26 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
      * Find all public activities for a user.
      *
      * @param userId the user ID
+     * @param visibility the visibility level
      * @return list of activities
      */
     List<Activity> findByUserIdAndVisibilityOrderByStartedAtDesc(
         UUID userId,
         Activity.Visibility visibility
+    );
+
+    /**
+     * Find activities for a user by visibility with pagination.
+     *
+     * @param userId the user ID
+     * @param visibility the visibility level
+     * @param pageable pagination parameters
+     * @return page of activities
+     */
+    Page<Activity> findByUserIdAndVisibilityOrderByStartedAtDesc(
+        UUID userId,
+        Activity.Visibility visibility,
+        Pageable pageable
     );
 
     /**

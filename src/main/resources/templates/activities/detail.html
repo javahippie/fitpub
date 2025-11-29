@@ -296,24 +296,73 @@
                         coordinates: simplifiedTrack.coordinates
                     };
 
-                    // Create map
-                    FitPub.createActivityMap('activityMap', geoJson, {
-                        showStartEnd: true,
-                        fitBounds: true
-                    });
+                    // Create map (needs to be done after container is visible)
+                    setTimeout(() => {
+                        const map = FitPub.createActivityMap('activityMap', geoJson, {
+                            showStartEnd: true,
+                            fitBounds: true
+                        });
+
+                        // Force fit bounds again after map is fully rendered
+                        if (map && map.trackLayer) {
+                            setTimeout(() => {
+                                try {
+                                    const bounds = map.trackLayer.getBounds();
+                                    if (bounds.isValid()) {
+                                        map.fitBounds(bounds, { padding: [50, 50] });
+                                    }
+                                } catch (e) {
+                                    console.warn('Could not fit bounds on second attempt:', e);
+                                }
+                            }, 200);
+                        }
+                    }, 50);
                 }
 
                 function renderElevationChart(trackPoints) {
-                    const elevationData = trackPoints
-                        .filter(p => p.elevation != null)
-                        .map((p, index) => ({
-                            x: index,
-                            y: p.elevation
-                        }));
+                    // Calculate cumulative distance and prepare elevation data
+                    let cumulativeDistance = 0;
+                    const elevationData = [];
+
+                    for (let i = 0; i < trackPoints.length; i++) {
+                        const point = trackPoints[i];
+
+                        // Calculate distance from previous point (simple Haversine approximation)
+                        if (i > 0 && point.latitude && point.longitude) {
+                            const prev = trackPoints[i - 1];
+                            if (prev.latitude && prev.longitude) {
+                                const distance = calculateDistance(
+                                    prev.latitude, prev.longitude,
+                                    point.latitude, point.longitude
+                                );
+                                cumulativeDistance += distance;
+                            }
+                        }
+
+                        // Add point if it has elevation data
+                        if (point.elevation != null) {
+                            elevationData.push({
+                                distance: cumulativeDistance,
+                                elevation: point.elevation
+                            });
+                        }
+                    }
 
                     if (elevationData.length > 0) {
                         FitPub.createElevationChart('elevationChart', elevationData);
                     }
+                }
+
+                // Haversine formula to calculate distance between two GPS points
+                function calculateDistance(lat1, lon1, lat2, lon2) {
+                    const R = 6371000; // Earth's radius in meters
+                    const dLat = (lat2 - lat1) * Math.PI / 180;
+                    const dLon = (lon2 - lon1) * Math.PI / 180;
+                    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                    return R * c;
                 }
 
                 function renderAdditionalMetrics(activity) {

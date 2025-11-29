@@ -135,6 +135,94 @@ body {
     font-weight: 600;
 }
 
+/* Timeline Cards */
+.timeline-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.timeline-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-card .user-avatar {
+    flex-shrink: 0;
+}
+
+.timeline-card .avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    background-color: var(--light-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #9ca3af;
+}
+
+.activity-preview-map {
+    background-color: var(--light-color);
+    position: relative;
+}
+
+.activity-preview-map .leaflet-container {
+    border-radius: 8px;
+}
+
+/* Timeline Metrics */
+.timeline-card .metric-card {
+    padding: 0.75rem;
+    margin-bottom: 0;
+}
+
+.timeline-card .metric-value {
+    font-size: 1.25rem;
+}
+
+.timeline-card .metric-label {
+    font-size: 0.75rem;
+}
+
+/* Profile Pages */
+.avatar-placeholder-large {
+    width: 120px;
+    height: 120px;
+    background-color: var(--light-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    color: #9ca3af;
+}
+
+.stat-card {
+    padding: 1rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.activity-item {
+    transition: background-color 0.2s;
+}
+
+.activity-item:hover {
+    background-color: var(--light-color);
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    margin: -0.5rem;
+}
+
 /* Charts */
 .chart-container {
     position: relative;
