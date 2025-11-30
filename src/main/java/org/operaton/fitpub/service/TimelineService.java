@@ -33,6 +33,8 @@ public class TimelineService {
     private final ActivityRepository activityRepository;
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final org.operaton.fitpub.repository.LikeRepository likeRepository;
+    private final org.operaton.fitpub.repository.CommentRepository commentRepository;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -74,12 +76,19 @@ public class TimelineService {
                 if (activityUser == null) {
                     return null;
                 }
-                return TimelineActivityDTO.fromActivity(
+                TimelineActivityDTO dto = TimelineActivityDTO.fromActivity(
                     activity,
                     activityUser.getUsername(),
                     activityUser.getDisplayName() != null ? activityUser.getDisplayName() : activityUser.getUsername(),
                     activityUser.getAvatarUrl()
                 );
+
+                // Add social interaction counts
+                dto.setLikesCount(likeRepository.countByActivityId(activity.getId()));
+                dto.setCommentsCount(commentRepository.countByActivityIdAndNotDeleted(activity.getId()));
+                dto.setLikedByCurrentUser(likeRepository.existsByActivityIdAndUserId(activity.getId(), userId));
+
+                return dto;
             })
             .filter(dto -> dto != null)
             .collect(Collectors.toList());
@@ -91,11 +100,12 @@ public class TimelineService {
      * Get the public timeline.
      * Shows all public activities from all users.
      *
+     * @param userId optional user ID for checking liked status (null for unauthenticated)
      * @param pageable pagination parameters
      * @return page of timeline activities
      */
     @Transactional(readOnly = true)
-    public Page<TimelineActivityDTO> getPublicTimeline(Pageable pageable) {
+    public Page<TimelineActivityDTO> getPublicTimeline(UUID userId, Pageable pageable) {
         log.debug("Fetching public timeline");
 
         // Fetch all public activities
@@ -111,12 +121,25 @@ public class TimelineService {
                 if (activityUser == null) {
                     return null;
                 }
-                return TimelineActivityDTO.fromActivity(
+                TimelineActivityDTO dto = TimelineActivityDTO.fromActivity(
                     activity,
                     activityUser.getUsername(),
                     activityUser.getDisplayName() != null ? activityUser.getDisplayName() : activityUser.getUsername(),
                     activityUser.getAvatarUrl()
                 );
+
+                // Add social interaction counts
+                dto.setLikesCount(likeRepository.countByActivityId(activity.getId()));
+                dto.setCommentsCount(commentRepository.countByActivityIdAndNotDeleted(activity.getId()));
+
+                // Check if current user liked this activity (if authenticated)
+                if (userId != null) {
+                    dto.setLikedByCurrentUser(likeRepository.existsByActivityIdAndUserId(activity.getId(), userId));
+                } else {
+                    dto.setLikedByCurrentUser(false);
+                }
+
+                return dto;
             })
             .filter(dto -> dto != null)
             .collect(Collectors.toList());
@@ -141,12 +164,21 @@ public class TimelineService {
         Page<Activity> activities = activityRepository.findByUserIdOrderByStartedAtDesc(userId, pageable);
 
         List<TimelineActivityDTO> timelineActivities = activities.getContent().stream()
-            .map(activity -> TimelineActivityDTO.fromActivity(
-                activity,
-                user.getUsername(),
-                user.getDisplayName() != null ? user.getDisplayName() : user.getUsername(),
-                user.getAvatarUrl()
-            ))
+            .map(activity -> {
+                TimelineActivityDTO dto = TimelineActivityDTO.fromActivity(
+                    activity,
+                    user.getUsername(),
+                    user.getDisplayName() != null ? user.getDisplayName() : user.getUsername(),
+                    user.getAvatarUrl()
+                );
+
+                // Add social interaction counts
+                dto.setLikesCount(likeRepository.countByActivityId(activity.getId()));
+                dto.setCommentsCount(commentRepository.countByActivityIdAndNotDeleted(activity.getId()));
+                dto.setLikedByCurrentUser(likeRepository.existsByActivityIdAndUserId(activity.getId(), userId));
+
+                return dto;
+            })
             .collect(Collectors.toList());
 
         return new PageImpl<>(timelineActivities, pageable, activities.getTotalElements());

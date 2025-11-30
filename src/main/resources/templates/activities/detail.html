@@ -166,6 +166,76 @@
                 </div>
             </div>
 
+            <!-- Social Interactions -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-chat-heart"></i> Social
+                            </h5>
+                            <div>
+                                <button id="likeBtn" class="btn btn-sm btn-outline-danger me-2">
+                                    <i class="bi bi-heart"></i>
+                                    <span id="likeBtnText">Like</span>
+                                    (<span id="likeCount">0</span>)
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Likes Section -->
+                            <div class="mb-4" id="likesSection">
+                                <h6 class="text-muted mb-3">
+                                    <i class="bi bi-heart-fill text-danger"></i>
+                                    Liked by <span id="likesCountText">0</span>
+                                </h6>
+                                <div id="likesList" class="d-flex flex-wrap gap-2">
+                                    <!-- Likes will be populated here -->
+                                </div>
+                            </div>
+
+                            <!-- Comments Section -->
+                            <div>
+                                <h6 class="text-muted mb-3">
+                                    <i class="bi bi-chat-left-text"></i>
+                                    Comments (<span id="commentsCount">0</span>)
+                                </h6>
+
+                                <!-- Comment Form -->
+                                <div id="commentForm" class="mb-4" style="display: none;">
+                                    <form id="addCommentForm">
+                                        <div class="mb-3">
+                                            <textarea
+                                                id="commentContent"
+                                                class="form-control"
+                                                rows="3"
+                                                placeholder="Write a comment..."
+                                                required
+                                            ></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-send"></i> Post Comment
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Comments List -->
+                                <div id="commentsList">
+                                    <!-- Comments will be populated here -->
+                                </div>
+
+                                <!-- Login prompt for non-authenticated users -->
+                                <div id="loginPrompt" style="display: none;">
+                                    <p class="text-muted">
+                                        <a href="/login">Log in</a> to like or comment on this activity.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Back Button -->
             <div class="row">
                 <div class="col-12">
@@ -287,6 +357,11 @@
 
                     // Additional metrics
                     renderAdditionalMetrics(activity);
+
+                    // Load social interactions
+                    loadLikes();
+                    loadComments();
+                    setupSocialInteractions(activity);
                 }
 
                 function renderMap(simplifiedTrack) {
@@ -413,6 +488,247 @@
                     if (hasAdditionalMetrics) {
                         document.getElementById('additionalMetrics').style.display = 'block';
                     }
+                }
+
+                // Social interactions functionality
+                async function loadLikes() {
+                    try {
+                        const response = await fetch(`/api/activities/${activityId}/likes`);
+                        if (response.ok) {
+                            const likes = await response.json();
+                            renderLikes(likes);
+                        }
+                    } catch (error) {
+                        console.error('Error loading likes:', error);
+                    }
+                }
+
+                function renderLikes(likes) {
+                    const likesList = document.getElementById('likesList');
+                    const likeCount = document.getElementById('likeCount');
+                    const likesCountText = document.getElementById('likesCountText');
+
+                    likeCount.textContent = likes.length;
+                    likesCountText.textContent = likes.length;
+
+                    if (likes.length === 0) {
+                        likesList.innerHTML = '<span class="text-muted">No likes yet</span>';
+                        return;
+                    }
+
+                    likesList.innerHTML = likes.map(like => {
+                        const displayName = like.displayName || like.username || 'Unknown';
+                        const avatarHtml = like.avatarUrl
+                            ? `<img src="${like.avatarUrl}" alt="${displayName}" class="rounded-circle me-2" width="32" height="32">`
+                            : `<i class="bi bi-person-circle me-2" style="font-size: 32px;"></i>`;
+
+                        return `
+                            <div class="d-flex align-items-center p-2 border rounded">
+                                ${avatarHtml}
+                                <span>${displayName}</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                async function loadComments() {
+                    try {
+                        const response = await fetch(`/api/activities/${activityId}/comments`);
+                        if (response.ok) {
+                            const commentsPage = await response.json();
+                            renderComments(commentsPage.content || []);
+                        }
+                    } catch (error) {
+                        console.error('Error loading comments:', error);
+                    }
+                }
+
+                function renderComments(comments) {
+                    const commentsList = document.getElementById('commentsList');
+                    const commentsCount = document.getElementById('commentsCount');
+
+                    commentsCount.textContent = comments.length;
+
+                    if (comments.length === 0) {
+                        commentsList.innerHTML = '<p class="text-muted">No comments yet. Be the first to comment!</p>';
+                        return;
+                    }
+
+                    commentsList.innerHTML = comments.map(comment => {
+                        const displayName = comment.displayName || comment.username || 'Unknown';
+                        const avatarHtml = comment.avatarUrl
+                            ? `<img src="${comment.avatarUrl}" alt="${displayName}" class="rounded-circle" width="40" height="40">`
+                            : `<i class="bi bi-person-circle" style="font-size: 40px;"></i>`;
+
+                        const createdAt = new Date(comment.createdAt).toLocaleString();
+                        const deleteBtn = comment.canDelete
+                            ? `<button class="btn btn-sm btn-outline-danger delete-comment-btn" data-comment-id="${comment.id}">
+                                <i class="bi bi-trash"></i>
+                               </button>`
+                            : '';
+
+                        return `
+                            <div class="d-flex mb-3 pb-3 border-bottom" data-comment-id="${comment.id}">
+                                <div class="me-3">
+                                    ${avatarHtml}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>${displayName}</strong>
+                                            <small class="text-muted ms-2">${createdAt}</small>
+                                        </div>
+                                        ${deleteBtn}
+                                    </div>
+                                    <p class="mb-0 mt-1">${escapeHtml(comment.content)}</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Add delete event listeners
+                    document.querySelectorAll('.delete-comment-btn').forEach(btn => {
+                        btn.addEventListener('click', async function() {
+                            if (confirm('Delete this comment?')) {
+                                await deleteComment(this.dataset.commentId);
+                            }
+                        });
+                    });
+                }
+
+                function setupSocialInteractions(activity) {
+                    const isAuthenticated = FitPubAuth.isAuthenticated();
+
+                    if (isAuthenticated) {
+                        // Show comment form for authenticated users
+                        document.getElementById('commentForm').style.display = 'block';
+
+                        // Update like button based on activity data
+                        if (activity.likedByCurrentUser) {
+                            updateLikeButton(true);
+                        }
+
+                        // Setup like button click handler
+                        document.getElementById('likeBtn').addEventListener('click', handleLikeClick);
+
+                        // Setup comment form submit handler
+                        document.getElementById('addCommentForm').addEventListener('submit', handleCommentSubmit);
+                    } else {
+                        // Show login prompt for non-authenticated users
+                        document.getElementById('loginPrompt').style.display = 'block';
+                        document.getElementById('likeBtn').disabled = true;
+                    }
+                }
+
+                async function handleLikeClick(event) {
+                    event.preventDefault();
+                    const btn = event.currentTarget;
+                    const isLiked = btn.classList.contains('btn-danger');
+
+                    try {
+                        if (isLiked) {
+                            // Unlike
+                            const response = await FitPubAuth.authenticatedFetch(
+                                `/api/activities/${activityId}/likes`,
+                                { method: 'DELETE' }
+                            );
+
+                            if (response.ok) {
+                                updateLikeButton(false);
+                                loadLikes(); // Reload likes list
+                            }
+                        } else {
+                            // Like
+                            const response = await FitPubAuth.authenticatedFetch(
+                                `/api/activities/${activityId}/likes`,
+                                { method: 'POST' }
+                            );
+
+                            if (response.ok) {
+                                updateLikeButton(true);
+                                loadLikes(); // Reload likes list
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error toggling like:', error);
+                        FitPub.showAlert('Failed to update like. Please try again.', 'danger');
+                    }
+                }
+
+                function updateLikeButton(isLiked) {
+                    const btn = document.getElementById('likeBtn');
+                    const btnText = document.getElementById('likeBtnText');
+                    const icon = btn.querySelector('i');
+
+                    if (isLiked) {
+                        btn.classList.remove('btn-outline-danger');
+                        btn.classList.add('btn-danger');
+                        icon.classList.remove('bi-heart');
+                        icon.classList.add('bi-heart-fill');
+                        btnText.textContent = 'Liked';
+                    } else {
+                        btn.classList.remove('btn-danger');
+                        btn.classList.add('btn-outline-danger');
+                        icon.classList.remove('bi-heart-fill');
+                        icon.classList.add('bi-heart');
+                        btnText.textContent = 'Like';
+                    }
+                }
+
+                async function handleCommentSubmit(event) {
+                    event.preventDefault();
+
+                    const contentInput = document.getElementById('commentContent');
+                    const content = contentInput.value.trim();
+
+                    if (!content) return;
+
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch(
+                            `/api/activities/${activityId}/comments`,
+                            {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ content })
+                            }
+                        );
+
+                        if (response.ok) {
+                            contentInput.value = '';
+                            loadComments(); // Reload comments list
+                            FitPub.showAlert('Comment posted successfully', 'success');
+                        } else {
+                            throw new Error('Failed to post comment');
+                        }
+                    } catch (error) {
+                        console.error('Error posting comment:', error);
+                        FitPub.showAlert('Failed to post comment. Please try again.', 'danger');
+                    }
+                }
+
+                async function deleteComment(commentId) {
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch(
+                            `/api/activities/${activityId}/comments/${commentId}`,
+                            { method: 'DELETE' }
+                        );
+
+                        if (response.ok) {
+                            loadComments(); // Reload comments list
+                            FitPub.showAlert('Comment deleted successfully', 'success');
+                        } else {
+                            throw new Error('Failed to delete comment');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting comment:', error);
+                        FitPub.showAlert('Failed to delete comment. Please try again.', 'danger');
+                    }
+                }
+
+                function escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
                 }
 
                 // Delete functionality

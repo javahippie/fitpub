@@ -72,22 +72,31 @@ public class TimelineController {
     /**
      * Get the public timeline.
      * Shows all public activities from all users.
+     * Optionally authenticated - if user is logged in, will show which activities they've liked.
      *
      * GET /api/timeline/public?page=0&size=20
      *
+     * @param userDetails the authenticated user details (optional)
      * @param page page number (default: 0)
      * @param size page size (default: 20)
      * @return page of timeline activities
      */
     @GetMapping("/public")
     public ResponseEntity<Page<TimelineActivityDTO>> getPublicTimeline(
+        @AuthenticationPrincipal(errorOnInvalidType = false) UserDetails userDetails,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "20") int size
     ) {
-        log.debug("Public timeline request");
+        UUID userId = null;
+        if (userDetails != null) {
+            userId = getUserId(userDetails);
+            log.debug("Public timeline request from authenticated user: {}", userId);
+        } else {
+            log.debug("Public timeline request (unauthenticated)");
+        }
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<TimelineActivityDTO> timeline = timelineService.getPublicTimeline(pageable);
+        Page<TimelineActivityDTO> timeline = timelineService.getPublicTimeline(userId, pageable);
 
         return ResponseEntity.ok(timeline);
     }

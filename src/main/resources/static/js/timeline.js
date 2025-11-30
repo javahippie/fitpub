@@ -44,6 +44,8 @@ const FitPubTimeline = {
             switch (this.timelineType) {
                 case 'public':
                     endpoint = `/api/timeline/public?page=${page}&size=20`;
+                    // Public timeline is optionally authenticated
+                    fetchOptions = { useAuth: FitPubAuth.isAuthenticated() };
                     break;
                 case 'federated':
                     endpoint = `/api/timeline/federated?page=${page}&size=20`;
@@ -178,13 +180,24 @@ const FitPubTimeline = {
                         </div>
 
                         <!-- Activity Actions -->
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <button
+                                class="btn btn-sm ${activity.likedByCurrentUser ? 'btn-danger' : 'btn-outline-danger'} like-btn"
+                                data-activity-id="${activity.id}"
+                                data-liked="${activity.likedByCurrentUser || false}"
+                            >
+                                <i class="bi bi-heart${activity.likedByCurrentUser ? '-fill' : ''}"></i>
+                                <span class="like-count">${activity.likesCount || 0}</span>
+                            </button>
                             <a href="/activities/${activity.id}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye"></i> View Details
                             </a>
-                            <span class="ms-auto text-muted small">
-                                <i class="bi bi-${this.getVisibilityIcon(activity.visibility)}"></i>
-                                ${activity.visibility}
+                            <span class="ms-auto text-muted small d-flex align-items-center gap-2">
+                                ${activity.commentsCount > 0 ? `<span><i class="bi bi-chat-left-text"></i> ${activity.commentsCount}</span>` : ''}
+                                <span>
+                                    <i class="bi bi-${this.getVisibilityIcon(activity.visibility)}"></i>
+                                    ${activity.visibility}
+                                </span>
                             </span>
                         </div>
                     </div>
@@ -198,6 +211,82 @@ const FitPubTimeline = {
                 this.renderPreviewMap(activity);
             });
         }, 100);
+
+        // Setup like button handlers
+        this.setupLikeButtons();
+    },
+
+    /**
+     * Setup like button click handlers
+     */
+    setupLikeButtons: function() {
+        const likeButtons = document.querySelectorAll('.like-btn');
+
+        likeButtons.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+
+                // Check if user is authenticated
+                if (!FitPubAuth.isAuthenticated()) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const activityId = btn.dataset.activityId;
+                const isLiked = btn.dataset.liked === 'true';
+                const icon = btn.querySelector('i');
+                const countSpan = btn.querySelector('.like-count');
+
+                try {
+                    // Disable button during request
+                    btn.disabled = true;
+
+                    if (isLiked) {
+                        // Unlike
+                        const response = await FitPubAuth.authenticatedFetch(
+                            `/api/activities/${activityId}/likes`,
+                            { method: 'DELETE' }
+                        );
+
+                        if (response.ok) {
+                            // Update UI
+                            btn.classList.remove('btn-danger');
+                            btn.classList.add('btn-outline-danger');
+                            icon.classList.remove('bi-heart-fill');
+                            icon.classList.add('bi-heart');
+                            btn.dataset.liked = 'false';
+
+                            // Update count
+                            const currentCount = parseInt(countSpan.textContent) || 0;
+                            countSpan.textContent = Math.max(0, currentCount - 1);
+                        }
+                    } else {
+                        // Like
+                        const response = await FitPubAuth.authenticatedFetch(
+                            `/api/activities/${activityId}/likes`,
+                            { method: 'POST' }
+                        );
+
+                        if (response.ok) {
+                            // Update UI
+                            btn.classList.remove('btn-outline-danger');
+                            btn.classList.add('btn-danger');
+                            icon.classList.remove('bi-heart');
+                            icon.classList.add('bi-heart-fill');
+                            btn.dataset.liked = 'true';
+
+                            // Update count
+                            const currentCount = parseInt(countSpan.textContent) || 0;
+                            countSpan.textContent = currentCount + 1;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error toggling like:', error);
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
     },
 
     /**

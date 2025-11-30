@@ -38,6 +38,11 @@ public class TimelineActivityDTO {
     private String avatarUrl;
     private boolean isLocal;
 
+    // Social interaction counts
+    private Long likesCount;
+    private Long commentsCount;
+    private Boolean likedByCurrentUser;
+
     // Metrics summary
     private ActivityMetricsSummary metrics;
 
