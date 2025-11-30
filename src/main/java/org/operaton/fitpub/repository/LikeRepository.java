@@ -68,10 +68,27 @@ public interface LikeRepository extends JpaRepository<Like, UUID> {
     boolean existsByActivityIdAndUserId(UUID activityId, UUID userId);
 
     /**
+     * Check if a remote actor has liked an activity.
+     *
+     * @param activityId the activity ID
+     * @param remoteActorUri the remote actor URI
+     * @return true if liked
+     */
+    boolean existsByActivityIdAndRemoteActorUri(UUID activityId, String remoteActorUri);
+
+    /**
      * Delete a like by activity and user.
      *
      * @param activityId the activity ID
      * @param userId the user ID
      */
     void deleteByActivityIdAndUserId(UUID activityId, UUID userId);
+
+    /**
+     * Delete a like by activity and remote actor.
+     *
+     * @param activityId the activity ID
+     * @param remoteActorUri the remote actor URI
+     */
+    void deleteByActivityIdAndRemoteActorUri(UUID activityId, String remoteActorUri);
 }

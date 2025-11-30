@@ -2,16 +2,21 @@ package org.operaton.fitpub.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.Follow;
+import org.operaton.fitpub.model.entity.Like;
 import org.operaton.fitpub.model.entity.RemoteActor;
 import org.operaton.fitpub.model.entity.User;
+import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.FollowRepository;
+import org.operaton.fitpub.repository.LikeRepository;
 import org.operaton.fitpub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Processes incoming ActivityPub activities in the inbox.
@@ -24,6 +29,8 @@ public class InboxProcessor {
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
     private final FederationService federationService;
+    private final ActivityRepository activityRepository;
+    private final LikeRepository likeRepository;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -114,10 +121,11 @@ public class InboxProcessor {
     }
 
     /**
-     * Process an Undo activity (e.g., unfollow).
+     * Process an Undo activity (e.g., unfollow, unlike).
      */
     private void processUndo(String username, Map<String, Object> activity) {
         try {
+            String actor = (String) activity.get("actor");
             Object object = activity.get("object");
             if (object instanceof Map) {
                 @SuppressWarnings("unchecked")
@@ -130,6 +138,13 @@ public class InboxProcessor {
                     if (follow != null) {
                         followRepository.delete(follow);
                         log.info("Processed Undo Follow: {}", activityId);
+                    }
+                } else if ("Like".equals(type)) {
+                    String objectUri = (String) undoObject.get("object");
+                    UUID activityId = extractActivityIdFromUri(objectUri);
+                    if (activityId != null) {
+                        likeRepository.deleteByActivityIdAndRemoteActorUri(activityId, actor);
+                        log.info("Processed Undo Like from {} for activity {}", actor, activityId);
                     }
                 }
             }
@@ -173,7 +188,67 @@ public class InboxProcessor {
      * Process a Like activity.
      */
     private void processLike(String username, Map<String, Object> activity) {
-        // TODO: Implement Like activity processing
-        log.debug("Received Like activity for user {}", username);
+        try {
+            String actor = (String) activity.get("actor");
+            String objectUri = (String) activity.get("object");
+
+            log.debug("Received Like from {} for object {}", actor, objectUri);
+
+            // Extract activity ID from the object URI
+            // Expected format: https://fitpub.example/activities/{uuid}
+            UUID activityId = extractActivityIdFromUri(objectUri);
+            if (activityId == null) {
+                log.warn("Could not extract activity ID from object URI: {}", objectUri);
+                return;
+            }
+
+            // Check if the activity exists
+            Activity localActivity = activityRepository.findById(activityId).orElse(null);
+            if (localActivity == null) {
+                log.warn("Activity not found: {}", activityId);
+                return;
+            }
+
+            // Fetch remote actor information
+            RemoteActor remoteActor = federationService.fetchRemoteActor(actor);
+
+            // Check if like already exists
+            if (likeRepository.existsByActivityIdAndRemoteActorUri(activityId, actor)) {
+                log.debug("Like already exists from {} for activity {}", actor, activityId);
+                return;
+            }
+
+            // Create the like
+            Like like = Like.builder()
+                .activityId(activityId)
+                .userId(null) // Remote actor, not a local user
+                .remoteActorUri(actor)
+                .displayName(remoteActor.getDisplayName() != null ? remoteActor.getDisplayName() : remoteActor.getUsername())
+                .avatarUrl(remoteActor.getAvatarUrl())
+                .build();
+
+            likeRepository.save(like);
+            log.info("Processed Like from {} for activity {}", actor, activityId);
+
+        } catch (Exception e) {
+            log.error("Error processing Like activity", e);
+        }
+    }
+
+    /**
+     * Extract activity UUID from URI.
+     * Expects format: https://fitpub.example/activities/{uuid}
+     */
+    private UUID extractActivityIdFromUri(String uri) {
+        try {
+            if (uri == null || !uri.startsWith(baseUrl + "/activities/")) {
+                return null;
+            }
+            String uuidStr = uri.substring((baseUrl + "/activities/").length());
+            return UUID.fromString(uuidStr);
+        } catch (Exception e) {
+            log.warn("Failed to extract activity ID from URI: {}", uri, e);
+            return null;
+        }
     }
 }
