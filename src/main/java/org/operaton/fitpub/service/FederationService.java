@@ -213,17 +213,126 @@ public class FederationService {
         return followers.stream()
             .map(follow -> {
                 try {
-                    RemoteActor actor = remoteActorRepository.findByActorUri(follow.getFollowingActorUri())
-                        .orElseGet(() -> fetchRemoteActor(follow.getFollowingActorUri()));
+                    RemoteActor actor = remoteActorRepository.findByActorUri(follow.getRemoteActorUri())
+                        .orElseGet(() -> fetchRemoteActor(follow.getRemoteActorUri()));
                     return actor.getSharedInboxUrl() != null ? actor.getSharedInboxUrl() : actor.getInboxUrl();
                 } catch (Exception e) {
-                    log.error("Failed to get inbox for follower: {}", follow.getFollowingActorUri(), e);
+                    log.error("Failed to get inbox for follower: {}", follow.getRemoteActorUri(), e);
                     return null;
                 }
             })
             .filter(inbox -> inbox != null)
             .distinct()
             .toList();
+    }
+
+    /**
+     * Send a Create activity for a new post/object.
+     *
+     * @param objectId the ID of the created object
+     * @param object the object being created (activity, note, etc.)
+     * @param sender the local user creating the object
+     * @param toPublic whether to send to public (CC followers)
+     */
+    @Transactional
+    public void sendCreateActivity(String objectId, Map<String, Object> object, User sender, boolean toPublic) {
+        try {
+            String createId = baseUrl + "/activities/create/" + UUID.randomUUID();
+            String actorUri = baseUrl + "/users/" + sender.getUsername();
+
+            Map<String, Object> createActivity = new HashMap<>();
+            createActivity.put("@context", "https://www.w3.org/ns/activitystreams");
+            createActivity.put("type", "Create");
+            createActivity.put("id", createId);
+            createActivity.put("actor", actorUri);
+            createActivity.put("published", Instant.now().toString());
+            createActivity.put("object", object);
+
+            if (toPublic) {
+                createActivity.put("to", List.of("https://www.w3.org/ns/activitystreams#Public"));
+                createActivity.put("cc", List.of(actorUri + "/followers"));
+            } else {
+                createActivity.put("to", List.of(actorUri + "/followers"));
+            }
+
+            // Send to all follower inboxes
+            List<String> inboxes = getFollowerInboxes(sender.getId());
+            for (String inbox : inboxes) {
+                sendActivity(inbox, createActivity, sender);
+            }
+
+            log.info("Sent Create activity for object: {} to {} inboxes", objectId, inboxes.size());
+
+        } catch (Exception e) {
+            log.error("Failed to send Create activity for object: {}", objectId, e);
+        }
+    }
+
+    /**
+     * Send a Like activity.
+     *
+     * @param objectUri the URI of the object being liked
+     * @param sender the local user liking the object
+     */
+    @Transactional
+    public void sendLikeActivity(String objectUri, User sender) {
+        try {
+            String likeId = baseUrl + "/activities/like/" + UUID.randomUUID();
+            String actorUri = baseUrl + "/users/" + sender.getUsername();
+
+            Map<String, Object> likeActivity = new HashMap<>();
+            likeActivity.put("@context", "https://www.w3.org/ns/activitystreams");
+            likeActivity.put("type", "Like");
+            likeActivity.put("id", likeId);
+            likeActivity.put("actor", actorUri);
+            likeActivity.put("object", objectUri);
+            likeActivity.put("published", Instant.now().toString());
+
+            // Send to all follower inboxes
+            List<String> inboxes = getFollowerInboxes(sender.getId());
+            for (String inbox : inboxes) {
+                sendActivity(inbox, likeActivity, sender);
+            }
+
+            log.info("Sent Like activity for object: {} to {} inboxes", objectUri, inboxes.size());
+
+        } catch (Exception e) {
+            log.error("Failed to send Like activity for object: {}", objectUri, e);
+        }
+    }
+
+    /**
+     * Send an Undo activity (for unlike, unfollow, etc.).
+     *
+     * @param originalActivityId the ID of the activity being undone
+     * @param originalActivity the original activity being undone
+     * @param sender the local user undoing the activity
+     */
+    @Transactional
+    public void sendUndoActivity(String originalActivityId, Map<String, Object> originalActivity, User sender) {
+        try {
+            String undoId = baseUrl + "/activities/undo/" + UUID.randomUUID();
+            String actorUri = baseUrl + "/users/" + sender.getUsername();
+
+            Map<String, Object> undoActivity = new HashMap<>();
+            undoActivity.put("@context", "https://www.w3.org/ns/activitystreams");
+            undoActivity.put("type", "Undo");
+            undoActivity.put("id", undoId);
+            undoActivity.put("actor", actorUri);
+            undoActivity.put("object", originalActivity);
+            undoActivity.put("published", Instant.now().toString());
+
+            // Send to all follower inboxes
+            List<String> inboxes = getFollowerInboxes(sender.getId());
+            for (String inbox : inboxes) {
+                sendActivity(inbox, undoActivity, sender);
+            }
+
+            log.info("Sent Undo activity for: {} to {} inboxes", originalActivityId, inboxes.size());
+
+        } catch (Exception e) {
+            log.error("Failed to send Undo activity for: {}", originalActivityId, e);
+        }
     }
 
     // Helper methods

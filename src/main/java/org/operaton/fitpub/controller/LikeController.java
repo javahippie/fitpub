@@ -9,6 +9,7 @@ import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.LikeRepository;
 import org.operaton.fitpub.repository.UserRepository;
+import org.operaton.fitpub.service.FederationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -34,6 +38,7 @@ public class LikeController {
     private final LikeRepository likeRepository;
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final FederationService federationService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -106,7 +111,11 @@ public class LikeController {
 
         log.info("User {} liked activity {}", user.getUsername(), activityId);
 
-        // TODO: Send ActivityPub Like activity to followers if activity is public
+        // Send ActivityPub Like activity to followers if activity is public
+        if (activity.getVisibility() == Activity.Visibility.PUBLIC) {
+            String activityUri = baseUrl + "/activities/" + activityId;
+            federationService.sendLikeActivity(activityUri, user);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(LikeDTO.fromEntity(saved, baseUrl));
@@ -132,11 +141,27 @@ public class LikeController {
             return ResponseEntity.notFound().build();
         }
 
+        // Get activity for visibility check
+        Activity activity = activityRepository.findById(activityId).orElse(null);
+
         likeRepository.deleteByActivityIdAndUserId(activityId, user.getId());
 
         log.info("User {} unliked activity {}", user.getUsername(), activityId);
 
-        // TODO: Send ActivityPub Undo Like activity to followers if activity is public
+        // Send ActivityPub Undo Like activity to followers if activity is public
+        if (activity != null && activity.getVisibility() == Activity.Visibility.PUBLIC) {
+            String activityUri = baseUrl + "/activities/" + activityId;
+            String likeId = baseUrl + "/activities/like/" + UUID.randomUUID();
+            String actorUri = baseUrl + "/users/" + user.getUsername();
+
+            Map<String, Object> likeActivity = new HashMap<>();
+            likeActivity.put("type", "Like");
+            likeActivity.put("id", likeId);
+            likeActivity.put("actor", actorUri);
+            likeActivity.put("object", activityUri);
+
+            federationService.sendUndoActivity(likeId, likeActivity, user);
+        }
 
         return ResponseEntity.noContent().build();
     }

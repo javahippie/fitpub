@@ -9,7 +9,9 @@ import org.operaton.fitpub.model.dto.ActivityUploadRequest;
 import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.UserRepository;
+import org.operaton.fitpub.service.FederationService;
 import org.operaton.fitpub.service.FitFileService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,7 +20,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -34,6 +39,10 @@ public class ActivityController {
 
     private final FitFileService fitFileService;
     private final UserRepository userRepository;
+    private final FederationService federationService;
+
+    @Value("${fitpub.base-url}")
+    private String baseUrl;
 
     /**
      * Helper method to get user ID from authenticated UserDetails.
@@ -64,18 +73,137 @@ public class ActivityController {
     ) {
         log.info("User {} uploading FIT file: {}", userDetails.getUsername(), file.getOriginalFilename());
 
-        UUID userId = getUserId(userDetails);
+        User user = userRepository.findByUsername(userDetails.getUsername())
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         Activity activity = fitFileService.processFitFile(
             file,
-            userId,
+            user.getId(),
             request.getTitle(),
             request.getDescription(),
             request.getVisibility()
         );
 
+        // Send ActivityPub Create activity to followers if public or followers-only
+        if (activity.getVisibility() == Activity.Visibility.PUBLIC ||
+            activity.getVisibility() == Activity.Visibility.FOLLOWERS) {
+
+            String activityUri = baseUrl + "/activities/" + activity.getId();
+            String actorUri = baseUrl + "/users/" + user.getUsername();
+
+            // Create the Note object representing the activity
+            Map<String, Object> noteObject = new HashMap<>();
+            noteObject.put("id", activityUri);
+            noteObject.put("type", "Note");
+            noteObject.put("attributedTo", actorUri);
+            noteObject.put("published", activity.getCreatedAt().toString());
+            noteObject.put("content", formatActivityContent(activity));
+
+            if (activity.getVisibility() == Activity.Visibility.PUBLIC) {
+                noteObject.put("to", List.of("https://www.w3.org/ns/activitystreams#Public"));
+                noteObject.put("cc", List.of(actorUri + "/followers"));
+            } else {
+                noteObject.put("to", List.of(actorUri + "/followers"));
+            }
+
+            // Add summary with key metrics
+            String summary = formatActivitySummary(activity);
+            noteObject.put("summary", summary);
+
+            // Add URL to the activity page
+            noteObject.put("url", baseUrl + "/activities/" + activity.getId());
+
+            federationService.sendCreateActivity(
+                activityUri,
+                noteObject,
+                user,
+                activity.getVisibility() == Activity.Visibility.PUBLIC
+            );
+        }
+
         ActivityDTO dto = ActivityDTO.fromEntity(activity);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+
+    /**
+     * Format activity content for ActivityPub.
+     */
+    private String formatActivityContent(Activity activity) {
+        StringBuilder content = new StringBuilder();
+
+        if (activity.getTitle() != null && !activity.getTitle().isEmpty()) {
+            content.append("<h3>").append(escapeHtml(activity.getTitle())).append("</h3>");
+        }
+
+        if (activity.getDescription() != null && !activity.getDescription().isEmpty()) {
+            content.append("<p>").append(escapeHtml(activity.getDescription())).append("</p>");
+        }
+
+        content.append("<p>");
+        content.append("<strong>Activity Type:</strong> ").append(activity.getActivityType()).append("<br>");
+
+        if (activity.getTotalDistance() != null) {
+            content.append("<strong>Distance:</strong> ")
+                .append(String.format("%.2f km", activity.getTotalDistance().doubleValue() / 1000.0))
+                .append("<br>");
+        }
+
+        if (activity.getTotalDurationSeconds() != null) {
+            long hours = activity.getTotalDurationSeconds() / 3600;
+            long minutes = (activity.getTotalDurationSeconds() % 3600) / 60;
+            long seconds = activity.getTotalDurationSeconds() % 60;
+            content.append("<strong>Duration:</strong> ");
+            if (hours > 0) {
+                content.append(hours).append("h ");
+            }
+            content.append(minutes).append("m ").append(seconds).append("s<br>");
+        }
+
+        if (activity.getElevationGain() != null) {
+            content.append("<strong>Elevation Gain:</strong> ")
+                .append(String.format("%.0f m", activity.getElevationGain()))
+                .append("<br>");
+        }
+
+        content.append("</p>");
+
+        return content.toString();
+    }
+
+    /**
+     * Format activity summary for ActivityPub.
+     */
+    private String formatActivitySummary(Activity activity) {
+        StringBuilder summary = new StringBuilder();
+        summary.append(activity.getActivityType());
+
+        if (activity.getTotalDistance() != null) {
+            summary.append(" • ").append(String.format("%.2f km", activity.getTotalDistance().doubleValue() / 1000.0));
+        }
+
+        if (activity.getTotalDurationSeconds() != null) {
+            long hours = activity.getTotalDurationSeconds() / 3600;
+            long minutes = (activity.getTotalDurationSeconds() % 3600) / 60;
+            if (hours > 0) {
+                summary.append(" • ").append(hours).append("h ").append(minutes).append("m");
+            } else {
+                summary.append(" • ").append(minutes).append("m");
+            }
+        }
+
+        return summary.toString();
+    }
+
+    /**
+     * Simple HTML escaping.
+     */
+    private String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;");
     }
 
     /**
