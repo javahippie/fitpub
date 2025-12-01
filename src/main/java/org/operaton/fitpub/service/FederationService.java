@@ -176,6 +176,16 @@ public class FederationService {
                 baseUrl + "/users/" + sender.getUsername() + "#main-key"
             );
 
+            log.debug("=== HTTP Signature Debug ===");
+            log.debug("Inbox URL: {}", inboxUrl);
+            log.debug("Expected Host: {}", signatureHeaders.host);
+            log.debug("Date: {}", signatureHeaders.date);
+            log.debug("Digest: {}", signatureHeaders.digest);
+            log.debug("Signature: {}", signatureHeaders.signature);
+            log.debug("KeyId: {}", baseUrl + "/users/" + sender.getUsername() + "#main-key");
+            log.debug("Activity JSON length: {}", activityJson.length());
+            log.debug("===========================");
+
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/activity+json");
             headers.set("Accept", "application/activity+json");
