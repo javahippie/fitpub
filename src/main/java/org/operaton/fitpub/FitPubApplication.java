@@ -33,12 +33,11 @@ public class FitPubApplication {
 
     /**
      * REST template for making HTTP requests to remote ActivityPub servers.
-     * Configured to not suppress HTTP headers, which is critical for HTTP Signature authentication.
+     * Configured with HTTP Signature interceptor for ActivityPub federation.
      */
     @Bean
-    public RestTemplate restTemplate() {
+    public RestTemplate restTemplate(org.operaton.fitpub.config.ActivityPubHttpRequestInterceptor interceptor) {
         // Use Apache HttpClient with custom configuration
-        // This prevents automatic Host header overwriting which breaks HTTP Signatures
         HttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
             .build();
 
@@ -49,6 +48,11 @@ public class FitPubApplication {
 
         HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
 
-        return new RestTemplate(requestFactory);
+        RestTemplate restTemplate = new RestTemplate(requestFactory);
+
+        // Add HTTP Signature interceptor
+        restTemplate.getInterceptors().add(interceptor);
+
+        return restTemplate;
     }
 }

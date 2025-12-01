@@ -166,25 +166,25 @@ public class FederationService {
         try {
             String activityJson = objectMapper.writeValueAsString(activity);
 
-            // Generate HTTP signature with all required headers
-            HttpSignatureValidator.SignatureHeaders signatureHeaders = signatureValidator.signRequest(
-                HttpMethod.POST.name(),
-                inboxUrl,
-                activityJson,
-                sender.getPrivateKey(),
-                baseUrl + "/users/" + sender.getUsername() + "#main-key"
-            );
+            // Calculate Date and Digest headers
+            java.time.ZonedDateTime now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC);
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
+            String date = now.format(formatter);
+
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(activityJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String digestValue = "SHA-256=" + java.util.Base64.getEncoder().encodeToString(hash);
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/activity+json");
             headers.set("Accept", "application/activity+json");
+            headers.set("Date", date);
+            headers.set("Digest", digestValue);
 
-            // Add signature-related headers
-            // NOTE: We do NOT set the Host header manually - RestTemplate/HttpClient sets it automatically
-            // The signature was calculated with the correct host from the URL, so it will match
-            headers.set("Date", signatureHeaders.date);
-            headers.set("Digest", signatureHeaders.digest);
-            headers.set("Signature", signatureHeaders.signature);
+            // Set marker headers for the interceptor to use for signing
+            // These will be removed by the interceptor before sending
+            headers.set("X-ActivityPub-PrivateKey", sender.getPrivateKey());
+            headers.set("X-ActivityPub-KeyId", baseUrl + "/users/" + sender.getUsername() + "#main-key");
 
             HttpEntity<String> entity = new HttpEntity<>(activityJson, headers);
 
