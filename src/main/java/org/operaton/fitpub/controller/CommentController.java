@@ -126,6 +126,7 @@ public class CommentController {
             .build();
 
         Comment saved = commentRepository.save(comment);
+        commentRepository.flush(); // Ensure @CreationTimestamp is applied
 
         log.info("User {} commented on activity {}", user.getUsername(), activityId);
 
@@ -144,7 +145,7 @@ public class CommentController {
             noteObject.put("attributedTo", actorUri);
             noteObject.put("inReplyTo", activityUri);
             noteObject.put("content", escapeHtml(saved.getContent()));
-            noteObject.put("published", saved.getCreatedAt().toString());
+            noteObject.put("published", java.time.Instant.now().toString());
 
             if (activity.getVisibility() == Activity.Visibility.PUBLIC) {
                 noteObject.put("to", List.of("https://www.w3.org/ns/activitystreams#Public"));
