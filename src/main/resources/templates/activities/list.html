@@ -172,26 +172,11 @@
                                         ${activity.description ? `<p class="card-text">${escapeHtml(activity.description).substring(0, 150)}${activity.description.length > 150 ? '...' : ''}</p>` : ''}
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="row text-center">
-                                            <div class="col-4">
-                                                <div class="metric-card">
-                                                    <div class="metric-value small">${formatDistance(activity.totalDistance)}</div>
-                                                    <div class="metric-label">Distance</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-4">
-                                                <div class="metric-card">
-                                                    <div class="metric-value small">${formatDuration(activity.totalDuration)}</div>
-                                                    <div class="metric-label">Time</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-4">
-                                                <div class="metric-card">
-                                                    <div class="metric-value small">${activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A'}</div>
-                                                    <div class="metric-label">Elevation</div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <small class="text-muted">
+                                            <strong>Distance:</strong> ${formatDistance(activity.totalDistance)}<br>
+                                            <strong>Duration:</strong> ${formatDuration(activity.totalDuration)}<br>
+                                            <strong>Elevation:</strong> ${activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A'}
+                                        </small>
                                     </div>
                                 </div>
                                 <div class="mt-3 d-flex gap-2">

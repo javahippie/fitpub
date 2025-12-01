@@ -58,39 +58,23 @@
             </div>
 
             <!-- Activity Metrics -->
-            <div class="row mb-4">
-                <div class="col-md-3 col-6 mb-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3 class="text-primary mb-0" id="metricDistance">--</h3>
-                            <p class="text-muted mb-0">Distance</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 mb-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3 class="text-primary mb-0" id="metricDuration">--</h3>
-                            <p class="text-muted mb-0">Duration</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 mb-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3 class="text-primary mb-0" id="metricElevation">--</h3>
-                            <p class="text-muted mb-0">Elevation Gain</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 mb-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <h3 class="text-primary mb-0" id="metricPace">--</h3>
-                            <p class="text-muted mb-0">Avg Pace</p>
-                        </div>
-                    </div>
-                </div>
+            <div class="mb-3">
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width: 25%;">Distance</td>
+                            <td class="fw-bold" id="metricDistance">--</td>
+                            <td class="text-muted" style="width: 25%;">Duration</td>
+                            <td class="fw-bold" id="metricDuration">--</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Elevation</td>
+                            <td class="fw-bold" id="metricElevation">--</td>
+                            <td class="text-muted">Avg Pace</td>
+                            <td class="fw-bold" id="metricPace">--</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <!-- Map -->

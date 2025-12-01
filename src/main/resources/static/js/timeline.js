@@ -147,31 +147,13 @@ const FitPubTimeline = {
                         }
 
                         <!-- Activity Metrics -->
-                        <div class="row text-center mb-3">
-                            <div class="col-6 col-md-3">
-                                <div class="metric-card">
-                                    <div class="metric-value">${this.formatDistance(activity.totalDistance)}</div>
-                                    <div class="metric-label">Distance</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="metric-card">
-                                    <div class="metric-value">${this.formatDuration(activity.totalDurationSeconds)}</div>
-                                    <div class="metric-label">Duration</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="metric-card">
-                                    <div class="metric-value">${this.formatPace(activity.totalDurationSeconds, activity.totalDistance)}</div>
-                                    <div class="metric-label">Avg Pace</div>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="metric-card">
-                                    <div class="metric-value">${activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A'}</div>
-                                    <div class="metric-label">Elevation</div>
-                                </div>
-                            </div>
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                <strong>Distance:</strong> ${this.formatDistance(activity.totalDistance)} •
+                                <strong>Duration:</strong> ${this.formatDuration(activity.totalDurationSeconds)} •
+                                <strong>Pace:</strong> ${this.formatPace(activity.totalDurationSeconds, activity.totalDistance)} •
+                                <strong>Elevation:</strong> ${activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A'}
+                            </small>
                         </div>
 
                         <!-- Preview Map -->

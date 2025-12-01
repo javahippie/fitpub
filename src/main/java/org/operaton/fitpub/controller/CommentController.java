@@ -11,6 +11,7 @@ import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.CommentRepository;
 import org.operaton.fitpub.repository.UserRepository;
+import org.operaton.fitpub.service.FederationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -37,6 +41,7 @@ public class CommentController {
     private final CommentRepository commentRepository;
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final FederationService federationService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -124,7 +129,36 @@ public class CommentController {
 
         log.info("User {} commented on activity {}", user.getUsername(), activityId);
 
-        // TODO: Send ActivityPub Create/Note activity to followers if activity is public
+        // Send ActivityPub Create/Note activity to followers if activity is public
+        if (activity.getVisibility() == Activity.Visibility.PUBLIC ||
+            activity.getVisibility() == Activity.Visibility.FOLLOWERS) {
+
+            String commentUri = baseUrl + "/activities/" + activityId + "/comments/" + saved.getId();
+            String activityUri = baseUrl + "/activities/" + activityId;
+            String actorUri = baseUrl + "/users/" + user.getUsername();
+
+            // Create Note object for the comment
+            Map<String, Object> noteObject = new HashMap<>();
+            noteObject.put("id", commentUri);
+            noteObject.put("type", "Note");
+            noteObject.put("attributedTo", actorUri);
+            noteObject.put("inReplyTo", activityUri);
+            noteObject.put("content", escapeHtml(saved.getContent()));
+            noteObject.put("published", saved.getCreatedAt().toString());
+
+            if (activity.getVisibility() == Activity.Visibility.PUBLIC) {
+                noteObject.put("to", List.of("https://www.w3.org/ns/activitystreams#Public"));
+                noteObject.put("cc", List.of(actorUri + "/followers"));
+            } else {
+                noteObject.put("to", List.of(actorUri + "/followers"));
+            }
+
+            // Send Create activity
+            federationService.sendCreateActivity(commentUri, noteObject, user,
+                activity.getVisibility() == Activity.Visibility.PUBLIC);
+
+            log.info("Sent comment federation for comment {} on activity {}", saved.getId(), activityId);
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(CommentDTO.fromEntity(saved, baseUrl, user.getId()));
@@ -169,5 +203,20 @@ public class CommentController {
         // TODO: Send ActivityPub Delete activity to followers if activity is public
 
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Escape HTML entities in text.
+     */
+    private String escapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;");
     }
 }

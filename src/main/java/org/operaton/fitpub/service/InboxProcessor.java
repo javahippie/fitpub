@@ -3,11 +3,13 @@ package org.operaton.fitpub.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.operaton.fitpub.model.entity.Activity;
+import org.operaton.fitpub.model.entity.Comment;
 import org.operaton.fitpub.model.entity.Follow;
 import org.operaton.fitpub.model.entity.Like;
 import org.operaton.fitpub.model.entity.RemoteActor;
 import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.ActivityRepository;
+import org.operaton.fitpub.repository.CommentRepository;
 import org.operaton.fitpub.repository.FollowRepository;
 import org.operaton.fitpub.repository.LikeRepository;
 import org.operaton.fitpub.repository.UserRepository;
@@ -31,6 +33,7 @@ public class InboxProcessor {
     private final FederationService federationService;
     private final ActivityRepository activityRepository;
     private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -177,11 +180,81 @@ public class InboxProcessor {
     }
 
     /**
-     * Process a Create activity (e.g., new post).
+     * Process a Create activity (e.g., new post, comment).
      */
     private void processCreate(String username, Map<String, Object> activity) {
-        // TODO: Implement Create activity processing
-        log.debug("Received Create activity for user {}", username);
+        try {
+            String actor = (String) activity.get("actor");
+            Object object = activity.get("object");
+
+            if (!(object instanceof Map)) {
+                log.warn("Create activity object is not a Map");
+                return;
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> noteObject = (Map<String, Object>) object;
+            String type = (String) noteObject.get("type");
+
+            if (!"Note".equals(type)) {
+                log.debug("Received Create activity with non-Note object type: {}", type);
+                return;
+            }
+
+            String inReplyTo = (String) noteObject.get("inReplyTo");
+            if (inReplyTo == null) {
+                log.debug("Create/Note is not a reply, ignoring");
+                return;
+            }
+
+            // Extract activity ID from inReplyTo URI
+            UUID activityId = extractActivityIdFromUri(inReplyTo);
+            if (activityId == null) {
+                log.warn("Could not extract activity ID from inReplyTo: {}", inReplyTo);
+                return;
+            }
+
+            // Check if activity exists
+            Activity localActivity = activityRepository.findById(activityId).orElse(null);
+            if (localActivity == null) {
+                log.warn("Activity not found: {}", activityId);
+                return;
+            }
+
+            // Fetch remote actor information
+            RemoteActor remoteActor = federationService.fetchRemoteActor(actor);
+
+            // Get comment content
+            String content = (String) noteObject.get("content");
+            if (content == null || content.trim().isEmpty()) {
+                log.warn("Create/Note has no content");
+                return;
+            }
+
+            // Check if comment already exists by activityPubId
+            String commentId = (String) noteObject.get("id");
+            if (commentRepository.findByActivityPubId(commentId).isPresent()) {
+                log.debug("Comment already exists with activityPubId: {}", commentId);
+                return;
+            }
+
+            // Create comment
+            Comment comment = Comment.builder()
+                .activityId(activityId)
+                .userId(null) // Remote actor, not a local user
+                .remoteActorUri(actor)
+                .displayName(remoteActor.getDisplayName() != null ? remoteActor.getDisplayName() : remoteActor.getUsername())
+                .avatarUrl(remoteActor.getAvatarUrl())
+                .content(stripHtml(content))
+                .activityPubId(commentId)
+                .build();
+
+            commentRepository.save(comment);
+            log.info("Processed Create/Note (comment) from {} for activity {}", actor, activityId);
+
+        } catch (Exception e) {
+            log.error("Error processing Create activity", e);
+        }
     }
 
     /**
@@ -250,5 +323,31 @@ public class InboxProcessor {
             log.warn("Failed to extract activity ID from URI: {}", uri, e);
             return null;
         }
+    }
+
+    /**
+     * Strip HTML tags from content.
+     * Mastodon sends HTML formatted content, we want plain text.
+     */
+    private String stripHtml(String html) {
+        if (html == null) {
+            return "";
+        }
+        // Replace common HTML tags with appropriate text
+        String text = html
+            .replaceAll("<br\\s*/?>", "\n")
+            .replaceAll("<p>", "")
+            .replaceAll("</p>", "\n")
+            .replaceAll("<[^>]+>", ""); // Remove all other HTML tags
+
+        // Decode HTML entities
+        text = text
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&amp;", "&");
+
+        return text.trim();
     }
 }
