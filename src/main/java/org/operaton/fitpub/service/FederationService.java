@@ -179,8 +179,9 @@ public class FederationService {
             headers.set("Content-Type", "application/activity+json");
             headers.set("Accept", "application/activity+json");
 
-            // Add all signature-related headers
-            headers.set("Host", signatureHeaders.host);
+            // Add signature-related headers
+            // NOTE: We do NOT set the Host header manually - RestTemplate/HttpClient sets it automatically
+            // The signature was calculated with the correct host from the URL, so it will match
             headers.set("Date", signatureHeaders.date);
             headers.set("Digest", signatureHeaders.digest);
             headers.set("Signature", signatureHeaders.signature);
