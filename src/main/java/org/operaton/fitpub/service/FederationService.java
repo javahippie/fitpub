@@ -190,17 +190,17 @@ public class FederationService {
             headers.set("Content-Type", "application/activity+json");
             headers.set("Accept", "application/activity+json");
 
+            // CRITICAL: Set the Host header to exactly match what was used in the signature
+            // We MUST set this explicitly, otherwise RestTemplate might set it differently
+            // (e.g., with port number) and the signature validation will fail
+            headers.set("Host", signatureHeaders.host);
+
             // Set the Date and Digest headers that were used in the signature
             headers.set("Date", signatureHeaders.date);
             headers.set("Digest", signatureHeaders.digest);
 
             // Set the Signature header
             headers.set("Signature", signatureHeaders.signature);
-
-            // NOTE: We do NOT set the Host header here.
-            // RestTemplate/HttpClient will set it automatically to match the URL.
-            // The signature was calculated with the correct host (extracted from inboxUrl),
-            // so when the client sets the Host header, it will match the signature.
 
             HttpEntity<String> entity = new HttpEntity<>(activityJson, headers);
 

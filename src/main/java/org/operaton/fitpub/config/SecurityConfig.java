@@ -77,6 +77,9 @@ public class SecurityConfig {
                 // Public endpoints - User's public activities
                 .requestMatchers(HttpMethod.GET, "/api/activities/user/*").permitAll()
 
+                // Debug endpoints (dev only)
+                .requestMatchers("/api/debug/**").permitAll()
+
                 // Public endpoints - Likes and Comments (GET only)
                 .requestMatchers(HttpMethod.GET, "/api/activities/*/likes").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/activities/*/comments").permitAll()
