@@ -595,12 +595,16 @@
                         // Setup like button click handler
                         document.getElementById('likeBtn').addEventListener('click', handleLikeClick);
 
+                        // Show comment form for authenticated users
+                        document.getElementById('commentForm').style.display = 'block';
+
                         // Setup comment form submit handler
                         document.getElementById('addCommentForm').addEventListener('submit', handleCommentSubmit);
                     } else {
                         // Show login prompt for non-authenticated users
                         document.getElementById('loginPrompt').style.display = 'block';
-                        document.getElementById('likeBtn').disabled = true;
+                        // Hide like button for non-authenticated users
+                        document.getElementById('likeBtn').style.display = 'none';
                     }
                 }
 

@@ -71,6 +71,9 @@ public class SecurityConfig {
                 // Public endpoints - Timeline API (read-only)
                 .requestMatchers(HttpMethod.GET, "/api/timeline/public").permitAll()
 
+                // Public endpoints - Individual activity details (GET only, for public activities)
+                .requestMatchers(HttpMethod.GET, "/api/activities/*").permitAll()
+
                 // Public endpoints - Activity track data (for public activities)
                 .requestMatchers(HttpMethod.GET, "/api/activities/*/track").permitAll()
 
@@ -90,8 +93,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/activities/*/comments").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/activities/*/comments/*").authenticated()
 
-                // Protected endpoints - Activities API
-                .requestMatchers("/api/activities/**").authenticated()
+                // Protected endpoints - Activities API (upload, edit, delete)
+                .requestMatchers(HttpMethod.POST, "/api/activities/upload").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/activities/*").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/activities/*").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/activities").authenticated() // List of user's own activities
 
                 // Protected endpoints - Timeline API (user-specific)
                 .requestMatchers("/api/timeline/**").authenticated()

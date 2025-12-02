@@ -208,9 +208,11 @@ public class ActivityController {
 
     /**
      * Retrieves an activity by ID.
+     * Public activities can be viewed without authentication.
+     * Non-public activities require authentication and ownership/follower access.
      *
      * @param id the activity ID
-     * @param userDetails the authenticated user
+     * @param userDetails the authenticated user (optional)
      * @return the activity
      */
     @GetMapping("/{id}")
@@ -218,14 +220,33 @@ public class ActivityController {
         @PathVariable UUID id,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        UUID userId = getUserId(userDetails);
-
-        Activity activity = fitFileService.getActivity(id, userId);
+        // First try to get the activity directly
+        Activity activity = fitFileService.getActivityById(id);
         if (activity == null) {
             return ResponseEntity.notFound().build();
         }
 
-        ActivityDTO dto = ActivityDTO.fromEntity(activity);
+        // Check visibility
+        if (activity.getVisibility() == Activity.Visibility.PUBLIC) {
+            // Public activities are always accessible
+            ActivityDTO dto = ActivityDTO.fromEntity(activity);
+            return ResponseEntity.ok(dto);
+        }
+
+        // For non-public activities, require authentication
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        UUID userId = getUserId(userDetails);
+
+        // Check if user has access (owner or follower)
+        Activity checkedActivity = fitFileService.getActivity(id, userId);
+        if (checkedActivity == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        ActivityDTO dto = ActivityDTO.fromEntity(checkedActivity);
         return ResponseEntity.ok(dto);
     }
 
