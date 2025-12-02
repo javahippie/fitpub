@@ -241,9 +241,15 @@ public class HttpSignatureValidator {
             byte[] hash = digest.digest(body.getBytes(StandardCharsets.UTF_8));
             String digestValue = "SHA-256=" + Base64.getEncoder().encodeToString(hash);
 
-            // Get current date in RFC 1123 format
+            // Get current date in RFC 1123 format with strict formatting
+            // CRITICAL: Mastodon requires RFC 1123 with ZERO-PADDED day (e.g., "02" not "2")
+            // Java's RFC_1123_DATE_TIME doesn't zero-pad, so we use a custom pattern
+            // Format: "Tue, 02 Dec 2025 20:51:08 GMT"
             java.time.ZonedDateTime now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC);
-            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern(
+                "EEE, dd MMM yyyy HH:mm:ss 'GMT'",
+                java.util.Locale.US
+            );
             String date = now.format(formatter);
 
             // Build signing string
