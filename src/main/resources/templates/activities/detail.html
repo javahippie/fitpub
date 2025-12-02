@@ -271,7 +271,11 @@
 
                 async function loadActivity() {
                     try {
-                        const response = await FitPubAuth.authenticatedFetch(`/api/activities/${activityId}`);
+                        // Use authenticated fetch if user is logged in, otherwise regular fetch
+                        // This allows public activities to be viewed without authentication
+                        const response = FitPubAuth.isAuthenticated()
+                            ? await FitPubAuth.authenticatedFetch(`/api/activities/${activityId}`)
+                            : await fetch(`/api/activities/${activityId}`);
 
                         if (response.ok) {
                             const activity = await response.json();

@@ -9,6 +9,7 @@ import org.operaton.fitpub.model.dto.ActivityUploadRequest;
 import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.UserRepository;
+import org.operaton.fitpub.service.ActivityImageService;
 import org.operaton.fitpub.service.FederationService;
 import org.operaton.fitpub.service.FitFileService;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +41,7 @@ public class ActivityController {
     private final FitFileService fitFileService;
     private final UserRepository userRepository;
     private final FederationService federationService;
+    private final ActivityImageService activityImageService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -106,12 +108,19 @@ public class ActivityController {
                 noteObject.put("to", List.of(actorUri + "/followers"));
             }
 
-            // Add summary with key metrics
-            String summary = formatActivitySummary(activity);
-            noteObject.put("summary", summary);
-
             // Add URL to the activity page
             noteObject.put("url", baseUrl + "/activities/" + activity.getId());
+
+            // Generate and attach activity image
+            String imageUrl = activityImageService.generateActivityImage(activity);
+            if (imageUrl != null) {
+                Map<String, Object> imageAttachment = new HashMap<>();
+                imageAttachment.put("type", "Image");
+                imageAttachment.put("mediaType", "image/png");
+                imageAttachment.put("url", imageUrl);
+                imageAttachment.put("name", "Activity map showing " + activity.getActivityType() + " route");
+                noteObject.put("attachment", List.of(imageAttachment));
+            }
 
             federationService.sendCreateActivity(
                 activityUri,
@@ -168,30 +177,6 @@ public class ActivityController {
         content.append("</p>");
 
         return content.toString();
-    }
-
-    /**
-     * Format activity summary for ActivityPub.
-     */
-    private String formatActivitySummary(Activity activity) {
-        StringBuilder summary = new StringBuilder();
-        summary.append(activity.getActivityType());
-
-        if (activity.getTotalDistance() != null) {
-            summary.append(" • ").append(String.format("%.2f km", activity.getTotalDistance().doubleValue() / 1000.0));
-        }
-
-        if (activity.getTotalDurationSeconds() != null) {
-            long hours = activity.getTotalDurationSeconds() / 3600;
-            long minutes = (activity.getTotalDurationSeconds() % 3600) / 60;
-            if (hours > 0) {
-                summary.append(" • ").append(hours).append("h ").append(minutes).append("m");
-            } else {
-                summary.append(" • ").append(minutes).append("m");
-            }
-        }
-
-        return summary.toString();
     }
 
     /**
@@ -471,5 +456,33 @@ public class ActivityController {
         geoJson.put("features", java.util.List.of(feature));
 
         return ResponseEntity.ok(geoJson);
+    }
+
+    /**
+     * Serves the generated activity image.
+     *
+     * @param id the activity ID
+     * @return the activity image
+     */
+    @GetMapping("/{id}/image")
+    public ResponseEntity<org.springframework.core.io.Resource> getActivityImage(@PathVariable UUID id) {
+        try {
+            java.io.File imageFile = activityImageService.getActivityImageFile(id);
+
+            if (!imageFile.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            org.springframework.core.io.Resource resource =
+                new org.springframework.core.io.FileSystemResource(imageFile);
+
+            return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.IMAGE_PNG)
+                .header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "public, max-age=31536000")
+                .body(resource);
+        } catch (Exception e) {
+            log.error("Error serving activity image for {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

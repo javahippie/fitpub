@@ -77,6 +77,9 @@ public class SecurityConfig {
                 // Public endpoints - Activity track data (for public activities)
                 .requestMatchers(HttpMethod.GET, "/api/activities/*/track").permitAll()
 
+                // Public endpoints - Activity images (for federation)
+                .requestMatchers(HttpMethod.GET, "/api/activities/*/image").permitAll()
+
                 // Public endpoints - User's public activities
                 .requestMatchers(HttpMethod.GET, "/api/activities/user/*").permitAll()
 

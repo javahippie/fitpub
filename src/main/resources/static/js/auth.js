@@ -247,6 +247,12 @@ const FitPubAuth = {
             return;
         }
 
+        // Activity detail pages are public (for viewing public activities)
+        // Pattern: /activities/{uuid}
+        if (currentPath.startsWith('/activities/') && currentPath.split('/').length === 3) {
+            return;
+        }
+
         // Check if authenticated
         if (!this.isAuthenticated()) {
             // Redirect to login for protected pages
