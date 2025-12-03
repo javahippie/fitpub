@@ -25,11 +25,16 @@ import java.util.UUID;
 @Slf4j
 public class ActivityImageService {
 
+    private final OsmTileRenderer osmTileRenderer;
+
     @Value("${fitpub.storage.images.path:${java.io.tmpdir}/fitpub/images}")
     private String imagesPath;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
+
+    @Value("${fitpub.image.osm-tiles.enabled:true}")
+    private boolean osmTilesEnabled;
 
     /**
      * Generate a preview image for an activity showing the track outline and metadata.
@@ -52,9 +57,62 @@ public class ActivityImageService {
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-            // Background
-            g2d.setColor(new Color(30, 30, 30)); // Dark background
-            g2d.fillRect(0, 0, width, height);
+            // Render background - either OSM tiles or dark background
+            if (osmTilesEnabled && activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
+                try {
+                    // Calculate bounds from track points
+                    List<Map<String, Object>> trackPoints = parseTrackPoints(activity.getTrackPointsJson());
+                    if (trackPoints != null && !trackPoints.isEmpty()) {
+                        double minLat = Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
+                        double minLon = Double.MAX_VALUE, maxLon = -Double.MAX_VALUE;
+
+                        for (Map<String, Object> point : trackPoints) {
+                            Double lat = getDouble(point, "latitude");
+                            Double lon = getDouble(point, "longitude");
+                            if (lat != null && lon != null) {
+                                minLat = Math.min(minLat, lat);
+                                maxLat = Math.max(maxLat, lat);
+                                minLon = Math.min(minLon, lon);
+                                maxLon = Math.max(maxLon, lon);
+                            }
+                        }
+
+                        // Add padding
+                        double latRange = maxLat - minLat;
+                        double lonRange = maxLon - minLon;
+                        double padding = 0.1; // 10% padding
+                        minLat -= latRange * padding;
+                        maxLat += latRange * padding;
+                        minLon -= lonRange * padding;
+                        maxLon += lonRange * padding;
+
+                        // Render OSM tiles for left 60% of image (track area)
+                        int trackWidth = (int) (width * 0.6);
+                        BufferedImage mapTiles = osmTileRenderer.renderMapWithTiles(
+                                minLat, maxLat, minLon, maxLon, trackWidth, height);
+                        g2d.drawImage(mapTiles, 0, 0, null);
+
+                        // Dark background for metadata area (right 40%)
+                        g2d.setColor(new Color(30, 30, 30));
+                        g2d.fillRect(trackWidth, 0, width - trackWidth, height);
+
+                        log.debug("Rendered OSM tiles for activity {}", activity.getId());
+                    } else {
+                        // Fallback to dark background
+                        g2d.setColor(new Color(30, 30, 30));
+                        g2d.fillRect(0, 0, width, height);
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to render OSM tiles, using dark background: {}", e.getMessage());
+                    // Fallback to dark background
+                    g2d.setColor(new Color(30, 30, 30));
+                    g2d.fillRect(0, 0, width, height);
+                }
+            } else {
+                // OSM tiles disabled or no track data - use dark background
+                g2d.setColor(new Color(30, 30, 30));
+                g2d.fillRect(0, 0, width, height);
+            }
 
             // Draw track if available
             if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {

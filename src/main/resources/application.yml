@@ -71,6 +71,15 @@ fitpub:
     fit-files:
       enabled: true
       retention-days: 365
+    images:
+      path: ${FITPUB_IMAGES_PATH:${java.io.tmpdir}/fitpub/images}
+    tile-cache:
+      path: ${FITPUB_TILE_CACHE_PATH:${java.io.tmpdir}/fitpub/tiles}
+
+  # Image generation settings
+  image:
+    osm-tiles:
+      enabled: ${OSM_TILES_ENABLED:true}
 
 # Logging configuration
 logging:
