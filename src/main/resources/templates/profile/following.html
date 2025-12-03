@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Following</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading following...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span id="errorMessage"></span>
+        </div>
+
+        <!-- Following Content -->
+        <div id="followingContent" class="d-none">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        <a th:href="@{/profile/{username}(username=${username})}" class="text-decoration-none text-muted">
+                            <i class="bi bi-arrow-left"></i>
+                        </a>
+                        Following
+                    </h2>
+                    <p class="text-muted mb-0" id="followingSubtitle">People that @<span id="usernameDisplay"></span> follows</p>
+                </div>
+            </div>
+
+            <!-- Following List -->
+            <div class="card">
+                <div class="card-body">
+                    <!-- List -->
+                    <div id="followingList">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="followingEmpty" class="text-center py-5 d-none">
+                        <i class="bi bi-people" style="font-size: 3rem; color: #d1d5db;"></i>
+                        <p class="text-muted mt-3">Not following anyone yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const targetUsername = /*[[${username}]]*/ '';
+
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('usernameDisplay').textContent = targetUsername;
+                loadFollowing();
+
+                async function loadFollowing() {
+                    try {
+                        const response = await fetch(`/api/users/${targetUsername}/following`);
+
+                        if (!response.ok) {
+                            throw new Error('Failed to load following');
+                        }
+
+                        const following = await response.json();
+
+                        // Hide loading, show content
+                        document.getElementById('loadingIndicator').classList.add('d-none');
+                        document.getElementById('followingContent').classList.remove('d-none');
+
+                        if (following.length > 0) {
+                            renderFollowing(following);
+                        } else {
+                            document.getElementById('followingEmpty').classList.remove('d-none');
+                        }
+                    } catch (error) {
+                        console.error('Error loading following:', error);
+                        document.getElementById('loadingIndicator').classList.add('d-none');
+                        document.getElementById('errorMessage').textContent = 'Failed to load following.';
+                        document.getElementById('errorAlert').classList.remove('d-none');
+                    }
+                }
+
+                function renderFollowing(following) {
+                    const list = document.getElementById('followingList');
+                    list.innerHTML = following.map(user => `
+                        <div class="d-flex align-items-center py-3 border-bottom">
+                            <div class="me-3">
+                                ${user.avatarUrl ?
+                                    `<img src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.displayName || user.username)}" class="rounded-circle" width="48" height="48">` :
+                                    `<div class="avatar-placeholder rounded-circle" style="width: 48px; height: 48px;">
+                                        <i class="bi bi-person-circle"></i>
+                                    </div>`
+                                }
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-0">
+                                            ${user.local ?
+                                                `<a href="/profile/${escapeHtml(user.username)}" class="text-decoration-none">${escapeHtml(user.displayName || user.username)}</a>` :
+                                                `<span>${escapeHtml(user.displayName || user.username)}</span>`
+                                            }
+                                            ${!user.local ? '<i class="bi bi-globe text-muted small" title="Remote user"></i>' : ''}
+                                        </h6>
+                                        <p class="text-muted small mb-0">
+                                            @${escapeHtml(user.handle)}
+                                        </p>
+                                        ${user.bio ? `<p class="small mt-1 mb-0 text-muted">${escapeHtml(user.bio)}</p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                function escapeHtml(text) {
+                    if (!text) return '';
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+            });
+        </script>
+    </th:block>
+</body>
+</html>

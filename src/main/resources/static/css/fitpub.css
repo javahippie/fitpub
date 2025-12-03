@@ -199,6 +199,17 @@ body {
     padding: 1rem;
 }
 
+.stat-card-hover {
+    transition: background-color 0.2s, transform 0.2s;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+}
+
+.stat-card-hover:hover {
+    background-color: var(--light-color);
+    transform: translateY(-2px);
+}
+
 .stat-value {
     font-size: 2rem;
     font-weight: 700;

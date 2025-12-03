@@ -64,16 +64,20 @@
                                     </div>
                                 </div>
                                 <div class="col-4">
-                                    <div class="stat-card">
-                                        <div class="stat-value" id="followersCount">0</div>
-                                        <div class="stat-label">Followers</div>
-                                    </div>
+                                    <a th:href="@{/profile/{username}/followers(username=${username})}" class="text-decoration-none text-dark">
+                                        <div class="stat-card stat-card-hover">
+                                            <div class="stat-value" id="followersCount">0</div>
+                                            <div class="stat-label">Followers</div>
+                                        </div>
+                                    </a>
                                 </div>
                                 <div class="col-4">
-                                    <div class="stat-card">
-                                        <div class="stat-value" id="followingCount">0</div>
-                                        <div class="stat-label">Following</div>
-                                    </div>
+                                    <a th:href="@{/profile/{username}/following(username=${username})}" class="text-decoration-none text-dark">
+                                        <div class="stat-card stat-card-hover">
+                                            <div class="stat-value" id="followingCount">0</div>
+                                            <div class="stat-label">Following</div>
+                                        </div>
+                                    </a>
                                 </div>
                             </div>
 
@@ -177,6 +181,14 @@
                         document.getElementById('avatarImage').src = user.avatarUrl;
                         document.getElementById('avatarImage').classList.remove('d-none');
                         document.getElementById('avatarPlaceholder').classList.add('d-none');
+                    }
+
+                    // Follower/following counts
+                    if (user.followersCount !== undefined) {
+                        document.getElementById('followersCount').textContent = user.followersCount;
+                    }
+                    if (user.followingCount !== undefined) {
+                        document.getElementById('followingCount').textContent = user.followingCount;
                     }
 
                     // Joined date

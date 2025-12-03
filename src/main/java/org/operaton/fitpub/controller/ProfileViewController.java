@@ -64,4 +64,34 @@ public class ProfileViewController {
         model.addAttribute("username", username);
         return "profile/public";
     }
+
+    /**
+     * User followers page.
+     * Shows list of people who follow this user.
+     *
+     * @param username the username
+     * @param model the model
+     * @return followers template
+     */
+    @GetMapping("/profile/{username}/followers")
+    public String userFollowers(@PathVariable String username, Model model) {
+        model.addAttribute("pageTitle", "Followers - @" + username);
+        model.addAttribute("username", username);
+        return "profile/followers";
+    }
+
+    /**
+     * User following page.
+     * Shows list of people this user follows.
+     *
+     * @param username the username
+     * @param model the model
+     * @return following template
+     */
+    @GetMapping("/profile/{username}/following")
+    public String userFollowing(@PathVariable String username, Model model) {
+        model.addAttribute("pageTitle", "Following - @" + username);
+        model.addAttribute("username", username);
+        return "profile/following";
+    }
 }
