@@ -90,13 +90,18 @@ public class ActivityImageService {
     }
 
     /**
-     * Draw the track outline from high-resolution track points.
+     * Draw the track outline from high-resolution track points with privacy protection.
+     * Fades in/out the first and last 300 meters to hide start/end locations.
      */
     private void drawTrack(Graphics2D g2d, Activity activity, int width, int height) {
         List<Map<String, Object>> trackPoints = parseTrackPoints(activity.getTrackPointsJson());
         if (trackPoints == null || trackPoints.isEmpty()) {
             return;
         }
+
+        // Calculate cumulative distances along the track
+        double[] cumulativeDistances = calculateCumulativeDistances(trackPoints);
+        double totalDistance = cumulativeDistances[cumulativeDistances.length - 1];
 
         // Find bounds
         double minLat = Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
@@ -129,38 +134,50 @@ public class ActivityImageService {
         double scaleY = trackHeight / (maxLat - minLat);
         double scale = Math.min(scaleX, scaleY);
 
-        // Create path
-        Path2D.Double path = new Path2D.Double();
-        boolean first = true;
-
-        for (Map<String, Object> point : trackPoints) {
-            Double lat = getDouble(point, "latitude");
-            Double lon = getDouble(point, "longitude");
-            if (lat != null && lon != null) {
-                double x = (lon - minLon) * scale;
-                double y = trackHeight - (lat - minLat) * scale; // Flip Y axis
-
-                if (first) {
-                    path.moveTo(x, y);
-                    first = false;
-                } else {
-                    path.lineTo(x, y);
-                }
-            }
-        }
-
-        // Draw track
-        g2d.setColor(new Color(0, 180, 216)); // Bright blue
+        // Draw track segments with privacy fade
         g2d.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        g2d.draw(path);
 
-        // Draw start and end markers
-        if (!trackPoints.isEmpty()) {
-            Map<String, Object> firstPoint = trackPoints.get(0);
-            Map<String, Object> lastPoint = trackPoints.get(trackPoints.size() - 1);
+        final double FADE_DISTANCE = 300.0; // 300 meters fade zone
 
-            drawMarker(g2d, firstPoint, minLat, minLon, scale, trackHeight, new Color(0, 255, 0)); // Green start
-            drawMarker(g2d, lastPoint, minLat, minLon, scale, trackHeight, new Color(255, 0, 0)); // Red end
+        for (int i = 0; i < trackPoints.size() - 1; i++) {
+            Map<String, Object> point1 = trackPoints.get(i);
+            Map<String, Object> point2 = trackPoints.get(i + 1);
+
+            Double lat1 = getDouble(point1, "latitude");
+            Double lon1 = getDouble(point1, "longitude");
+            Double lat2 = getDouble(point2, "latitude");
+            Double lon2 = getDouble(point2, "longitude");
+
+            if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
+                double x1 = (lon1 - minLon) * scale;
+                double y1 = trackHeight - (lat1 - minLat) * scale;
+                double x2 = (lon2 - minLon) * scale;
+                double y2 = trackHeight - (lat2 - minLat) * scale;
+
+                // Calculate opacity based on distance from start/end
+                double distanceFromStart = cumulativeDistances[i];
+                double distanceFromEnd = totalDistance - cumulativeDistances[i];
+
+                // Calculate fade opacity (0.0 to 1.0)
+                float opacity = 1.0f;
+
+                if (distanceFromStart < FADE_DISTANCE) {
+                    // Fade in from start
+                    opacity = Math.min(opacity, (float) (distanceFromStart / FADE_DISTANCE));
+                }
+
+                if (distanceFromEnd < FADE_DISTANCE) {
+                    // Fade out at end
+                    opacity = Math.min(opacity, (float) (distanceFromEnd / FADE_DISTANCE));
+                }
+
+                // Apply opacity to track color
+                int alpha = Math.max(0, Math.min(255, (int) (opacity * 255)));
+                g2d.setColor(new Color(0, 180, 216, alpha)); // Bright blue with alpha
+
+                // Draw segment
+                g2d.drawLine((int) x1, (int) y1, (int) x2, (int) y2);
+            }
         }
     }
 
@@ -175,25 +192,50 @@ public class ActivityImageService {
     }
 
     /**
-     * Draw a circular marker at a track point.
+     * Calculate cumulative distances along the track using Haversine formula.
+     * Returns an array where each element is the total distance from the start to that point.
      */
-    private void drawMarker(Graphics2D g2d, Map<String, Object> point, double minLat, double minLon,
-                           double scale, int trackHeight, Color color) {
-        Double lat = getDouble(point, "latitude");
-        Double lon = getDouble(point, "longitude");
-        if (lat != null && lon != null) {
-            double x = (lon - minLon) * scale;
-            double y = trackHeight - (lat - minLat) * scale;
+    private double[] calculateCumulativeDistances(List<Map<String, Object>> trackPoints) {
+        double[] distances = new double[trackPoints.size()];
+        distances[0] = 0.0;
 
-            g2d.setColor(color);
-            int markerSize = 12;
-            g2d.fillOval((int) x - markerSize / 2, (int) y - markerSize / 2, markerSize, markerSize);
+        for (int i = 1; i < trackPoints.size(); i++) {
+            Map<String, Object> point1 = trackPoints.get(i - 1);
+            Map<String, Object> point2 = trackPoints.get(i);
 
-            // White outline
-            g2d.setColor(Color.WHITE);
-            g2d.setStroke(new BasicStroke(2.0f));
-            g2d.drawOval((int) x - markerSize / 2, (int) y - markerSize / 2, markerSize, markerSize);
+            Double lat1 = getDouble(point1, "latitude");
+            Double lon1 = getDouble(point1, "longitude");
+            Double lat2 = getDouble(point2, "latitude");
+            Double lon2 = getDouble(point2, "longitude");
+
+            if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
+                double segmentDistance = haversineDistance(lat1, lon1, lat2, lon2);
+                distances[i] = distances[i - 1] + segmentDistance;
+            } else {
+                distances[i] = distances[i - 1];
+            }
         }
+
+        return distances;
+    }
+
+    /**
+     * Calculate distance between two GPS coordinates using Haversine formula.
+     * Returns distance in meters.
+     */
+    private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+        final double EARTH_RADIUS = 6371000.0; // Earth radius in meters
+
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                   Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS * c;
     }
 
     /**

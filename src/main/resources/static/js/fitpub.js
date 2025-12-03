@@ -270,71 +270,15 @@ function createActivityMap(containerId, geoJsonData, options = {}) {
 
 /**
  * Add start and finish markers to the map
+ * PRIVACY: This function is deprecated and does nothing.
+ * Start/finish markers are no longer displayed to protect athlete privacy.
  *
  * @param {Object} map - Leaflet map instance
  * @param {Object} geoJsonData - GeoJSON track data
  */
 function addStartFinishMarkers(map, geoJsonData) {
-    if (!geoJsonData) {
-        return;
-    }
-
-    let coordinates;
-
-    // Handle both LineString and FeatureCollection
-    if (geoJsonData.type === 'LineString') {
-        coordinates = geoJsonData.coordinates;
-    } else if (geoJsonData.type === 'Feature') {
-        coordinates = geoJsonData.geometry.coordinates;
-    } else if (geoJsonData.type === 'FeatureCollection' && geoJsonData.features && geoJsonData.features.length > 0) {
-        coordinates = geoJsonData.features[0].geometry.coordinates;
-    }
-
-    if (!coordinates || coordinates.length < 2) {
-        return;
-    }
-
-    // Start marker (green)
-    const startCoord = coordinates[0];
-    const startMarker = L.marker([startCoord[1], startCoord[0]], {
-        icon: L.divIcon({
-            className: 'start-finish-marker',
-            html: `<div style="
-                background-color: #10b981;
-                width: 24px;
-                height: 24px;
-                border-radius: 50%;
-                border: 3px solid white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            "></div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        }),
-        title: 'Start'
-    }).addTo(map);
-
-    startMarker.bindPopup('<strong>Start</strong>');
-
-    // Finish marker (red)
-    const finishCoord = coordinates[coordinates.length - 1];
-    const finishMarker = L.marker([finishCoord[1], finishCoord[0]], {
-        icon: L.divIcon({
-            className: 'start-finish-marker',
-            html: `<div style="
-                background-color: #ef4444;
-                width: 24px;
-                height: 24px;
-                border-radius: 50%;
-                border: 3px solid white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            "></div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        }),
-        title: 'Finish'
-    }).addTo(map);
-
-    finishMarker.bindPopup('<strong>Finish</strong>');
+    // Privacy protection: Do not show start/end markers to hide athlete home locations
+    return;
 }
 
 /**
