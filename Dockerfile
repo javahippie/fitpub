@@ -46,6 +46,9 @@ USER fitpub
 # Expose application port
 EXPOSE 8080
 
+# Environment variables
+ENV REGISTRATION_ENABLED=true
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8080/actuator/health || exit 1

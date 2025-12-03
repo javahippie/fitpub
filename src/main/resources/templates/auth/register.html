@@ -174,7 +174,7 @@
     <!-- Custom Scripts -->
     <th:block layout:fragment="scripts">
         <script th:inline="javascript">
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', async function() {
                 const form = document.getElementById('registerForm');
                 const registerBtn = document.getElementById('registerBtn');
                 const registerBtnText = document.getElementById('registerBtnText');
@@ -182,6 +182,23 @@
                 const errorAlert = document.getElementById('errorAlert');
                 const successAlert = document.getElementById('successAlert');
                 const errorMessage = document.getElementById('errorMessage');
+
+                // Check if registration is enabled
+                try {
+                    const response = await fetch('/api/auth/registration-status');
+                    const data = await response.json();
+
+                    if (!data.enabled) {
+                        // Registration is disabled - show message and hide form
+                        errorMessage.textContent = 'Registration is currently disabled on this instance. Please contact the administrator if you need an account.';
+                        errorAlert.classList.remove('d-none');
+                        form.style.display = 'none';
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error checking registration status:', error);
+                    // Continue to show form if check fails
+                }
 
                 // Password confirmation validation
                 const password = document.getElementById('password');

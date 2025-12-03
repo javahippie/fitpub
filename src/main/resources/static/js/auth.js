@@ -173,11 +173,38 @@ const FitPubAuth = {
         // Update navigation UI based on auth status
         this.updateNavigationUI();
 
+        // Check registration status and update UI
+        this.checkRegistrationStatus();
+
         // Check authentication status on page load
         this.checkAuthStatus();
 
         // Set up session expiration warning
         this.setupExpirationWarning();
+    },
+
+    /**
+     * Check if registration is enabled and update navigation UI
+     */
+    checkRegistrationStatus: async function() {
+        try {
+            const response = await fetch('/api/auth/registration-status');
+            const data = await response.json();
+
+            if (!data.enabled) {
+                // Hide registration link in navigation
+                const registerLinks = document.querySelectorAll('a[href="/register"]');
+                registerLinks.forEach(link => {
+                    const parent = link.parentElement;
+                    if (parent && parent.tagName === 'LI') {
+                        parent.style.display = 'none';
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error checking registration status:', error);
+            // Continue without hiding registration link if check fails
+        }
     },
 
     /**

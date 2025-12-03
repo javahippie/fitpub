@@ -7,6 +7,7 @@ import org.operaton.fitpub.model.dto.AuthResponse;
 import org.operaton.fitpub.model.dto.LoginRequest;
 import org.operaton.fitpub.model.dto.RegisterRequest;
 import org.operaton.fitpub.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -24,6 +25,9 @@ public class AuthController {
 
     private final UserService userService;
 
+    @Value("${fitpub.registration.enabled:true}")
+    private boolean registrationEnabled;
+
     /**
      * Register a new user account.
      *
@@ -32,6 +36,13 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        // Check if registration is enabled
+        if (!registrationEnabled) {
+            log.warn("Registration attempt blocked - registration is disabled");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(null);
+        }
+
         log.info("Registration request received for username: {}", request.getUsername());
 
         try {
@@ -41,6 +52,16 @@ public class AuthController {
             log.warn("Registration failed: {}", e.getMessage());
             throw e;
         }
+    }
+
+    /**
+     * Get registration status.
+     *
+     * @return Registration status response
+     */
+    @GetMapping("/registration-status")
+    public ResponseEntity<RegistrationStatusResponse> getRegistrationStatus() {
+        return ResponseEntity.ok(new RegistrationStatusResponse(registrationEnabled));
     }
 
     /**
@@ -84,4 +105,9 @@ public class AuthController {
      * Error response DTO.
      */
     record ErrorResponse(String error, String message) {}
+
+    /**
+     * Registration status response DTO.
+     */
+    record RegistrationStatusResponse(boolean enabled) {}
 }
