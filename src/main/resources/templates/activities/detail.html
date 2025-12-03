@@ -45,7 +45,7 @@
                             </p>
                             <p id="activityDescription" class="text-muted"></p>
                         </div>
-                        <div class="btn-group" role="group">
+                        <div class="btn-group" role="group" id="activityActions" style="display: none;">
                             <a href="#" id="editBtn" class="btn btn-outline-primary">
                                 <i class="bi bi-pencil"></i> Edit
                             </a>
@@ -315,8 +315,14 @@
                         document.getElementById('activityDescription').style.display = 'none';
                     }
 
-                    // Edit button
-                    document.getElementById('editBtn').href = `/activities/${activity.id}/edit`;
+                    // Show Edit/Delete buttons only if user is logged in and owns the activity
+                    if (FitPubAuth.isAuthenticated()) {
+                        const currentUser = FitPubAuth.getCurrentUser();
+                        if (currentUser && currentUser.id === activity.userId) {
+                            document.getElementById('activityActions').style.display = 'block';
+                            document.getElementById('editBtn').href = `/activities/${activity.id}/edit`;
+                        }
+                    }
 
                     // Metrics
                     document.getElementById('metricDistance').textContent = formatDistance(activity.totalDistance);

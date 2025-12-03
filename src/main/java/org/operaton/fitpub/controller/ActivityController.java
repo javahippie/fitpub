@@ -136,47 +136,70 @@ public class ActivityController {
 
     /**
      * Format activity content for ActivityPub.
+     * Uses plain text with Unicode symbols for maximum compatibility across Fediverse platforms.
      */
     private String formatActivityContent(Activity activity) {
         StringBuilder content = new StringBuilder();
 
+        // Title (if present)
         if (activity.getTitle() != null && !activity.getTitle().isEmpty()) {
-            content.append("<h3>").append(escapeHtml(activity.getTitle())).append("</h3>");
+            content.append(activity.getTitle()).append("\n\n");
         }
 
+        // Description (if present)
         if (activity.getDescription() != null && !activity.getDescription().isEmpty()) {
-            content.append("<p>").append(escapeHtml(activity.getDescription())).append("</p>");
+            content.append(activity.getDescription()).append("\n\n");
         }
 
-        content.append("<p>");
-        content.append("<strong>Activity Type:</strong> ").append(activity.getActivityType()).append("<br>");
+        // Activity type with emoji
+        String activityEmoji = getActivityEmoji(activity.getActivityType());
+        content.append(activityEmoji).append(" ").append(activity.getActivityType());
 
+        // Metrics on separate lines
         if (activity.getTotalDistance() != null) {
-            content.append("<strong>Distance:</strong> ")
-                .append(String.format("%.2f km", activity.getTotalDistance().doubleValue() / 1000.0))
-                .append("<br>");
+            content.append("\n📏 ")
+                .append(String.format("%.2f km", activity.getTotalDistance().doubleValue() / 1000.0));
         }
 
         if (activity.getTotalDurationSeconds() != null) {
             long hours = activity.getTotalDurationSeconds() / 3600;
             long minutes = (activity.getTotalDurationSeconds() % 3600) / 60;
             long seconds = activity.getTotalDurationSeconds() % 60;
-            content.append("<strong>Duration:</strong> ");
+            content.append("\n⏱️ ");
             if (hours > 0) {
                 content.append(hours).append("h ");
             }
-            content.append(minutes).append("m ").append(seconds).append("s<br>");
+            content.append(minutes).append("m ").append(seconds).append("s");
         }
 
         if (activity.getElevationGain() != null) {
-            content.append("<strong>Elevation Gain:</strong> ")
-                .append(String.format("%.0f m", activity.getElevationGain()))
-                .append("<br>");
+            content.append("\n⛰️ ")
+                .append(String.format("%.0f m", activity.getElevationGain()));
         }
 
-        content.append("</p>");
-
         return content.toString();
+    }
+
+    /**
+     * Get an emoji for the activity type.
+     */
+    private String getActivityEmoji(Activity.ActivityType type) {
+        return switch (type) {
+            case RUN -> "🏃";
+            case RIDE -> "🚴";
+            case HIKE -> "🥾";
+            case WALK -> "🚶";
+            case SWIM -> "🏊";
+            case ALPINE_SKI, BACKCOUNTRY_SKI, NORDIC_SKI -> "⛷️";
+            case SNOWBOARD -> "🏂";
+            case ROWING -> "🚣";
+            case KAYAKING, CANOEING -> "🛶";
+            case INLINE_SKATING -> "⛸️";
+            case ROCK_CLIMBING, MOUNTAINEERING -> "🧗";
+            case YOGA -> "🧘";
+            case WORKOUT -> "💪";
+            default -> "🏋️";
+        };
     }
 
     /**
