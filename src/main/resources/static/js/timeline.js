@@ -325,31 +325,7 @@ const FitPubTimeline = {
             // Fit map to track bounds
             map.fitBounds(geoJsonLayer.getBounds(), { padding: [20, 20] });
 
-            // Add start/finish markers
-            const coordinates = trackData.features[0].geometry.coordinates;
-            if (coordinates.length > 0) {
-                // Start marker (green)
-                const startCoord = coordinates[0];
-                L.circleMarker([startCoord[1], startCoord[0]], {
-                    radius: 6,
-                    fillColor: '#28a745',
-                    color: '#fff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 1
-                }).addTo(map);
-
-                // Finish marker (red)
-                const endCoord = coordinates[coordinates.length - 1];
-                L.circleMarker([endCoord[1], endCoord[0]], {
-                    radius: 6,
-                    fillColor: '#dc3545',
-                    color: '#fff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 1
-                }).addTo(map);
-            }
+            // Privacy: Start/finish markers removed to protect athlete home locations
 
         } catch (error) {
             console.error('Error rendering map:', error);
