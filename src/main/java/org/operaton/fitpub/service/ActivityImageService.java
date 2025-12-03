@@ -57,51 +57,29 @@ public class ActivityImageService {
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
+            // Calculate bounds once for both map tiles and track rendering
+            TrackBounds trackBounds = null;
+
             // Render background - either OSM tiles or dark background
-            if (osmTilesEnabled && activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
+            if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
+                trackBounds = calculateTrackBounds(activity);
+            }
+
+            if (osmTilesEnabled && trackBounds != null) {
                 try {
-                    // Calculate bounds from track points
-                    List<Map<String, Object>> trackPoints = parseTrackPoints(activity.getTrackPointsJson());
-                    if (trackPoints != null && !trackPoints.isEmpty()) {
-                        double minLat = Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
-                        double minLon = Double.MAX_VALUE, maxLon = -Double.MAX_VALUE;
+                    // Render OSM tiles for left 60% of image (track area)
+                    int trackWidth = (int) (width * 0.6);
+                    BufferedImage mapTiles = osmTileRenderer.renderMapWithTiles(
+                            trackBounds.minLat, trackBounds.maxLat,
+                            trackBounds.minLon, trackBounds.maxLon,
+                            trackWidth, height);
+                    g2d.drawImage(mapTiles, 0, 0, null);
 
-                        for (Map<String, Object> point : trackPoints) {
-                            Double lat = getDouble(point, "latitude");
-                            Double lon = getDouble(point, "longitude");
-                            if (lat != null && lon != null) {
-                                minLat = Math.min(minLat, lat);
-                                maxLat = Math.max(maxLat, lat);
-                                minLon = Math.min(minLon, lon);
-                                maxLon = Math.max(maxLon, lon);
-                            }
-                        }
+                    // Dark background for metadata area (right 40%)
+                    g2d.setColor(new Color(30, 30, 30));
+                    g2d.fillRect(trackWidth, 0, width - trackWidth, height);
 
-                        // Add padding
-                        double latRange = maxLat - minLat;
-                        double lonRange = maxLon - minLon;
-                        double padding = 0.1; // 10% padding
-                        minLat -= latRange * padding;
-                        maxLat += latRange * padding;
-                        minLon -= lonRange * padding;
-                        maxLon += lonRange * padding;
-
-                        // Render OSM tiles for left 60% of image (track area)
-                        int trackWidth = (int) (width * 0.6);
-                        BufferedImage mapTiles = osmTileRenderer.renderMapWithTiles(
-                                minLat, maxLat, minLon, maxLon, trackWidth, height);
-                        g2d.drawImage(mapTiles, 0, 0, null);
-
-                        // Dark background for metadata area (right 40%)
-                        g2d.setColor(new Color(30, 30, 30));
-                        g2d.fillRect(trackWidth, 0, width - trackWidth, height);
-
-                        log.debug("Rendered OSM tiles for activity {}", activity.getId());
-                    } else {
-                        // Fallback to dark background
-                        g2d.setColor(new Color(30, 30, 30));
-                        g2d.fillRect(0, 0, width, height);
-                    }
+                    log.debug("Rendered OSM tiles for activity {}", activity.getId());
                 } catch (Exception e) {
                     log.warn("Failed to render OSM tiles, using dark background: {}", e.getMessage());
                     // Fallback to dark background
@@ -149,7 +127,7 @@ public class ActivityImageService {
 
     /**
      * Draw the track outline from high-resolution track points with privacy protection.
-     * Fades in/out the first and last 300 meters to hide start/end locations.
+     * Fades in/out the first and last 100 meters, completely hides first/last 100m.
      */
     private void drawTrack(Graphics2D g2d, Activity activity, int width, int height) {
         List<Map<String, Object>> trackPoints = parseTrackPoints(activity.getTrackPointsJson());
@@ -161,35 +139,17 @@ public class ActivityImageService {
         double[] cumulativeDistances = calculateCumulativeDistances(trackPoints);
         double totalDistance = cumulativeDistances[cumulativeDistances.length - 1];
 
-        // Find bounds
-        double minLat = Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
-        double minLon = Double.MAX_VALUE, maxLon = -Double.MAX_VALUE;
-
-        for (Map<String, Object> point : trackPoints) {
-            Double lat = getDouble(point, "latitude");
-            Double lon = getDouble(point, "longitude");
-            if (lat != null && lon != null) {
-                minLat = Math.min(minLat, lat);
-                maxLat = Math.max(maxLat, lat);
-                minLon = Math.min(minLon, lon);
-                maxLon = Math.max(maxLon, lon);
-            }
+        // Calculate bounds with padding (must match OSM tile rendering)
+        TrackBounds bounds = calculateTrackBounds(activity);
+        if (bounds == null) {
+            return;
         }
-
-        // Add padding
-        double latRange = maxLat - minLat;
-        double lonRange = maxLon - minLon;
-        double padding = 0.1; // 10% padding
-        minLat -= latRange * padding;
-        maxLat += latRange * padding;
-        minLon -= lonRange * padding;
-        maxLon += lonRange * padding;
 
         // Calculate scale (use left 60% of image for track, right 40% for metadata)
         int trackWidth = (int) (width * 0.6);
         int trackHeight = height;
-        double scaleX = trackWidth / (maxLon - minLon);
-        double scaleY = trackHeight / (maxLat - minLat);
+        double scaleX = trackWidth / (bounds.maxLon - bounds.minLon);
+        double scaleY = trackHeight / (bounds.maxLat - bounds.minLat);
         double scale = Math.min(scaleX, scaleY);
 
         // Draw track segments with privacy fade
@@ -208,10 +168,10 @@ public class ActivityImageService {
             Double lon2 = getDouble(point2, "longitude");
 
             if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
-                double x1 = (lon1 - minLon) * scale;
-                double y1 = trackHeight - (lat1 - minLat) * scale;
-                double x2 = (lon2 - minLon) * scale;
-                double y2 = trackHeight - (lat2 - minLat) * scale;
+                double x1 = (lon1 - bounds.minLon) * scale;
+                double y1 = trackHeight - (lat1 - bounds.minLat) * scale;
+                double x2 = (lon2 - bounds.minLon) * scale;
+                double y2 = trackHeight - (lat2 - bounds.minLat) * scale;
 
                 // Calculate opacity based on distance from start/end
                 double distanceFromStart = cumulativeDistances[i];
@@ -431,5 +391,57 @@ public class ActivityImageService {
             log.error("Error parsing track points JSON: " + e.getMessage(), e);
         }
         return null;
+    }
+
+    /**
+     * Calculate and cache track bounds with padding for consistent rendering.
+     */
+    private TrackBounds calculateTrackBounds(Activity activity) {
+        List<Map<String, Object>> trackPoints = parseTrackPoints(activity.getTrackPointsJson());
+        if (trackPoints == null || trackPoints.isEmpty()) {
+            return null;
+        }
+
+        double minLat = Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
+        double minLon = Double.MAX_VALUE, maxLon = -Double.MAX_VALUE;
+
+        for (Map<String, Object> point : trackPoints) {
+            Double lat = getDouble(point, "latitude");
+            Double lon = getDouble(point, "longitude");
+            if (lat != null && lon != null) {
+                minLat = Math.min(minLat, lat);
+                maxLat = Math.max(maxLat, lat);
+                minLon = Math.min(minLon, lon);
+                maxLon = Math.max(maxLon, lon);
+            }
+        }
+
+        // Add padding
+        double latRange = maxLat - minLat;
+        double lonRange = maxLon - minLon;
+        double padding = 0.1; // 10% padding
+        minLat -= latRange * padding;
+        maxLat += latRange * padding;
+        minLon -= lonRange * padding;
+        maxLon += lonRange * padding;
+
+        return new TrackBounds(minLat, maxLat, minLon, maxLon);
+    }
+
+    /**
+     * Helper class to store track geographic bounds.
+     */
+    private static class TrackBounds {
+        final double minLat;
+        final double maxLat;
+        final double minLon;
+        final double maxLon;
+
+        TrackBounds(double minLat, double maxLat, double minLon, double maxLon) {
+            this.minLat = minLat;
+            this.maxLat = maxLat;
+            this.minLon = minLon;
+            this.maxLon = maxLon;
+        }
     }
 }

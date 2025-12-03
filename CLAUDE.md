@@ -761,7 +761,7 @@ For ActivityPub federated posts and thumbnails:
 - [ ] Notifications system
 - [ ] Enhanced privacy controls
 - [ ] Follow/unfollow buttons on user profiles
-- [ ] Activity visibility to followers (implement FOLLOWERS visibility)
+- [ ] Activity visib[69287079d5e0a4532ba818ee.fit](src/test/resources/69287079d5e0a4532ba818ee.fit)ility to followers (implement FOLLOWERS visibility)
 - [ ] Breadcrumb navigation
 - [ ] Active route highlighting in navigation
 - [ ] Heart rate chart over time on activity details
