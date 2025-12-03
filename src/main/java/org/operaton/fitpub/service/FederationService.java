@@ -352,6 +352,42 @@ public class FederationService {
         }
     }
 
+    /**
+     * Send a Delete activity to notify followers that an object has been deleted.
+     *
+     * @param objectUri the URI of the deleted object (e.g., activity URI)
+     * @param sender the user who deleted the object
+     */
+    public void sendDeleteActivity(String objectUri, User sender) {
+        try {
+            String deleteId = baseUrl + "/activities/delete/" + UUID.randomUUID();
+            String actorUri = baseUrl + "/users/" + sender.getUsername();
+
+            Map<String, Object> deleteActivity = new HashMap<>();
+            deleteActivity.put("@context", "https://www.w3.org/ns/activitystreams");
+            deleteActivity.put("type", "Delete");
+            deleteActivity.put("id", deleteId);
+            deleteActivity.put("actor", actorUri);
+            deleteActivity.put("object", objectUri);
+            deleteActivity.put("published", Instant.now().toString());
+
+            // For delete activities, we typically also send to public if the object was public
+            deleteActivity.put("to", List.of("https://www.w3.org/ns/activitystreams#Public"));
+            deleteActivity.put("cc", List.of(actorUri + "/followers"));
+
+            // Send to all follower inboxes
+            List<String> inboxes = getFollowerInboxes(sender.getId());
+            for (String inbox : inboxes) {
+                sendActivity(inbox, deleteActivity, sender);
+            }
+
+            log.info("Sent Delete activity for: {} to {} inboxes", objectUri, inboxes.size());
+
+        } catch (Exception e) {
+            log.error("Failed to send Delete activity for: {}", objectUri, e);
+        }
+    }
+
     // Helper methods
 
     private String extractUsername(String actorUri, Map<String, Object> actorData) {

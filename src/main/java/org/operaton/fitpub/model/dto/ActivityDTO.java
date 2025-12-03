@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
 import org.operaton.fitpub.model.entity.Activity;
+import org.operaton.fitpub.util.ActivityFormatter;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -91,7 +92,7 @@ public class ActivityDTO {
         ActivityDTOBuilder builder = ActivityDTO.builder()
             .id(activity.getId())
             .userId(activity.getUserId())
-            .activityType(activity.getActivityType().name())
+            .activityType(ActivityFormatter.formatActivityType(activity.getActivityType()))
             .title(activity.getTitle())
             .description(activity.getDescription())
             .startedAt(activity.getStartedAt())

@@ -12,6 +12,7 @@ import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.service.ActivityImageService;
 import org.operaton.fitpub.service.FederationService;
 import org.operaton.fitpub.service.FitFileService;
+import org.operaton.fitpub.util.ActivityFormatter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -153,7 +154,8 @@ public class ActivityController {
 
         // Activity type with emoji
         String activityEmoji = getActivityEmoji(activity.getActivityType());
-        content.append(activityEmoji).append(" ").append(activity.getActivityType());
+        String formattedType = ActivityFormatter.formatActivityType(activity.getActivityType());
+        content.append(activityEmoji).append(" ").append(formattedType);
 
         // Metrics on separate lines
         if (activity.getTotalDistance() != null) {
@@ -336,9 +338,29 @@ public class ActivityController {
 
         UUID userId = getUserId(userDetails);
 
+        // Get activity before deletion to send Delete activity to followers
+        Activity activity = fitFileService.getActivity(id, userId);
+        if (activity == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Only send Delete activity if it was previously federated (public or followers-only)
+        boolean shouldFederate = activity.getVisibility() == Activity.Visibility.PUBLIC ||
+                                activity.getVisibility() == Activity.Visibility.FOLLOWERS;
+
+        // Delete from database
         boolean deleted = fitFileService.deleteActivity(id, userId);
         if (!deleted) {
             return ResponseEntity.notFound().build();
+        }
+
+        // Send Delete activity to followers if the activity was federated
+        if (shouldFederate) {
+            User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+            String activityUri = baseUrl + "/activities/" + id;
+            federationService.sendDeleteActivity(activityUri, user);
         }
 
         return ResponseEntity.noContent().build();

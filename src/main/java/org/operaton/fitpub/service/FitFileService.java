@@ -13,6 +13,7 @@ import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.ActivityMetrics;
 import org.operaton.fitpub.repository.ActivityMetricsRepository;
 import org.operaton.fitpub.repository.ActivityRepository;
+import org.operaton.fitpub.util.ActivityFormatter;
 import org.operaton.fitpub.util.FitFileValidator;
 import org.operaton.fitpub.util.FitParser;
 import org.operaton.fitpub.util.TrackSimplifier;
@@ -210,56 +211,14 @@ public class FitFileService {
     }
 
     /**
-     * Generates a default title for an activity.
+     * Generates a default title for an activity based on time of day.
+     * Examples: "Morning Run", "Evening Ride", "Night Walk"
      */
     private String generateTitle(FitParser.ParsedFitData parsedData) {
-        String activityType = formatActivityType(parsedData.getActivityType());
-        String date = parsedData.getStartTime().toLocalDate().toString();
-        return String.format("%s - %s", activityType, date);
-    }
-
-    /**
-     * Formats activity type for display.
-     */
-    private String formatActivityType(Activity.ActivityType type) {
-        switch (type) {
-            case RUN:
-                return "Run";
-            case RIDE:
-                return "Ride";
-            case HIKE:
-                return "Hike";
-            case WALK:
-                return "Walk";
-            case SWIM:
-                return "Swim";
-            case ALPINE_SKI:
-                return "Alpine Ski";
-            case BACKCOUNTRY_SKI:
-                return "Backcountry Ski";
-            case NORDIC_SKI:
-                return "Nordic Ski";
-            case SNOWBOARD:
-                return "Snowboard";
-            case ROWING:
-                return "Rowing";
-            case KAYAKING:
-                return "Kayaking";
-            case CANOEING:
-                return "Canoeing";
-            case INLINE_SKATING:
-                return "Inline Skating";
-            case ROCK_CLIMBING:
-                return "Rock Climbing";
-            case MOUNTAINEERING:
-                return "Mountaineering";
-            case YOGA:
-                return "Yoga";
-            case WORKOUT:
-                return "Workout";
-            default:
-                return "Activity";
-        }
+        return ActivityFormatter.generateActivityTitle(
+            parsedData.getStartTime(),
+            parsedData.getActivityType()
+        );
     }
 
     /**

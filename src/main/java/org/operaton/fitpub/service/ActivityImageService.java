@@ -3,6 +3,7 @@ package org.operaton.fitpub.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.operaton.fitpub.model.entity.Activity;
+import org.operaton.fitpub.util.ActivityFormatter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -216,7 +217,8 @@ public class ActivityImageService {
         // Activity type
         g2d.setFont(new Font("Arial", Font.PLAIN, 24));
         g2d.setColor(new Color(200, 200, 200));
-        g2d.drawString(activity.getActivityType().toString(), metadataX, y);
+        String formattedType = ActivityFormatter.formatActivityType(activity.getActivityType());
+        g2d.drawString(formattedType, metadataX, y);
         y += lineHeight;
 
         // Distance
