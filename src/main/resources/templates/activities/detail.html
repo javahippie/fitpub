@@ -434,8 +434,78 @@
                     }
 
                     if (elevationData.length > 0) {
-                        FitPub.createElevationChart('elevationChart', elevationData);
+                        // Smooth elevation data to remove zero/invalid values
+                        const smoothedData = smoothElevationData(elevationData);
+                        FitPub.createElevationChart('elevationChart', smoothedData);
                     }
+                }
+
+                /**
+                 * Smooth elevation data by interpolating zero/invalid values and applying moving average
+                 * @param {Array} data - Array of {distance, elevation} objects
+                 * @returns {Array} Smoothed elevation data
+                 */
+                function smoothElevationData(data) {
+                    if (data.length === 0) return data;
+
+                    // Step 1: Replace zeros and invalid values with interpolated values
+                    const interpolated = [...data];
+
+                    for (let i = 0; i < interpolated.length; i++) {
+                        if (interpolated[i].elevation === 0 || interpolated[i].elevation == null) {
+                            // Find previous valid value
+                            let prevIndex = i - 1;
+                            while (prevIndex >= 0 && (interpolated[prevIndex].elevation === 0 || interpolated[prevIndex].elevation == null)) {
+                                prevIndex--;
+                            }
+
+                            // Find next valid value
+                            let nextIndex = i + 1;
+                            while (nextIndex < interpolated.length && (interpolated[nextIndex].elevation === 0 || interpolated[nextIndex].elevation == null)) {
+                                nextIndex++;
+                            }
+
+                            // Interpolate between valid values
+                            if (prevIndex >= 0 && nextIndex < interpolated.length) {
+                                const prevElevation = interpolated[prevIndex].elevation;
+                                const nextElevation = interpolated[nextIndex].elevation;
+                                const ratio = (i - prevIndex) / (nextIndex - prevIndex);
+                                interpolated[i].elevation = prevElevation + (nextElevation - prevElevation) * ratio;
+                            } else if (prevIndex >= 0) {
+                                // Use previous value if no next value available
+                                interpolated[i].elevation = interpolated[prevIndex].elevation;
+                            } else if (nextIndex < interpolated.length) {
+                                // Use next value if no previous value available
+                                interpolated[i].elevation = interpolated[nextIndex].elevation;
+                            }
+                        }
+                    }
+
+                    // Step 2: Apply moving average smoothing (window size 5)
+                    const windowSize = 5;
+                    const smoothed = [];
+
+                    for (let i = 0; i < interpolated.length; i++) {
+                        const start = Math.max(0, i - Math.floor(windowSize / 2));
+                        const end = Math.min(interpolated.length, i + Math.ceil(windowSize / 2));
+
+                        let sum = 0;
+                        let count = 0;
+
+                        for (let j = start; j < end; j++) {
+                            if (interpolated[j].elevation != null && interpolated[j].elevation !== 0) {
+                                sum += interpolated[j].elevation;
+                                count++;
+                            }
+                        }
+
+                        smoothed.push({
+                            distance: interpolated[i].distance,
+                            elevation: count > 0 ? sum / count : interpolated[i].elevation
+                        });
+                    }
+
+                    return smoothed;
                 }
 
                 // Haversine formula to calculate distance between two GPS points
