@@ -27,8 +27,13 @@ public class WebFingerResponse {
 
     /**
      * Creates a WebFinger response for a user.
+     *
+     * @param username the username
+     * @param domain the domain
+     * @param actorUrl the ActivityPub actor URL (e.g., https://domain/users/username)
+     * @param profilePageUrl the human-readable profile page URL (e.g., https://domain/users/username for HTML)
      */
-    public static WebFingerResponse forUser(String username, String domain, String actorUrl) {
+    public static WebFingerResponse forUser(String username, String domain, String actorUrl, String profilePageUrl) {
         String acctUri = String.format("acct:%s@%s", username, domain);
 
         return WebFingerResponse.builder()
@@ -43,10 +48,18 @@ public class WebFingerResponse {
                 Link.builder()
                     .rel("http://webfinger.net/rel/profile-page")
                     .type("text/html")
-                    .href(actorUrl)
+                    .href(profilePageUrl)
                     .build()
             ))
             .build();
+    }
+
+    /**
+     * Creates a WebFinger response for a user (legacy method for backward compatibility).
+     * Uses actorUrl for both ActivityPub and profile page.
+     */
+    public static WebFingerResponse forUser(String username, String domain, String actorUrl) {
+        return forUser(username, domain, actorUrl, actorUrl);
     }
 
     /**
