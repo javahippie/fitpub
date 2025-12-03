@@ -317,11 +317,8 @@
 
                     // Show Edit/Delete buttons only if user is logged in and owns the activity
                     if (FitPubAuth.isAuthenticated()) {
-                        const currentUser = FitPubAuth.getCurrentUser();
-                        if (currentUser && currentUser.id === activity.userId) {
-                            document.getElementById('activityActions').style.display = 'block';
-                            document.getElementById('editBtn').href = `/activities/${activity.id}/edit`;
-                        }
+                        // Fetch current user to check if they own this activity
+                        checkActivityOwnership(activity);
                     }
 
                     // Metrics
@@ -356,6 +353,25 @@
                     loadLikes();
                     loadComments();
                     setupSocialInteractions(activity);
+                }
+
+                /**
+                 * Check if the current user owns this activity and show edit/delete buttons if so.
+                 */
+                async function checkActivityOwnership(activity) {
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch('/api/users/me');
+                        if (response.ok) {
+                            const currentUser = await response.json();
+                            if (currentUser.id === activity.userId) {
+                                document.getElementById('activityActions').style.display = 'block';
+                                document.getElementById('editBtn').href = `/activities/${activity.id}/edit`;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error checking activity ownership:', error);
+                        // Don't show buttons if there's an error
+                    }
                 }
 
                 function renderMap(simplifiedTrack) {
