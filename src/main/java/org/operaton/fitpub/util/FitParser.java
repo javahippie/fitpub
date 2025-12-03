@@ -282,10 +282,16 @@ public class FitParser {
 
     /**
      * Converts FIT DateTime to LocalDateTime.
+     * FIT timestamps use a special epoch: December 31, 1989, 00:00:00 UTC.
+     * We need to add the offset from Unix epoch (1970) to FIT epoch (1989).
      */
     private LocalDateTime convertDateTime(DateTime dateTime) {
+        // FIT epoch offset: seconds between 1970-01-01 and 1989-12-31
+        final long FIT_EPOCH_OFFSET = 631065600L;
+
         long timestamp = dateTime.getTimestamp();
-        Instant instant = Instant.ofEpochSecond(timestamp);
+        // Add FIT epoch offset to convert to Unix timestamp
+        Instant instant = Instant.ofEpochSecond(timestamp + FIT_EPOCH_OFFSET);
         return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
     }
 
