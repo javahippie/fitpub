@@ -150,17 +150,10 @@ public class ActivityImageService {
         int trackWidth = (int) (width * 0.6);
         int trackHeight = height;
 
-        // Convert bounds to Web Mercator pixel coordinates to calculate scale
-        double minX = longitudeToWebMercatorX(bounds.minLon);
-        double maxX = longitudeToWebMercatorX(bounds.maxLon);
-        double minY = latitudeToWebMercatorY(bounds.maxLat); // Note: maxLat -> minY (Y axis inverted)
-        double maxY = latitudeToWebMercatorY(bounds.minLat); // Note: minLat -> maxY
-
-        double mercatorWidth = maxX - minX;
-        double mercatorHeight = maxY - minY;
-
-        double scaleX = trackWidth / mercatorWidth;
-        double scaleY = trackHeight / mercatorHeight;
+        // The OSM tile renderer already scales the image to fit trackWidth x trackHeight
+        // So we can use simple linear mapping from geographic bounds to pixel coordinates
+        double scaleX = trackWidth / (bounds.maxLon - bounds.minLon);
+        double scaleY = trackHeight / (bounds.maxLat - bounds.minLat);
         double scale = Math.min(scaleX, scaleY);
 
         // Draw track segments with privacy fade
@@ -179,17 +172,12 @@ public class ActivityImageService {
             Double lon2 = getDouble(point2, "longitude");
 
             if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
-                // Use Web Mercator projection (same as OSM tiles)
-                double mercatorX1 = longitudeToWebMercatorX(lon1);
-                double mercatorY1 = latitudeToWebMercatorY(lat1);
-                double mercatorX2 = longitudeToWebMercatorX(lon2);
-                double mercatorY2 = latitudeToWebMercatorY(lat2);
-
-                // Convert to pixel coordinates
-                double x1 = (mercatorX1 - minX) * scale;
-                double y1 = (mercatorY1 - minY) * scale;
-                double x2 = (mercatorX2 - minX) * scale;
-                double y2 = (mercatorY2 - minY) * scale;
+                // Convert geographic coordinates to pixel coordinates
+                // The OSM renderer already handles the projection, so we use linear mapping
+                double x1 = (lon1 - bounds.minLon) * scale;
+                double y1 = trackHeight - (lat1 - bounds.minLat) * scale;
+                double x2 = (lon2 - bounds.minLon) * scale;
+                double y2 = trackHeight - (lat2 - bounds.minLat) * scale;
 
                 // Calculate opacity based on distance from start/end
                 double distanceFromStart = cumulativeDistances[i];
@@ -461,23 +449,5 @@ public class ActivityImageService {
             this.minLon = minLon;
             this.maxLon = maxLon;
         }
-    }
-
-    /**
-     * Convert longitude to Web Mercator X coordinate (normalized 0-1).
-     * This must match the projection used by OsmTileRenderer.
-     */
-    private double longitudeToWebMercatorX(double lon) {
-        return (lon + 180.0) / 360.0;
-    }
-
-    /**
-     * Convert latitude to Web Mercator Y coordinate (normalized 0-1).
-     * This must match the projection used by OsmTileRenderer.
-     * Uses the same logarithmic transformation as OSM tiles.
-     */
-    private double latitudeToWebMercatorY(double lat) {
-        return (1.0 - Math.log(Math.tan(Math.toRadians(lat)) +
-                1.0 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2.0;
     }
 }
