@@ -384,7 +384,7 @@
                     // Create map (needs to be done after container is visible)
                     setTimeout(() => {
                         const map = FitPub.createActivityMap('activityMap', geoJson, {
-                            showStartEnd: true,
+                            showStartEnd: false,  // Privacy: Do not show start/end markers
                             fitBounds: true
                         });
 

@@ -137,7 +137,8 @@ public class ActivityImageService {
         // Draw track segments with privacy fade
         g2d.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
-        final double FADE_DISTANCE = 300.0; // 300 meters fade zone
+        final double HIDDEN_DISTANCE = 100.0; // First/last 100m completely hidden
+        final double FADE_DISTANCE = 200.0;   // Fade zone from 100m to 200m
 
         for (int i = 0; i < trackPoints.size() - 1; i++) {
             Map<String, Object> point1 = trackPoints.get(i);
@@ -161,14 +162,25 @@ public class ActivityImageService {
                 // Calculate fade opacity (0.0 to 1.0)
                 float opacity = 1.0f;
 
-                if (distanceFromStart < FADE_DISTANCE) {
-                    // Fade in from start
-                    opacity = Math.min(opacity, (float) (distanceFromStart / FADE_DISTANCE));
+                // Hide first 100m completely, fade in from 100m to 200m
+                if (distanceFromStart < HIDDEN_DISTANCE) {
+                    opacity = 0.0f;
+                } else if (distanceFromStart < FADE_DISTANCE) {
+                    // Fade in from 100m to 200m
+                    opacity = Math.min(opacity, (float) ((distanceFromStart - HIDDEN_DISTANCE) / (FADE_DISTANCE - HIDDEN_DISTANCE)));
                 }
 
-                if (distanceFromEnd < FADE_DISTANCE) {
-                    // Fade out at end
-                    opacity = Math.min(opacity, (float) (distanceFromEnd / FADE_DISTANCE));
+                // Hide last 100m completely, fade out from 200m to 100m before end
+                if (distanceFromEnd < HIDDEN_DISTANCE) {
+                    opacity = 0.0f;
+                } else if (distanceFromEnd < FADE_DISTANCE) {
+                    // Fade out from 200m to 100m before end
+                    opacity = Math.min(opacity, (float) ((distanceFromEnd - HIDDEN_DISTANCE) / (FADE_DISTANCE - HIDDEN_DISTANCE)));
+                }
+
+                // Skip completely transparent segments
+                if (opacity <= 0.0f) {
+                    continue;
                 }
 
                 // Apply opacity to track color
