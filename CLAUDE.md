@@ -752,16 +752,22 @@ For ActivityPub federated posts and thumbnails:
 
 ---
 
-### Phase 2: Social Features & Enhancements
-- [ ] Likes and comments on activities
-- [ ] Activity sharing (Announce/boost functionality)
-- [ ] User search and discovery
-- [ ] Followers/following lists UI
+### Phase 2: Social Features & Enhancements ✅
+- [x] Likes on activities (Like entity, repository, ActivityPub Like activity support)
+- [x] Comments on activities (Comment entity, repository, ActivityPub Note activity support)
+- [x] Activity sharing (Announce/boost functionality via ActivityPub)
+- [x] Privacy protection for GPS tracks (fuzzy start/finish zones)
+- [x] OSM tile rendering for activity maps (OsmTileRenderer with caching)
+- [x] Activity image generation with track overlay (ActivityImageService)
+- [x] FIT epoch timestamp fix (631065600 second offset for proper date handling)
+- [x] Web Mercator projection for accurate track-to-map alignment
+- [x] User search and discovery (UserRepository.searchUsers, UserRepository.findAllEnabledUsers, GET /api/users/search, GET /api/users/browse)
+- [x] Followers/following lists (ActorDTO, GET /api/users/{username}/followers, GET /api/users/{username}/following)
 - [ ] Follower/following counts (populate with real data)
 - [ ] Notifications system
-- [ ] Enhanced privacy controls
+- [ ] Enhanced privacy controls UI
 - [ ] Follow/unfollow buttons on user profiles
-- [ ] Activity visib[69287079d5e0a4532ba818ee.fit](src/test/resources/69287079d5e0a4532ba818ee.fit)ility to followers (implement FOLLOWERS visibility)
+- [ ] Activity visibility to followers (implement FOLLOWERS visibility enforcement)
 - [ ] Breadcrumb navigation
 - [ ] Active route highlighting in navigation
 - [ ] Heart rate chart over time on activity details

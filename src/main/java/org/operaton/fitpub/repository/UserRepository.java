@@ -1,9 +1,14 @@
 package org.operaton.fitpub.repository;
 
 import org.operaton.fitpub.model.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -57,4 +62,27 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return list of enabled users
      */
     Optional<User> findByUsernameAndEnabledTrue(String username);
+
+    /**
+     * Searches for users by username or display name (case-insensitive).
+     * Used for user discovery.
+     *
+     * @param query the search query
+     * @param pageable pagination parameters
+     * @return page of matching users
+     */
+    @Query("SELECT u FROM User u WHERE u.enabled = true AND " +
+           "(LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.displayName) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<User> searchUsers(@Param("query") String query, Pageable pageable);
+
+    /**
+     * Finds all enabled users with pagination.
+     * Used for browsing all users.
+     *
+     * @param pageable pagination parameters
+     * @return page of enabled users
+     */
+    @Query("SELECT u FROM User u WHERE u.enabled = true ORDER BY u.createdAt DESC")
+    Page<User> findAllEnabledUsers(Pageable pageable);
 }
