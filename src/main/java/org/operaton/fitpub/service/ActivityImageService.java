@@ -60,7 +60,7 @@ public class ActivityImageService {
             // Calculate bounds once for both map tiles and track rendering
             TrackBounds trackBounds = null;
 
-            // Render background - either OSM tiles or dark background
+            // Render background - either OSM tiles or gradient background
             if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
                 trackBounds = calculateTrackBounds(activity);
             }
@@ -75,20 +75,33 @@ public class ActivityImageService {
                             trackWidth, height);
                     g2d.drawImage(mapTiles, 0, 0, null);
 
-                    // Dark background for metadata area (right 40%)
-                    g2d.setColor(new Color(30, 30, 30));
-                    g2d.fillRect(trackWidth, 0, width - trackWidth, height);
+                    // 80s Aerobic style gradient background for metadata area (right 40%)
+                    int metadataX = trackWidth;
+                    GradientPaint gradient = new GradientPaint(
+                            metadataX, 0, new Color(26, 0, 51),  // Dark purple
+                            width, height, new Color(45, 0, 82)   // Lighter purple
+                    );
+                    g2d.setPaint(gradient);
+                    g2d.fillRect(metadataX, 0, width - metadataX, height);
 
                     log.debug("Rendered OSM tiles for activity {}", activity.getId());
                 } catch (Exception e) {
-                    log.warn("Failed to render OSM tiles, using dark background: {}", e.getMessage());
-                    // Fallback to dark background
-                    g2d.setColor(new Color(30, 30, 30));
+                    log.warn("Failed to render OSM tiles, using gradient background: {}", e.getMessage());
+                    // Fallback to gradient background
+                    GradientPaint gradient = new GradientPaint(
+                            0, 0, new Color(26, 0, 51),
+                            width, height, new Color(45, 0, 82)
+                    );
+                    g2d.setPaint(gradient);
                     g2d.fillRect(0, 0, width, height);
                 }
             } else {
-                // OSM tiles disabled or no track data - use dark background
-                g2d.setColor(new Color(30, 30, 30));
+                // OSM tiles disabled or no track data - use gradient background
+                GradientPaint gradient = new GradientPaint(
+                        0, 0, new Color(26, 0, 51),
+                        width, height, new Color(45, 0, 82)
+                );
+                g2d.setPaint(gradient);
                 g2d.fillRect(0, 0, width, height);
             }
 
@@ -176,11 +189,73 @@ public class ActivityImageService {
         double pixelsPerMercatorX = letterbox.scaledWidth / mercatorWidth;
         double pixelsPerMercatorY = letterbox.scaledHeight / mercatorHeight;
 
-        // Draw track segments with privacy fade
-        g2d.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        // Draw track segments with privacy fade - 80s neon glow style
+        // First pass: draw glow effect (thicker, semi-transparent)
+        g2d.setStroke(new BasicStroke(8.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
         final double HIDDEN_DISTANCE = 100.0; // First/last 100m completely hidden
         final double FADE_DISTANCE = 200.0;   // Fade zone from 100m to 200m
+
+        // Draw glow pass
+        for (int i = 0; i < trackPoints.size() - 1; i++) {
+            Map<String, Object> point1 = trackPoints.get(i);
+            Map<String, Object> point2 = trackPoints.get(i + 1);
+
+            Double lat1 = getDouble(point1, "latitude");
+            Double lon1 = getDouble(point1, "longitude");
+            Double lat2 = getDouble(point2, "latitude");
+            Double lon2 = getDouble(point2, "longitude");
+
+            if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
+                // Convert lat/lon to Web Mercator coordinates (same projection as OSM tiles)
+                double mercatorX1 = longitudeToWebMercatorX(lon1);
+                double mercatorY1 = latitudeToWebMercatorY(lat1);
+                double mercatorX2 = longitudeToWebMercatorX(lon2);
+                double mercatorY2 = latitudeToWebMercatorY(lat2);
+
+                // Map Web Mercator coordinates to pixel coordinates within the letterbox
+                double x1 = (mercatorX1 - minX) * pixelsPerMercatorX + letterbox.offsetX;
+                double y1 = (mercatorY1 - minY) * pixelsPerMercatorY + letterbox.offsetY;
+                double x2 = (mercatorX2 - minX) * pixelsPerMercatorX + letterbox.offsetX;
+                double y2 = (mercatorY2 - minY) * pixelsPerMercatorY + letterbox.offsetY;
+
+                // Calculate opacity based on distance from start/end
+                double distanceFromStart = cumulativeDistances[i];
+                double distanceFromEnd = totalDistance - cumulativeDistances[i];
+
+                // Calculate fade opacity (0.0 to 1.0)
+                float opacity = 1.0f;
+
+                // Hide first 100m completely, fade in from 100m to 200m
+                if (distanceFromStart < HIDDEN_DISTANCE) {
+                    opacity = 0.0f;
+                } else if (distanceFromStart < FADE_DISTANCE) {
+                    opacity = Math.min(opacity, (float) ((distanceFromStart - HIDDEN_DISTANCE) / (FADE_DISTANCE - HIDDEN_DISTANCE)));
+                }
+
+                // Hide last 100m completely, fade out from 200m to 100m before end
+                if (distanceFromEnd < HIDDEN_DISTANCE) {
+                    opacity = 0.0f;
+                } else if (distanceFromEnd < FADE_DISTANCE) {
+                    opacity = Math.min(opacity, (float) ((distanceFromEnd - HIDDEN_DISTANCE) / (FADE_DISTANCE - HIDDEN_DISTANCE)));
+                }
+
+                // Skip completely transparent segments
+                if (opacity <= 0.0f) {
+                    continue;
+                }
+
+                // Apply opacity to glow color (semi-transparent cyan)
+                int alpha = Math.max(0, Math.min(128, (int) (opacity * 128))); // Max 50% alpha for glow
+                g2d.setColor(new Color(0, 255, 255, alpha));
+
+                // Draw glow segment
+                g2d.drawLine((int) x1, (int) y1, (int) x2, (int) y2);
+            }
+        }
+
+        // Second pass: draw main track line (thinner, full opacity)
+        g2d.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
         for (int i = 0; i < trackPoints.size() - 1; i++) {
             Map<String, Object> point1 = trackPoints.get(i);
@@ -232,9 +307,9 @@ public class ActivityImageService {
                     continue;
                 }
 
-                // Apply opacity to track color
+                // Apply opacity to track color - neon cyan for 80s style
                 int alpha = Math.max(0, Math.min(255, (int) (opacity * 255)));
-                g2d.setColor(new Color(0, 180, 216, alpha)); // Bright blue with alpha
+                g2d.setColor(new Color(0, 255, 255, alpha)); // Neon cyan with alpha
 
                 // Draw segment
                 g2d.drawLine((int) x1, (int) y1, (int) x2, (int) y2);
@@ -300,50 +375,69 @@ public class ActivityImageService {
     }
 
     /**
-     * Draw metadata overlay on the right side of the image.
+     * Draw metadata overlay on the right side of the image in 80s Aerobic style.
      */
     private void drawMetadata(Graphics2D g2d, Activity activity, int width, int height) {
         int metadataX = (int) (width * 0.62); // Start at 62% to leave some margin
-        int y = 60;
+        int y = 80;
         int lineHeight = 50;
 
-        // Title
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Arial", Font.BOLD, 32));
-        String title = activity.getTitle() != null ? activity.getTitle() : "Activity";
-        if (title.length() > 20) {
-            title = title.substring(0, 20) + "...";
+        // Neon colors
+        Color neonPink = new Color(255, 20, 147);
+        Color neonCyan = new Color(0, 255, 255);
+        Color neonOrange = new Color(255, 102, 0);
+        Color neonGreen = new Color(57, 255, 20);
+
+        // Title with neon pink
+        g2d.setColor(neonPink);
+        g2d.setFont(new Font("Arial Black", Font.BOLD, 36));
+        String title = activity.getTitle() != null ? activity.getTitle() : "ACTIVITY";
+        title = title.toUpperCase();
+        if (title.length() > 18) {
+            title = title.substring(0, 18) + "...";
         }
         g2d.drawString(title, metadataX, y);
+        y += lineHeight + 20;
+
+        // Activity type badge with border
+        g2d.setFont(new Font("Arial Black", Font.BOLD, 20));
+        String formattedType = ActivityFormatter.formatActivityType(activity.getActivityType()).toUpperCase();
+
+        // Draw border box around type
+        int typeWidth = g2d.getFontMetrics().stringWidth(formattedType);
+        int boxPadding = 12;
+        g2d.setColor(neonCyan);
+        g2d.setStroke(new BasicStroke(3.0f));
+        g2d.drawRect(metadataX - boxPadding, y - 25, typeWidth + boxPadding * 2, 35);
+        g2d.drawString(formattedType, metadataX, y);
         y += lineHeight + 10;
 
-        // Activity type
-        g2d.setFont(new Font("Arial", Font.PLAIN, 24));
-        g2d.setColor(new Color(200, 200, 200));
-        String formattedType = ActivityFormatter.formatActivityType(activity.getActivityType());
-        g2d.drawString(formattedType, metadataX, y);
-        y += lineHeight;
-
-        // Distance
+        // Distance with neon orange value
         if (activity.getTotalDistance() != null) {
-            g2d.setFont(new Font("Arial", Font.BOLD, 28));
-            g2d.setColor(Color.WHITE);
-            String distance = String.format("%.2f km", activity.getTotalDistance().doubleValue() / 1000.0);
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 40));
+            g2d.setColor(neonOrange);
+            String distance = String.format("%.2f", activity.getTotalDistance().doubleValue() / 1000.0);
             g2d.drawString(distance, metadataX, y);
-            g2d.setFont(new Font("Arial", Font.PLAIN, 18));
-            g2d.setColor(new Color(150, 150, 150));
-            g2d.drawString("Distance", metadataX, y + 25);
-            y += lineHeight + 30;
+
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 22));
+            g2d.setColor(Color.WHITE);
+            int distanceWidth = g2d.getFontMetrics(new Font("Arial Black", Font.BOLD, 40)).stringWidth(distance);
+            g2d.drawString("KM", metadataX + distanceWidth + 10, y);
+
+            g2d.setFont(new Font("Arial Black", Font.PLAIN, 16));
+            g2d.setColor(new Color(180, 180, 180));
+            g2d.drawString("DISTANCE", metadataX, y + 22);
+            y += lineHeight + 35;
         }
 
-        // Duration
+        // Duration with neon cyan value
         if (activity.getTotalDurationSeconds() != null) {
             long hours = activity.getTotalDurationSeconds() / 3600;
             long minutes = (activity.getTotalDurationSeconds() % 3600) / 60;
             long seconds = activity.getTotalDurationSeconds() % 60;
 
-            g2d.setFont(new Font("Arial", Font.BOLD, 28));
-            g2d.setColor(Color.WHITE);
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 40));
+            g2d.setColor(neonCyan);
             String duration;
             if (hours > 0) {
                 duration = String.format("%d:%02d:%02d", hours, minutes, seconds);
@@ -351,28 +445,39 @@ public class ActivityImageService {
                 duration = String.format("%d:%02d", minutes, seconds);
             }
             g2d.drawString(duration, metadataX, y);
-            g2d.setFont(new Font("Arial", Font.PLAIN, 18));
-            g2d.setColor(new Color(150, 150, 150));
-            g2d.drawString("Duration", metadataX, y + 25);
-            y += lineHeight + 30;
+            g2d.setFont(new Font("Arial Black", Font.PLAIN, 16));
+            g2d.setColor(new Color(180, 180, 180));
+            g2d.drawString("DURATION", metadataX, y + 22);
+            y += lineHeight + 35;
         }
 
-        // Elevation gain
+        // Elevation gain with neon green value
         if (activity.getElevationGain() != null) {
-            g2d.setFont(new Font("Arial", Font.BOLD, 28));
-            g2d.setColor(Color.WHITE);
-            String elevation = String.format("%.0f m", activity.getElevationGain());
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 40));
+            g2d.setColor(neonGreen);
+            String elevation = String.format("%.0f", activity.getElevationGain());
             g2d.drawString(elevation, metadataX, y);
-            g2d.setFont(new Font("Arial", Font.PLAIN, 18));
-            g2d.setColor(new Color(150, 150, 150));
-            g2d.drawString("Elevation Gain", metadataX, y + 25);
-            y += lineHeight + 30;
+
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 22));
+            g2d.setColor(Color.WHITE);
+            int elevationWidth = g2d.getFontMetrics(new Font("Arial Black", Font.BOLD, 40)).stringWidth(elevation);
+            g2d.drawString("M", metadataX + elevationWidth + 10, y);
+
+            g2d.setFont(new Font("Arial Black", Font.PLAIN, 16));
+            g2d.setColor(new Color(180, 180, 180));
+            g2d.drawString("ELEVATION", metadataX, y + 22);
+            y += lineHeight + 35;
         }
 
-        // Branding
-        g2d.setFont(new Font("Arial", Font.PLAIN, 20));
-        g2d.setColor(new Color(100, 100, 100));
-        g2d.drawString("FitPub", metadataX, height - 40);
+        // Branding with neon pink gradient effect
+        g2d.setFont(new Font("Arial Black", Font.BOLD, 28));
+        g2d.setColor(neonPink);
+        g2d.drawString("FITPUB", metadataX, height - 50);
+
+        // Add decorative line above branding
+        g2d.setColor(neonCyan);
+        g2d.setStroke(new BasicStroke(3.0f));
+        g2d.drawLine(metadataX, height - 75, metadataX + 150, height - 75);
     }
 
     /**

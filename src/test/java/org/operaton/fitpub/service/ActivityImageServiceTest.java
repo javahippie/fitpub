@@ -52,7 +52,7 @@ class ActivityImageServiceTest {
      * mvn test -Dtest=ActivityImageServiceTest#testGenerateActivityImage_Manual
      */
     @Test
-    @Disabled("Manual test - run explicitly when needed")
+    //@Disabled("Manual test - run explicitly when needed")
     @DisplayName("Generate activity image from test FIT file")
     void testGenerateActivityImage_Manual() throws Exception {
         // Load test FIT file
