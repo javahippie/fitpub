@@ -10,6 +10,7 @@ import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.LikeRepository;
 import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.service.FederationService;
+import org.operaton.fitpub.service.NotificationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,7 @@ public class LikeController {
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
     private final FederationService federationService;
+    private final NotificationService notificationService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -110,6 +112,10 @@ public class LikeController {
         Like saved = likeRepository.save(like);
 
         log.info("User {} liked activity {}", user.getUsername(), activityId);
+
+        // Create notification for activity owner
+        String likerActorUri = user.getActorUri(baseUrl);
+        notificationService.createActivityLikedNotification(activity, likerActorUri);
 
         // Send ActivityPub Like activity to followers if activity is public
         if (activity.getVisibility() == Activity.Visibility.PUBLIC) {

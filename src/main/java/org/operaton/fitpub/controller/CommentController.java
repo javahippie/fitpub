@@ -12,6 +12,7 @@ import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.CommentRepository;
 import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.service.FederationService;
+import org.operaton.fitpub.service.NotificationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -42,6 +43,7 @@ public class CommentController {
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
     private final FederationService federationService;
+    private final NotificationService notificationService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -129,6 +131,10 @@ public class CommentController {
         commentRepository.flush(); // Ensure @CreationTimestamp is applied
 
         log.info("User {} commented on activity {}", user.getUsername(), activityId);
+
+        // Create notification for activity owner
+        String commenterActorUri = user.getActorUri(baseUrl);
+        notificationService.createActivityCommentedNotification(activity, saved, commenterActorUri);
 
         // Send ActivityPub Create/Note activity to followers if activity is public
         if (activity.getVisibility() == Activity.Visibility.PUBLIC ||
