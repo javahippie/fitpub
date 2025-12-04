@@ -58,23 +58,105 @@
             </div>
 
             <!-- Activity Metrics -->
-            <div class="mb-3">
-                <table class="table table-sm table-borderless mb-0">
-                    <tbody>
-                        <tr>
-                            <td class="text-muted" style="width: 25%;">Distance</td>
-                            <td class="fw-bold" id="metricDistance">--</td>
-                            <td class="text-muted" style="width: 25%;">Duration</td>
-                            <td class="fw-bold" id="metricDuration">--</td>
-                        </tr>
-                        <tr>
-                            <td class="text-muted">Elevation</td>
-                            <td class="fw-bold" id="metricElevation">--</td>
-                            <td class="text-muted">Avg Pace</td>
-                            <td class="fw-bold" id="metricPace">--</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border shadow-sm">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <!-- Distance -->
+                                <div class="col-md-3 col-6">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-signpost-2"></i> Distance
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricDistance">--</div>
+                                    </div>
+                                </div>
+                                <!-- Duration -->
+                                <div class="col-md-3 col-6">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-clock"></i> Duration
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricDuration">--</div>
+                                    </div>
+                                </div>
+                                <!-- Elevation Gain -->
+                                <div class="col-md-3 col-6">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-graph-up-arrow"></i> Elevation Gain
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricElevationGain">--</div>
+                                    </div>
+                                </div>
+                                <!-- Avg Pace -->
+                                <div class="col-md-3 col-6">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-speedometer"></i> Avg Pace
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricPace">--</div>
+                                    </div>
+                                </div>
+                                <!-- Avg Speed -->
+                                <div class="col-md-3 col-6" id="metricAvgSpeedContainer" style="display: none;">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-speedometer2"></i> Avg Speed
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricAvgSpeed">--</div>
+                                    </div>
+                                </div>
+                                <!-- Max Speed -->
+                                <div class="col-md-3 col-6" id="metricMaxSpeedContainer" style="display: none;">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-lightning"></i> Max Speed
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricMaxSpeed">--</div>
+                                    </div>
+                                </div>
+                                <!-- Avg Heart Rate -->
+                                <div class="col-md-3 col-6" id="metricAvgHRContainer" style="display: none;">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-heart"></i> Avg Heart Rate
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricAvgHR">--</div>
+                                    </div>
+                                </div>
+                                <!-- Max Heart Rate -->
+                                <div class="col-md-3 col-6" id="metricMaxHRContainer" style="display: none;">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-heart-pulse-fill"></i> Max Heart Rate
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricMaxHR">--</div>
+                                    </div>
+                                </div>
+                                <!-- Calories -->
+                                <div class="col-md-3 col-6" id="metricCaloriesContainer" style="display: none;">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-fire"></i> Calories
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricCalories">--</div>
+                                    </div>
+                                </div>
+                                <!-- Cadence -->
+                                <div class="col-md-3 col-6" id="metricCadenceContainer" style="display: none;">
+                                    <div class="metric-card">
+                                        <div class="text-muted small mb-1">
+                                            <i class="bi bi-arrow-repeat"></i> Avg Cadence
+                                        </div>
+                                        <div class="fw-bold fs-5" id="metricCadence">--</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Weather Card -->
@@ -152,49 +234,46 @@
                 </div>
             </div>
 
-            <!-- Elevation Chart -->
-            <div class="row mb-4" id="elevationSection" style="display: none;">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="bi bi-graph-up"></i> Elevation Profile
-                            </h5>
+            <!-- Charts Row -->
+            <div class="row mb-4" id="chartsSection" style="display: none;">
+                <!-- Elevation Chart -->
+                <div class="col-lg-4 col-md-12 mb-3 mb-lg-0" id="elevationSection" style="display: none;">
+                    <div class="card h-100">
+                        <div class="card-header py-2">
+                            <h6 class="mb-0">
+                                <i class="bi bi-graph-up"></i> Elevation
+                            </h6>
                         </div>
                         <div class="card-body">
-                            <canvas id="elevationChart" height="100"></canvas>
+                            <canvas id="elevationChart" height="120"></canvas>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Heart Rate Chart -->
-            <div class="row mb-4" id="heartRateSection" style="display: none;">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="bi bi-heart-pulse"></i> Heart Rate Over Time
-                            </h5>
+                <!-- Heart Rate Chart -->
+                <div class="col-lg-4 col-md-12 mb-3 mb-lg-0" id="heartRateSection" style="display: none;">
+                    <div class="card h-100">
+                        <div class="card-header py-2">
+                            <h6 class="mb-0">
+                                <i class="bi bi-heart-pulse"></i> Heart Rate
+                            </h6>
                         </div>
                         <div class="card-body">
-                            <canvas id="heartRateChart" height="100"></canvas>
+                            <canvas id="heartRateChart" height="120"></canvas>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Speed/Pace Chart -->
-            <div class="row mb-4" id="speedSection" style="display: none;">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="bi bi-speedometer2"></i> Speed/Pace Over Time
-                            </h5>
+                <!-- Speed/Pace Chart -->
+                <div class="col-lg-4 col-md-12 mb-3 mb-lg-0" id="speedSection" style="display: none;">
+                    <div class="card h-100">
+                        <div class="card-header py-2">
+                            <h6 class="mb-0">
+                                <i class="bi bi-speedometer2"></i> Speed/Pace
+                            </h6>
                         </div>
                         <div class="card-body">
-                            <canvas id="speedChart" height="100"></canvas>
+                            <canvas id="speedChart" height="120"></canvas>
                         </div>
                     </div>
                 </div>
@@ -416,15 +495,41 @@
                         checkActivityOwnership(activity);
                     }
 
-                    // Metrics
+                    // Metrics - Basic (always shown)
                     document.getElementById('metricDistance').textContent = formatDistance(activity.totalDistance);
                     document.getElementById('metricDuration').textContent = formatDuration(activity.totalDuration);
-                    document.getElementById('metricElevation').textContent = activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A';
+                    document.getElementById('metricElevationGain').textContent = activity.elevationGain ? Math.round(activity.elevationGain) + ' m' : 'N/A';
 
                     // Calculate pace
                     if (activity.totalDistance && activity.totalDuration) {
                         const paceSeconds = activity.totalDuration / (activity.totalDistance / 1000);
                         document.getElementById('metricPace').textContent = formatPace(paceSeconds);
+                    }
+
+                    // Additional Metrics (conditional)
+                    if (activity.averageSpeed) {
+                        document.getElementById('metricAvgSpeedContainer').style.display = 'block';
+                        document.getElementById('metricAvgSpeed').textContent = (activity.averageSpeed * 3.6).toFixed(1) + ' km/h';
+                    }
+                    if (activity.maxSpeed) {
+                        document.getElementById('metricMaxSpeedContainer').style.display = 'block';
+                        document.getElementById('metricMaxSpeed').textContent = (activity.maxSpeed * 3.6).toFixed(1) + ' km/h';
+                    }
+                    if (activity.averageHeartRate) {
+                        document.getElementById('metricAvgHRContainer').style.display = 'block';
+                        document.getElementById('metricAvgHR').textContent = activity.averageHeartRate + ' bpm';
+                    }
+                    if (activity.maxHeartRate) {
+                        document.getElementById('metricMaxHRContainer').style.display = 'block';
+                        document.getElementById('metricMaxHR').textContent = activity.maxHeartRate + ' bpm';
+                    }
+                    if (activity.calories) {
+                        document.getElementById('metricCaloriesContainer').style.display = 'block';
+                        document.getElementById('metricCalories').textContent = activity.calories + ' kcal';
+                    }
+                    if (activity.averageCadence) {
+                        document.getElementById('metricCadenceContainer').style.display = 'block';
+                        document.getElementById('metricCadence').textContent = activity.averageCadence + ' spm';
                     }
 
                     // Render map if track data exists
@@ -455,6 +560,11 @@
                         if (hasSpeed) {
                             document.getElementById('speedSection').style.display = 'block';
                             renderSpeedChart(activity.trackPoints);
+                        }
+
+                        // Show charts section if at least one chart is visible
+                        if (hasElevation || hasHeartRate || hasSpeed) {
+                            document.getElementById('chartsSection').style.display = 'flex';
                         }
                     }
 
