@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - FitPub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/fitpub.css}">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 2rem;
+        }
+
+        .error-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 3rem;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .error-icon {
+            font-size: 8rem;
+            color: #f5576c;
+            margin-bottom: 1rem;
+        }
+
+        .error-code {
+            font-size: 6rem;
+            font-weight: 700;
+            color: #f5576c;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .error-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 1rem 0;
+            color: #2d3748;
+        }
+
+        .error-message {
+            font-size: 1.1rem;
+            color: #718096;
+            margin-bottom: 2rem;
+        }
+
+        .btn-home {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 0.5rem;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        .btn-home:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(245, 87, 108, 0.4);
+            color: white;
+        }
+
+        .btn-back {
+            color: #f5576c;
+            text-decoration: none;
+            margin-left: 1rem;
+            transition: color 0.2s;
+        }
+
+        .btn-back:hover {
+            color: #f093fb;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <div class="error-icon">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+
+            <h1 class="error-code" th:text="${status} ?: '500'">500</h1>
+            <h2 class="error-title" th:text="${error} ?: 'Something Went Wrong'">Something Went Wrong</h2>
+            <p class="error-message">
+                We encountered an unexpected error while processing your request.
+                <span th:if="${message}" th:text="' ' + ${message}"></span>
+            </p>
+
+            <div class="mt-4">
+                <a th:href="@{/}" class="btn-home">
+                    <i class="bi bi-house-door"></i> Back to Home
+                </a>
+                <a href="javascript:history.back()" class="btn-back">
+                    <i class="bi bi-arrow-left"></i> Go Back
+                </a>
+            </div>
+
+            <div class="mt-4">
+                <small class="text-muted">
+                    Error Code: <span th:text="${status} ?: '500'">500</span>
+                    <span th:if="${timestamp}">
+                        | <span th:text="${timestamp}">timestamp</span>
+                    </span>
+                </small>
+            </div>
+
+            <div class="mt-3" th:if="${trace}">
+                <details class="text-start">
+                    <summary class="btn btn-sm btn-outline-secondary">Show Technical Details</summary>
+                    <pre class="mt-2 p-3 bg-light text-start" style="max-height: 300px; overflow-y: auto; font-size: 0.75rem;" th:text="${trace}"></pre>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

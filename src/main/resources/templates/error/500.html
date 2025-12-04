@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - Internal Server Error - FitPub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/fitpub.css}">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            padding: 2rem;
+        }
+
+        .error-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 3rem;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .error-icon {
+            font-size: 8rem;
+            color: #fa709a;
+            margin-bottom: 1rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .error-code {
+            font-size: 6rem;
+            font-weight: 700;
+            color: #fa709a;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .error-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 1rem 0;
+            color: #2d3748;
+        }
+
+        .error-message {
+            font-size: 1.1rem;
+            color: #718096;
+            margin-bottom: 2rem;
+        }
+
+        .error-suggestions {
+            text-align: left;
+            background: #f7fafc;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .error-suggestions h5 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+
+        .error-suggestions ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .error-suggestions li {
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-home {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            border: none;
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 0.5rem;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+
+        .btn-home:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(250, 112, 154, 0.4);
+            color: white;
+        }
+
+        .btn-back {
+            color: #fa709a;
+            text-decoration: none;
+            margin-left: 1rem;
+            transition: color 0.2s;
+        }
+
+        .btn-back:hover {
+            color: #fee140;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <div class="error-icon">
+                <i class="bi bi-tools"></i>
+            </div>
+
+            <h1 class="error-code">500</h1>
+            <h2 class="error-title">Internal Server Error</h2>
+            <p class="error-message">
+                Oops! Something went wrong on our end. Our team has been notified and we're working on it.
+            </p>
+
+            <div class="error-suggestions">
+                <h5><i class="bi bi-info-circle"></i> What can you do?</h5>
+                <ul>
+                    <li>Try refreshing the page</li>
+                    <li>Wait a few moments and try again</li>
+                    <li>Go back to the previous page</li>
+                    <li>Visit our homepage</li>
+                </ul>
+            </div>
+
+            <div class="mt-4">
+                <a th:href="@{/}" class="btn-home">
+                    <i class="bi bi-house-door"></i> Back to Home
+                </a>
+                <a href="javascript:history.back()" class="btn-back">
+                    <i class="bi bi-arrow-left"></i> Go Back
+                </a>
+            </div>
+
+            <div class="mt-4">
+                <small class="text-muted">
+                    Error Code: 500 | Internal Server Error
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

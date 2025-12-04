@@ -290,6 +290,68 @@ body {
     color: var(--danger-color);
 }
 
+/* Empty State Illustrations */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6b7280;
+}
+
+.empty-state-icon {
+    font-size: 5rem;
+    color: #d1d5db;
+    margin-bottom: 1.5rem;
+    display: inline-block;
+    animation: float-gentle 3s ease-in-out infinite;
+}
+
+@keyframes float-gentle {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.empty-state-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-message {
+    font-size: 1rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state-action {
+    margin-top: 1.5rem;
+}
+
+/* Empty state variants */
+.empty-state-activities .empty-state-icon {
+    color: #93c5fd;
+}
+
+.empty-state-notifications .empty-state-icon {
+    color: #fbbf24;
+}
+
+.empty-state-timeline .empty-state-icon {
+    color: #a78bfa;
+}
+
+.empty-state-users .empty-state-icon {
+    color: #86efac;
+}
+
+.empty-state-search .empty-state-icon {
+    color: #fda4af;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .map-container {
@@ -302,5 +364,17 @@ body {
 
     .metric-value {
         font-size: 1.5rem;
+    }
+
+    .empty-state {
+        padding: 3rem 1rem;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+    }
+
+    .empty-state-title {
+        font-size: 1.25rem;
     }
 }

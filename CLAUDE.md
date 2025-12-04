@@ -779,15 +779,17 @@ For ActivityPub federated posts and thumbnails:
 - [x] Heart rate chart over time on activity details (Chart.js line chart, elapsed time x-axis, heart rate y-axis)
 - [x] Speed/pace chart over time on activity details (Chart.js line chart with smoothing, displays speed in km/h with pace in tooltip)
 - [x] Notifications system (Notification entity, NotificationRepository, NotificationService, NotificationController REST API, notifications.html UI, notification bell in nav with unread count, polling every 30s, mark as read/delete, all/unread filter tabs)
+- [x] Custom 404 Not Found page (error/404.html with animated compass icon, suggestions, gradient background)
+- [x] Custom 403 Forbidden page (error/403.html with shield-lock icon, auth-aware login button, gradient background)
+- [x] Custom 500 Internal Server Error page (error/500.html with tools icon, recovery suggestions)
+- [x] Generic error page (error/error.html with dynamic error code display, technical details toggle)
+- [x] Empty state illustrations (reusable CSS classes in fitpub.css, floating animation, variant colors for activities/notifications/timeline/users/search, updated all timeline pages, notifications page, and discover page)
 - [ ] Enhanced privacy controls UI
 - [ ] Follow/unfollow buttons on user profiles
 - [ ] Activity visibility to followers (implement FOLLOWERS visibility enforcement)
 - [ ] Breadcrumb navigation
 - [ ] Active route highlighting in navigation
 - [ ] Global error boundary/handler
-- [ ] Custom 404 Not Found page
-- [ ] Custom 403 Forbidden page
-- [ ] Empty state illustrations
 
 ### Phase 3: Advanced Analytics
 - [ ] Personal records tracking
