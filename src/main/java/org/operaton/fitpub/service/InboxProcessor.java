@@ -34,6 +34,7 @@ public class InboxProcessor {
     private final ActivityRepository activityRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final NotificationService notificationService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -115,6 +116,9 @@ public class InboxProcessor {
 
             // Send Accept activity
             federationService.sendAcceptActivity(follow, localUser);
+
+            // Create notification for followed user
+            notificationService.createUserFollowedNotification(localUser, actor);
 
             log.info("Processed Follow from {} for user {}", actor, username);
 
@@ -252,6 +256,9 @@ public class InboxProcessor {
             commentRepository.save(comment);
             log.info("Processed Create/Note (comment) from {} for activity {}", actor, activityId);
 
+            // Create notification for activity owner
+            notificationService.createActivityCommentedNotification(localActivity, comment, actor);
+
         } catch (Exception e) {
             log.error("Error processing Create activity", e);
         }
@@ -302,6 +309,9 @@ public class InboxProcessor {
 
             likeRepository.save(like);
             log.info("Processed Like from {} for activity {}", actor, activityId);
+
+            // Create notification for activity owner
+            notificationService.createActivityLikedNotification(localActivity, actor);
 
         } catch (Exception e) {
             log.error("Error processing Like activity", e);

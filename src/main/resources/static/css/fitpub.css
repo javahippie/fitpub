@@ -1,12 +1,14 @@
 /* FitPub - Custom Styles */
 
 :root {
-    --primary-color: #2563eb;
-    --secondary-color: #10b981;
-    --danger-color: #ef4444;
-    --warning-color: #f59e0b;
-    --dark-color: #1f2937;
-    --light-color: #f3f4f6;
+    --primary-color: #ff00ff;      /* Hot Magenta */
+    --secondary-color: #00ffff;    /* Cyan */
+    --danger-color: #ff1493;       /* Deep Pink */
+    --warning-color: #ffff00;      /* Electric Yellow */
+    --dark-color: #1a0033;         /* Deep Purple */
+    --light-color: #f0f0ff;        /* Light Lavender */
+    --accent-orange: #ff6600;      /* Neon Orange */
+    --accent-lime: #ccff00;        /* Lime Green */
     --border-radius: 0.5rem;
 }
 
@@ -14,12 +16,19 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: var(--dark-color);
+    background: linear-gradient(135deg, #f0f0ff 0%, #ffe0ff 25%, #e0f0ff 50%, #fff0e0 75%, #f0ffe0 100%);
+    background-attachment: fixed;
 }
 
 /* Navigation */
 .navbar-brand {
     font-weight: 700;
     font-size: 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, var(--accent-orange) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 2px 2px 4px rgba(255, 0, 255, 0.2);
 }
 
 /* Map container */
@@ -36,12 +45,14 @@ body {
 
 /* Activity cards */
 .activity-card {
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: box-shadow 0.2s;
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--primary-color), var(--secondary-color)) border-box;
 }
 
 .activity-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(255, 0, 255, 0.4), 0 0 40px rgba(0, 255, 255, 0.2);
 }
 
 .activity-type-badge {
@@ -53,60 +64,73 @@ body {
 }
 
 .activity-type-run {
-    background-color: #dbeafe;
-    color: #1e40af;
+    background: linear-gradient(135deg, #ff00ff 0%, #ff1493 100%);
+    color: #ffffff;
+    font-weight: 700;
 }
 
 .activity-type-ride {
-    background-color: #fef3c7;
-    color: #92400e;
+    background: linear-gradient(135deg, #ffff00 0%, #ff6600 100%);
+    color: #1a0033;
+    font-weight: 700;
 }
 
 .activity-type-hike {
-    background-color: #d1fae5;
-    color: #065f46;
+    background: linear-gradient(135deg, #00ffff 0%, #ccff00 100%);
+    color: #1a0033;
+    font-weight: 700;
 }
 
 /* Metrics display */
 .metric-card {
-    background: var(--light-color);
+    background: linear-gradient(135deg, var(--light-color) 0%, #e0e0ff 100%);
     border-radius: var(--border-radius);
     padding: 1rem;
     text-align: center;
+    border: 2px solid var(--primary-color);
 }
 
 .metric-value {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .metric-label {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--dark-color);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    font-weight: 600;
 }
 
 /* File upload area */
 .file-upload-area {
-    border: 2px dashed #d1d5db;
+    border: 3px dashed var(--primary-color);
     border-radius: var(--border-radius);
     padding: 3rem 2rem;
     text-align: center;
     transition: border-color 0.2s, background-color 0.2s;
     cursor: pointer;
+    background: linear-gradient(135deg, #ffffff 0%, var(--light-color) 100%);
 }
 
 .file-upload-area:hover,
 .file-upload-area.drag-over {
-    border-color: var(--primary-color);
-    background-color: #eff6ff;
+    border-color: var(--secondary-color);
+    background: linear-gradient(135deg, var(--light-color) 0%, #fff0ff 100%);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
 }
 
 .file-upload-icon {
     font-size: 3rem;
-    color: #9ca3af;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-orange) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 /* Timeline */
@@ -137,12 +161,14 @@ body {
 
 /* Timeline Cards */
 .timeline-card {
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: box-shadow 0.2s;
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, var(--accent-orange), var(--accent-lime)) border-box;
 }
 
 .timeline-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(255, 102, 0, 0.4), 0 0 40px rgba(204, 255, 0, 0.2);
 }
 
 .timeline-card .user-avatar {
@@ -200,14 +226,13 @@ body {
 }
 
 .stat-card-hover {
-    transition: background-color 0.2s, transform 0.2s;
+    transition: background-color 0.2s;
     cursor: pointer;
     border-radius: var(--border-radius);
 }
 
 .stat-card-hover:hover {
     background-color: var(--light-color);
-    transform: translateY(-2px);
 }
 
 .stat-value {
@@ -333,23 +358,23 @@ body {
 
 /* Empty state variants */
 .empty-state-activities .empty-state-icon {
-    color: #93c5fd;
+    color: var(--primary-color);
 }
 
 .empty-state-notifications .empty-state-icon {
-    color: #fbbf24;
+    color: var(--warning-color);
 }
 
 .empty-state-timeline .empty-state-icon {
-    color: #a78bfa;
+    color: var(--secondary-color);
 }
 
 .empty-state-users .empty-state-icon {
-    color: #86efac;
+    color: var(--accent-lime);
 }
 
 .empty-state-search .empty-state-icon {
-    color: #fda4af;
+    color: var(--danger-color);
 }
 
 /* Responsive adjustments */
