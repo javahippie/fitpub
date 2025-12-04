@@ -109,6 +109,38 @@
                 </div>
             </div>
 
+            <!-- Heart Rate Chart -->
+            <div class="row mb-4" id="heartRateSection" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-heart-pulse"></i> Heart Rate Over Time
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="heartRateChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speed/Pace Chart -->
+            <div class="row mb-4" id="speedSection" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-speedometer2"></i> Speed/Pace Over Time
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="speedChart" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Additional Metrics -->
             <div class="row mb-4" id="additionalMetrics" style="display: none;">
                 <div class="col-12">
@@ -344,6 +376,20 @@
                             document.getElementById('elevationSection').style.display = 'block';
                             renderElevationChart(activity.trackPoints);
                         }
+
+                        // Render heart rate chart if data exists
+                        const hasHeartRate = activity.trackPoints.some(p => p.heartRate != null && p.heartRate > 0);
+                        if (hasHeartRate) {
+                            document.getElementById('heartRateSection').style.display = 'block';
+                            renderHeartRateChart(activity.trackPoints);
+                        }
+
+                        // Render speed/pace chart if data exists
+                        const hasSpeed = activity.trackPoints.some(p => p.speed != null && p.speed > 0);
+                        if (hasSpeed) {
+                            document.getElementById('speedSection').style.display = 'block';
+                            renderSpeedChart(activity.trackPoints);
+                        }
                     }
 
                     // Additional metrics
@@ -502,6 +548,239 @@
                         smoothed.push({
                             distance: interpolated[i].distance,
                             elevation: count > 0 ? sum / count : interpolated[i].elevation
+                        });
+                    }
+
+                    return smoothed;
+                }
+
+                /**
+                 * Render heart rate chart over time
+                 * @param {Array} trackPoints - Array of track point objects
+                 */
+                function renderHeartRateChart(trackPoints) {
+                    // Calculate elapsed time and prepare heart rate data
+                    const heartRateData = [];
+                    let startTime = null;
+
+                    for (let i = 0; i < trackPoints.length; i++) {
+                        const point = trackPoints[i];
+
+                        if (point.heartRate != null && point.heartRate > 0) {
+                            // Parse timestamp
+                            const timestamp = new Date(point.timestamp);
+
+                            if (startTime === null) {
+                                startTime = timestamp;
+                            }
+
+                            // Calculate elapsed time in minutes
+                            const elapsedMinutes = (timestamp - startTime) / 1000 / 60;
+
+                            heartRateData.push({
+                                time: elapsedMinutes,
+                                heartRate: point.heartRate
+                            });
+                        }
+                    }
+
+                    if (heartRateData.length > 0) {
+                        // Create heart rate chart using Chart.js
+                        const ctx = document.getElementById('heartRateChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: heartRateData.map(d => d.time.toFixed(1)),
+                                datasets: [{
+                                    label: 'Heart Rate (bpm)',
+                                    data: heartRateData.map(d => d.heartRate),
+                                    borderColor: 'rgb(220, 53, 69)',
+                                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.3,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 5
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return context.parsed.y + ' bpm';
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Time (minutes)'
+                                        },
+                                        ticks: {
+                                            maxTicksLimit: 10
+                                        }
+                                    },
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Heart Rate (bpm)'
+                                        },
+                                        beginAtZero: false
+                                    }
+                                },
+                                interaction: {
+                                    mode: 'nearest',
+                                    axis: 'x',
+                                    intersect: false
+                                }
+                            }
+                        });
+                    }
+                }
+
+                /**
+                 * Render speed/pace chart over time
+                 * @param {Array} trackPoints - Array of track point objects
+                 */
+                function renderSpeedChart(trackPoints) {
+                    // Calculate elapsed time and prepare speed data
+                    const speedData = [];
+                    let startTime = null;
+
+                    for (let i = 0; i < trackPoints.length; i++) {
+                        const point = trackPoints[i];
+
+                        if (point.speed != null && point.speed > 0) {
+                            // Parse timestamp
+                            const timestamp = new Date(point.timestamp);
+
+                            if (startTime === null) {
+                                startTime = timestamp;
+                            }
+
+                            // Calculate elapsed time in minutes
+                            const elapsedMinutes = (timestamp - startTime) / 1000 / 60;
+
+                            // Convert speed from m/s to km/h
+                            const speedKmh = point.speed * 3.6;
+
+                            speedData.push({
+                                time: elapsedMinutes,
+                                speed: speedKmh
+                            });
+                        }
+                    }
+
+                    if (speedData.length > 0) {
+                        // Apply moving average smoothing to speed data (window size 5)
+                        const smoothedSpeedData = smoothSpeedData(speedData);
+
+                        // Create speed chart using Chart.js
+                        const ctx = document.getElementById('speedChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: smoothedSpeedData.map(d => d.time.toFixed(1)),
+                                datasets: [{
+                                    label: 'Speed (km/h)',
+                                    data: smoothedSpeedData.map(d => d.speed),
+                                    borderColor: 'rgb(13, 110, 253)',
+                                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.3,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 5
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false,
+                                        callbacks: {
+                                            label: function(context) {
+                                                const speedKmh = context.parsed.y;
+                                                // Calculate pace (min/km)
+                                                const paceMinPerKm = speedKmh > 0 ? 60 / speedKmh : 0;
+                                                const paceMin = Math.floor(paceMinPerKm);
+                                                const paceSec = Math.round((paceMinPerKm - paceMin) * 60);
+                                                return `${speedKmh.toFixed(1)} km/h (${paceMin}:${paceSec.toString().padStart(2, '0')} /km)`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Time (minutes)'
+                                        },
+                                        ticks: {
+                                            maxTicksLimit: 10
+                                        }
+                                    },
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Speed (km/h)'
+                                        },
+                                        beginAtZero: true
+                                    }
+                                },
+                                interaction: {
+                                    mode: 'nearest',
+                                    axis: 'x',
+                                    intersect: false
+                                }
+                            }
+                        });
+                    }
+                }
+
+                /**
+                 * Smooth speed data by applying moving average
+                 * @param {Array} data - Array of {time, speed} objects
+                 * @returns {Array} Smoothed speed data
+                 */
+                function smoothSpeedData(data) {
+                    if (data.length === 0) return data;
+
+                    const windowSize = 5;
+                    const smoothed = [];
+
+                    for (let i = 0; i < data.length; i++) {
+                        const start = Math.max(0, i - Math.floor(windowSize / 2));
+                        const end = Math.min(data.length, i + Math.ceil(windowSize / 2));
+
+                        let sum = 0;
+                        let count = 0;
+
+                        for (let j = start; j < end; j++) {
+                            if (data[j].speed > 0) {
+                                sum += data[j].speed;
+                                count++;
+                            }
+                        }
+
+                        smoothed.push({
+                            time: data[i].time,
+                            speed: count > 0 ? sum / count : data[i].speed
                         });
                     }
 

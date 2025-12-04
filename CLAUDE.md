@@ -776,14 +776,14 @@ For ActivityPub federated posts and thumbnails:
 - [x] User search and discovery UI (users/discover.html, /discover route, search bar with live filtering, user cards grid, pagination)
 - [x] Followers/following lists (ActorDTO, GET /api/users/{username}/followers, GET /api/users/{username}/following)
 - [x] Follower/following counts (UserController.populateSocialCounts, UserDTO with followersCount/followingCount, frontend displays real counts)
+- [x] Heart rate chart over time on activity details (Chart.js line chart, elapsed time x-axis, heart rate y-axis)
+- [x] Speed/pace chart over time on activity details (Chart.js line chart with smoothing, displays speed in km/h with pace in tooltip)
 - [ ] Notifications system
 - [ ] Enhanced privacy controls UI
 - [ ] Follow/unfollow buttons on user profiles
 - [ ] Activity visibility to followers (implement FOLLOWERS visibility enforcement)
 - [ ] Breadcrumb navigation
 - [ ] Active route highlighting in navigation
-- [ ] Heart rate chart over time on activity details
-- [ ] Speed/pace chart over time on activity details
 - [ ] Global error boundary/handler
 - [ ] Custom 404 Not Found page
 - [ ] Custom 403 Forbidden page
