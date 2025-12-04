@@ -671,8 +671,8 @@
                             // Calculate elapsed time in minutes
                             const elapsedMinutes = (timestamp - startTime) / 1000 / 60;
 
-                            // Convert speed from m/s to km/h
-                            const speedKmh = point.speed * 3.6;
+                            // Speed is already in km/h from the FIT parser (converted during parsing)
+                            const speedKmh = point.speed;
 
                             speedData.push({
                                 time: elapsedMinutes,
@@ -823,16 +823,16 @@
                         hasAdditionalMetrics = true;
                     }
 
-                    // Average Speed
+                    // Average Speed (already in km/h from backend)
                     if (activity.averageSpeed) {
-                        document.getElementById('avgSpeed').textContent = (activity.averageSpeed * 3.6).toFixed(1) + ' km/h';
+                        document.getElementById('avgSpeed').textContent = parseFloat(activity.averageSpeed).toFixed(1) + ' km/h';
                         document.getElementById('avgSpeedContainer').style.display = 'block';
                         hasAdditionalMetrics = true;
                     }
 
-                    // Max Speed
+                    // Max Speed (already in km/h from backend)
                     if (activity.maxSpeed) {
-                        document.getElementById('maxSpeed').textContent = (activity.maxSpeed * 3.6).toFixed(1) + ' km/h';
+                        document.getElementById('maxSpeed').textContent = parseFloat(activity.maxSpeed).toFixed(1) + ' km/h';
                         document.getElementById('maxSpeedContainer').style.display = 'block';
                         hasAdditionalMetrics = true;
                     }
