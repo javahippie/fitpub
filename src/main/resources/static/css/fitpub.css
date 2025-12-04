@@ -1,166 +1,59 @@
-/* FitPub - ULTRA 80s Aerobic Neon Style */
+/* FitPub - 80s Aerobic Style (Static Edition) */
 
 :root {
-    --primary-color: #ff00ff;      /* Hot Magenta */
-    --secondary-color: #00ffff;    /* Cyan */
-    --danger-color: #ff1493;       /* Deep Pink */
-    --warning-color: #ffff00;      /* Electric Yellow */
-    --dark-color: #0a0015;         /* Ultra Deep Purple */
-    --light-color: #f0f0ff;        /* Light Lavender */
-    --accent-orange: #ff6600;      /* Neon Orange */
-    --accent-lime: #ccff00;        /* Lime Green */
-    --neon-pink: #ff10f0;          /* Hot Neon Pink */
-    --neon-blue: #10d0ff;          /* Electric Blue */
-    --neon-green: #39ff14;         /* Radioactive Green */
-    --neon-purple: #bc13fe;        /* Purple Haze */
+    --neon-pink: #ff1493;
+    --neon-purple: #9d00ff;
+    --neon-cyan: #00ffff;
+    --neon-yellow: #ffff00;
+    --neon-orange: #ff6600;
+    --neon-green: #39ff14;
+    --neon-blue: #00d4ff;
+    --primary-color: var(--neon-pink);
+    --secondary-color: var(--neon-cyan);
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --dark-color: #1a0033;
+    --light-color: #f8f9fa;
+    --accent-orange: var(--neon-orange);
+    --accent-lime: var(--neon-green);
     --border-radius: 0.5rem;
 }
 
-/* Animated neon background */
-@keyframes neon-pulse {
-    0%, 100% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-}
-
-@keyframes glow {
-    0%, 100% {
-        box-shadow: 0 0 5px var(--primary-color),
-                    0 0 10px var(--primary-color),
-                    0 0 15px var(--primary-color);
-    }
-    50% {
-        box-shadow: 0 0 10px var(--secondary-color),
-                    0 0 20px var(--secondary-color),
-                    0 0 30px var(--secondary-color);
-    }
-}
-
-@keyframes rainbow-border {
-    0% { border-color: var(--primary-color); }
-    25% { border-color: var(--secondary-color); }
-    50% { border-color: var(--accent-orange); }
-    75% { border-color: var(--accent-lime); }
-    100% { border-color: var(--primary-color); }
-}
-
-/* Base styles with animated gradient */
+/* Base styles */
 body {
-    font-family: 'Arial Black', 'Impact', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Arial Black', 'Arial Bold', sans-serif;
     color: var(--dark-color);
-    background: linear-gradient(
-        135deg,
-        #ff00ff 0%,   /* Magenta */
-        #00ffff 10%,  /* Cyan */
-        #ffff00 20%,  /* Yellow */
-        #ff00ff 30%,  /* Magenta */
-        #00ff00 40%,  /* Green */
-        #0000ff 50%,  /* Blue */
-        #ff00ff 60%,  /* Magenta */
-        #ff6600 70%,  /* Orange */
-        #00ffff 80%,  /* Cyan */
-        #ff00ff 90%,  /* Magenta */
-        #ccff00 100%  /* Lime */
-    );
-    background-size: 400% 400%;
-    animation: neon-pulse 15s ease infinite;
-    background-attachment: fixed;
+    background: #ffffff;
 }
 
-/* Neon overlay pattern */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image:
-        repeating-linear-gradient(
-            45deg,
-            transparent,
-            transparent 10px,
-            rgba(255, 255, 255, 0.03) 10px,
-            rgba(255, 255, 255, 0.03) 20px
-        ),
-        repeating-linear-gradient(
-            -45deg,
-            transparent,
-            transparent 10px,
-            rgba(0, 255, 255, 0.02) 10px,
-            rgba(0, 255, 255, 0.02) 20px
-        );
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* Add sparkle effect */
-@keyframes sparkle {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
-}
-
-body::after {
-    content: '✨';
-    position: fixed;
-    font-size: 2rem;
-    animation: sparkle 2s infinite;
-    pointer-events: none;
-    z-index: 9999;
-}
-
-/* Navigation with MEGA NEON */
+/* Navigation */
 .navbar {
-    background: rgba(10, 0, 21, 0.95) !important;
-    border-bottom: 3px solid var(--primary-color);
-    box-shadow: 0 5px 20px rgba(255, 0, 255, 0.5),
-                0 5px 40px rgba(0, 255, 255, 0.3);
-    animation: rainbow-border 3s linear infinite;
+    background: linear-gradient(135deg, var(--dark-color) 0%, #2d0052 100%) !important;
+    border-bottom: 3px solid var(--neon-pink);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .navbar-brand {
     font-weight: 900;
-    font-size: 2rem;
-    background: linear-gradient(
-        90deg,
-        var(--primary-color) 0%,
-        var(--secondary-color) 25%,
-        var(--accent-orange) 50%,
-        var(--accent-lime) 75%,
-        var(--primary-color) 100%
-    );
-    background-size: 200% auto;
-    animation: neon-pulse 3s linear infinite;
+    font-size: 1.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-cyan) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    filter: drop-shadow(0 0 10px var(--primary-color))
-            drop-shadow(0 0 20px var(--secondary-color));
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-}
-
-.navbar-brand:hover {
-    animation: glow 0.5s ease-in-out infinite,
-               neon-pulse 3s linear infinite;
 }
 
 .nav-link {
-    color: var(--secondary-color) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
     font-weight: 700;
     text-transform: uppercase;
-    text-shadow: 0 0 10px var(--secondary-color);
-    transition: all 0.3s ease;
+    letter-spacing: 0.05em;
+    transition: color 0.2s ease;
 }
 
 .nav-link:hover {
-    color: var(--primary-color) !important;
-    text-shadow: 0 0 20px var(--primary-color),
-                 0 0 30px var(--primary-color);
-    transform: scale(1.1);
+    color: var(--neon-cyan) !important;
 }
 
 /* Map container */
@@ -175,125 +68,91 @@ body::after {
     height: 600px;
 }
 
-/* Cards with ULTRA NEON GLOW */
+/* Cards */
 .card {
-    background: rgba(255, 255, 255, 0.98);
-    border: 3px solid var(--primary-color);
+    background: white;
+    border: 3px solid var(--neon-pink);
     border-radius: var(--border-radius);
-    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4),
-                0 0 40px rgba(0, 255, 255, 0.2),
-                inset 0 0 20px rgba(255, 0, 255, 0.05);
-    transition: all 0.3s ease;
-    animation: rainbow-border 5s linear infinite;
+    box-shadow: 0 4px 12px rgba(255, 20, 147, 0.3);
+    transition: box-shadow 0.2s ease;
 }
 
 .card:hover {
-    transform: translateY(-5px) scale(1.01);
-    box-shadow: 0 0 30px rgba(255, 0, 255, 0.6),
-                0 0 60px rgba(0, 255, 255, 0.4),
-                0 10px 40px rgba(255, 0, 255, 0.3),
-                inset 0 0 30px rgba(255, 0, 255, 0.1);
-    border-width: 4px;
+    box-shadow: 0 8px 20px rgba(255, 20, 147, 0.4);
 }
 
 .card-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%) !important;
     color: white !important;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5),
-                 0 0 20px rgba(255, 255, 255, 0.3);
-    border-bottom: 3px solid var(--accent-orange);
+    border-bottom: 3px solid var(--neon-orange);
 }
 
 /* Activity cards */
 .activity-card {
-    transition: all 0.3s ease;
-    border: 3px solid transparent;
-    background: linear-gradient(white, white) padding-box,
-        linear-gradient(135deg,
-            var(--primary-color) 0%,
-            var(--secondary-color) 25%,
-            var(--accent-orange) 50%,
-            var(--accent-lime) 75%,
-            var(--primary-color) 100%
-        ) border-box;
-    animation: rainbow-border 4s linear infinite;
+    transition: box-shadow 0.2s ease;
+    border: 3px solid var(--neon-cyan);
+    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.2);
 }
 
 .activity-card:hover {
-    box-shadow: 0 0 30px rgba(255, 0, 255, 0.6),
-                0 0 60px rgba(0, 255, 255, 0.4);
-    transform: translateY(-8px) rotate(-1deg) scale(1.02);
+    box-shadow: 0 8px 20px rgba(0, 255, 255, 0.4);
 }
 
 .activity-type-badge {
     display: inline-block;
-    padding: 0.25rem 0.75rem;
+    padding: 0.35rem 0.85rem;
     border-radius: 1rem;
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 2px solid currentColor;
 }
 
 .activity-type-run {
-    background: linear-gradient(135deg, #ff00ff 0%, #ff1493 100%);
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
     color: #ffffff;
-    font-weight: 700;
 }
 
 .activity-type-ride {
-    background: linear-gradient(135deg, #ffff00 0%, #ff6600 100%);
-    color: #1a0033;
-    font-weight: 700;
+    background: linear-gradient(135deg, var(--neon-yellow) 0%, var(--neon-orange) 100%);
+    color: var(--dark-color);
 }
 
 .activity-type-hike {
-    background: linear-gradient(135deg, #00ffff 0%, #ccff00 100%);
-    color: #1a0033;
-    font-weight: 700;
+    background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-green) 100%);
+    color: var(--dark-color);
 }
 
-/* Metrics display - HYPER NEON */
+/* Metrics display */
 .metric-card {
-    background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.95) 0%,
-        rgba(255, 0, 255, 0.05) 50%,
-        rgba(0, 255, 255, 0.05) 100%
-    );
+    background: linear-gradient(135deg, #ffffff 0%, #fff0ff 100%);
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
     text-align: left;
-    border: 2px solid var(--primary-color);
-    border-left: 5px solid var(--primary-color);
-    box-shadow: 0 0 15px rgba(255, 0, 255, 0.3),
-                inset 0 0 10px rgba(255, 0, 255, 0.1);
-    transition: all 0.3s ease;
-    animation: rainbow-border 6s linear infinite;
+    border: 2px solid var(--neon-pink);
+    border-left: 6px solid var(--neon-orange);
+    box-shadow: 0 4px 8px rgba(255, 20, 147, 0.2);
+    transition: box-shadow 0.2s ease;
 }
 
 .metric-card:hover {
-    border-left-width: 8px;
-    box-shadow: 0 0 25px rgba(255, 0, 255, 0.6),
-                0 0 50px rgba(0, 255, 255, 0.4),
-                inset 0 0 20px rgba(255, 0, 255, 0.2);
-    transform: translateY(-5px) scale(1.05) rotate(1deg);
-    background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.98) 0%,
-        rgba(255, 0, 255, 0.1) 50%,
-        rgba(0, 255, 255, 0.1) 100%
-    );
+    box-shadow: 0 6px 16px rgba(255, 20, 147, 0.3);
 }
 
 .metric-card .fw-bold {
-    text-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
     font-weight: 900 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .metric-value {
     font-size: 2rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -303,31 +162,31 @@ body::after {
     font-size: 0.875rem;
     color: var(--dark-color);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
+    letter-spacing: 0.08em;
+    font-weight: 700;
 }
 
 /* File upload area */
 .file-upload-area {
-    border: 3px dashed var(--primary-color);
+    border: 4px dashed var(--neon-cyan);
     border-radius: var(--border-radius);
     padding: 3rem 2rem;
     text-align: center;
     transition: border-color 0.2s, background-color 0.2s;
     cursor: pointer;
-    background: linear-gradient(135deg, #ffffff 0%, var(--light-color) 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f0ffff 100%);
 }
 
 .file-upload-area:hover,
 .file-upload-area.drag-over {
-    border-color: var(--secondary-color);
-    background: linear-gradient(135deg, var(--light-color) 0%, #fff0ff 100%);
-    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+    border-color: var(--neon-pink);
+    background: linear-gradient(135deg, #fff0ff 0%, #f0ffff 100%);
+    box-shadow: 0 4px 12px rgba(255, 20, 147, 0.2);
 }
 
 .file-upload-icon {
     font-size: 3rem;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-orange) 100%);
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-cyan) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -362,13 +221,14 @@ body::after {
 /* Timeline Cards */
 .timeline-card {
     transition: box-shadow 0.2s;
-    border: 2px solid transparent;
+    border: 3px solid transparent;
     background: linear-gradient(white, white) padding-box,
-                linear-gradient(135deg, var(--accent-orange), var(--accent-lime)) border-box;
+                linear-gradient(135deg, var(--neon-orange) 0%, var(--neon-green) 100%) border-box;
+    box-shadow: 0 4px 8px rgba(255, 102, 0, 0.2);
 }
 
 .timeline-card:hover {
-    box-shadow: 0 8px 24px rgba(255, 102, 0, 0.4), 0 0 40px rgba(204, 255, 0, 0.2);
+    box-shadow: 0 8px 16px rgba(255, 102, 0, 0.3);
 }
 
 .timeline-card .user-avatar {
@@ -527,16 +387,6 @@ body::after {
     color: #d1d5db;
     margin-bottom: 1.5rem;
     display: inline-block;
-    animation: float-gentle 3s ease-in-out infinite;
-}
-
-@keyframes float-gentle {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
 }
 
 .empty-state-title {
@@ -604,123 +454,77 @@ body::after {
     }
 }
 
-/* 🌈 ULTRA MEGA NEON BUTTONS 🌈 */
+/* Buttons */
 .btn {
     font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     border-width: 3px;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+    transition: all 0.2s ease;
 }
 
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
-}
-
-.btn:hover::before {
-    width: 300px;
-    height: 300px;
+.btn:hover {
+    transform: translateY(-2px);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--neon-purple) 100%) !important;
-    border-color: var(--primary-color) !important;
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%) !important;
+    border-color: var(--neon-pink) !important;
     color: white !important;
-    box-shadow: 0 0 20px rgba(255, 0, 255, 0.5),
-                0 0 40px rgba(255, 0, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(255, 20, 147, 0.4);
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, var(--neon-purple) 0%, var(--primary-color) 100%) !important;
-    box-shadow: 0 0 30px rgba(255, 0, 255, 0.8),
-                0 0 60px rgba(255, 0, 255, 0.5),
-                0 0 90px rgba(255, 0, 255, 0.3);
-    transform: scale(1.1) translateY(-3px);
+    box-shadow: 0 6px 20px rgba(255, 20, 147, 0.5);
 }
 
 .btn-success {
-    background: linear-gradient(135deg, var(--neon-green) 0%, #00ff00 100%) !important;
+    background: linear-gradient(135deg, var(--neon-green) 0%, var(--neon-cyan) 100%) !important;
     border-color: var(--neon-green) !important;
     color: var(--dark-color) !important;
-    box-shadow: 0 0 20px rgba(57, 255, 20, 0.5);
-    font-weight: 900;
+    box-shadow: 0 4px 12px rgba(57, 255, 20, 0.4);
 }
 
 .btn-success:hover {
-    box-shadow: 0 0 40px rgba(57, 255, 20, 0.8),
-                0 0 80px rgba(57, 255, 20, 0.4);
-    transform: scale(1.15) rotate(2deg);
+    box-shadow: 0 6px 20px rgba(57, 255, 20, 0.5);
 }
 
 .btn-danger {
-    background: linear-gradient(135deg, var(--danger-color) 0%, #ff0000 100%) !important;
-    border-color: var(--danger-color) !important;
-    box-shadow: 0 0 20px rgba(255, 20, 147, 0.5);
+    background: linear-gradient(135deg, #dc3545 0%, #c92333 100%) !important;
+    border-color: #dc3545 !important;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
 }
 
 .btn-danger:hover {
-    box-shadow: 0 0 40px rgba(255, 20, 147, 0.8),
-                0 0 80px rgba(255, 20, 147, 0.4);
-    transform: scale(1.15) rotate(-2deg);
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.5);
 }
 
 .btn-outline-primary {
-    border-color: var(--primary-color) !important;
-    color: var(--primary-color) !important;
+    border-color: var(--neon-pink) !important;
+    color: var(--neon-pink) !important;
     border-width: 3px !important;
     background: transparent !important;
-    text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
 }
 
 .btn-outline-primary:hover {
-    background: var(--primary-color) !important;
+    background: var(--neon-pink) !important;
     color: white !important;
-    box-shadow: 0 0 30px rgba(255, 0, 255, 0.8),
-                0 0 60px rgba(255, 0, 255, 0.5);
-    transform: scale(1.1);
 }
 
-/* Activity Type Badges - NEON EDITION */
-.activity-type-badge {
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.35rem 1rem;
-    border: 2px solid;
-    box-shadow: 0 0 15px currentColor;
-    animation: glow 2s ease-in-out infinite;
-}
-
-/* PULSING HEADINGS */
+/* Headings */
 h1, h2, h3, h4, h5, h6 {
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    color: var(--dark-color);
 }
 
 h1 {
-    background: linear-gradient(90deg,
-        var(--primary-color) 0%,
-        var(--secondary-color) 25%,
-        var(--accent-orange) 50%,
-        var(--accent-lime) 75%,
-        var(--primary-color) 100%
-    );
-    background-size: 200% auto;
+    background: linear-gradient(135deg,
+        var(--neon-pink) 0%,
+        var(--neon-cyan) 50%,
+        var(--neon-orange) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    animation: neon-pulse 3s linear infinite;
-    filter: drop-shadow(0 0 20px rgba(255, 0, 255, 0.5));
 }
