@@ -216,6 +216,7 @@ const FitPubAuth = {
         const usernameDisplay = document.getElementById('usernameDisplay');
         const myActivitiesLink = document.getElementById('myActivitiesLink');
         const uploadLink = document.getElementById('uploadLink');
+        const analyticsLink = document.getElementById('analyticsLink');
         const notificationsBell = document.getElementById('notificationsBell');
 
         if (this.isAuthenticated()) {
@@ -235,6 +236,10 @@ const FitPubAuth = {
             if (uploadLink) {
                 uploadLink.style.display = '';
                 uploadLink.parentElement.style.display = '';
+            }
+            if (analyticsLink) {
+                analyticsLink.style.display = '';
+                analyticsLink.parentElement.style.display = '';
             }
 
             // Show notifications bell
@@ -270,6 +275,10 @@ const FitPubAuth = {
             if (uploadLink) {
                 uploadLink.style.display = 'none';
                 uploadLink.parentElement.style.display = 'none';
+            }
+            if (analyticsLink) {
+                analyticsLink.style.display = 'none';
+                analyticsLink.parentElement.style.display = 'none';
             }
         }
     },

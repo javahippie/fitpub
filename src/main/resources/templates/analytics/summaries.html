@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Activity Summaries - FitPub</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="bi bi-calendar-range" style="color: var(--accent-lime);"></i> Activity Summaries
+            </h1>
+            <a href="/analytics" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Period Tabs -->
+        <ul class="nav nav-tabs mb-4" id="periodTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="weekly-tab" onclick="switchPeriod('weekly')">
+                    📅 Weekly
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="monthly-tab" onclick="switchPeriod('monthly')">
+                    📆 Monthly
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="yearly-tab" onclick="switchPeriod('yearly')">
+                    📊 Yearly
+                </button>
+            </li>
+        </ul>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading summaries...</p>
+        </div>
+
+        <!-- Summaries Content -->
+        <div id="summaries-content" style="display: none;">
+            <div id="summaries-list" class="row g-4"></div>
+
+            <!-- Empty State -->
+            <div id="empty-state" style="display: none;" class="empty-state empty-state-activities">
+                <div class="empty-state-icon">📊</div>
+                <h3 class="empty-state-title">No Data Available</h3>
+                <p class="empty-state-message">Complete activities to see your summaries!</p>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" style="display: none;" class="alert alert-danger"></div>
+    </div>
+
+    <script>
+        let currentPeriod = 'weekly';
+
+        function switchPeriod(period) {
+            currentPeriod = period;
+
+            // Update active tab
+            document.querySelectorAll('#periodTabs button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`${period}-tab`).classList.add('active');
+
+            loadSummaries(period);
+        }
+
+        async function loadSummaries(period) {
+            try {
+                document.getElementById('loading-spinner').style.display = 'block';
+                document.getElementById('summaries-content').style.display = 'none';
+
+                const params = period === 'weekly' ? 12 : period === 'monthly' ? 12 : 5;
+                const response = await FitPubAuth.authenticatedFetch(`/api/analytics/summaries/${period}?${period === 'weekly' ? 'weeks' : period === 'monthly' ? 'months' : 'years'}=${params}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load summaries');
+                }
+
+                const summaries = await response.json();
+                displaySummaries(summaries, period);
+
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('summaries-content').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading summaries:', error);
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('error-message').textContent = 'Failed to load summaries';
+                document.getElementById('error-message').style.display = 'block';
+            }
+        }
+
+        function displaySummaries(summaries, period) {
+            const list = document.getElementById('summaries-list');
+            const emptyState = document.getElementById('empty-state');
+
+            if (summaries.length === 0) {
+                list.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            list.style.display = 'flex';
+            emptyState.style.display = 'none';
+
+            const html = summaries.map(summary => {
+                const startDate = new Date(summary.periodStart).toLocaleDateString();
+                const endDate = new Date(summary.periodEnd).toLocaleDateString();
+                const distanceKm = (summary.totalDistanceMeters / 1000).toFixed(2);
+                const durationHours = (summary.totalDurationSeconds / 3600).toFixed(1);
+                const elevationM = summary.totalElevationGainMeters?.toFixed(0) || 0;
+                const avgSpeedKmh = summary.avgSpeedMps ? (summary.avgSpeedMps * 3.6).toFixed(2) : 'N/A';
+                const maxSpeedKmh = summary.maxSpeedMps ? (summary.maxSpeedMps * 3.6).toFixed(2) : 'N/A';
+
+                const typeBreakdownHtml = formatTypeBreakdown(summary.activityTypeBreakdown);
+
+                return `
+                    <div class="col-lg-6">
+                        <div class="card summary-card h-100">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">${getPeriodLabel(period)}</h5>
+                                    <span class="badge bg-primary">${startDate} - ${endDate}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- Main Stats -->
+                                <div class="row g-3 mb-3">
+                                    <div class="col-6">
+                                        <div class="metric-card">
+                                            <div class="metric-value">${summary.activityCount}</div>
+                                            <div class="metric-label">Activities</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-card">
+                                            <div class="metric-value">${distanceKm} km</div>
+                                            <div class="metric-label">Distance</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-card">
+                                            <div class="metric-value">${durationHours} h</div>
+                                            <div class="metric-label">Duration</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-card">
+                                            <div class="metric-value">${elevationM} m</div>
+                                            <div class="metric-label">Elevation</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Speed Stats -->
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <small class="text-muted">Avg Speed:</small>
+                                        <strong>${avgSpeedKmh} km/h</strong>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Max Speed:</small>
+                                        <strong>${maxSpeedKmh} km/h</strong>
+                                    </div>
+                                </div>
+
+                                <!-- Activity Type Breakdown -->
+                                ${typeBreakdownHtml}
+
+                                <!-- PRs and Achievements -->
+                                ${summary.personalRecordsSet > 0 || summary.achievementsEarned > 0 ? `
+                                    <div class="alert alert-success mt-3 mb-0">
+                                        ${summary.personalRecordsSet > 0 ? `<div><i class="bi bi-trophy"></i> <strong>${summary.personalRecordsSet}</strong> Personal Records</div>` : ''}
+                                        ${summary.achievementsEarned > 0 ? `<div><i class="bi bi-award"></i> <strong>${summary.achievementsEarned}</strong> Achievements</div>` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            list.innerHTML = html;
+        }
+
+        function getPeriodLabel(period) {
+            const labels = {
+                'weekly': 'Week',
+                'monthly': 'Month',
+                'yearly': 'Year'
+            };
+            return labels[period] || period;
+        }
+
+        function formatTypeBreakdown(breakdown) {
+            if (!breakdown || Object.keys(breakdown).length === 0) {
+                return '';
+            }
+
+            const icons = {
+                'RUN': '🏃',
+                'RIDE': '🚴',
+                'HIKE': '🥾',
+                'WALK': '🚶',
+                'SWIM': '🏊'
+            };
+
+            const html = Object.entries(breakdown)
+                .map(([type, count]) => {
+                    const icon = icons[type] || '💪';
+                    return `<span class="badge bg-secondary me-2">${icon} ${type} (${count})</span>`;
+                })
+                .join('');
+
+            return `
+                <div class="mb-3">
+                    <small class="text-muted d-block mb-2">Activity Types:</small>
+                    ${html}
+                </div>
+            `;
+        }
+
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!FitPubAuth.isAuthenticated()) {
+                window.location.href = '/auth/login';
+                return;
+            }
+            loadSummaries('weekly');
+        });
+    </script>
+
+    <style>
+        .summary-card {
+            transition: all 0.3s ease;
+            border: 2px solid var(--light-color);
+        }
+
+        .summary-card:hover {
+            border-color: var(--accent-lime);
+            box-shadow: 0 8px 16px rgba(204, 255, 0, 0.2);
+        }
+
+        #periodTabs .nav-link.active {
+            background: linear-gradient(135deg, var(--accent-lime) 0%, var(--secondary-color) 100%);
+            color: var(--dark-color);
+            border-color: var(--accent-lime);
+            font-weight: 700;
+        }
+
+        #periodTabs .nav-link {
+            cursor: pointer;
+        }
+    </style>
+</div>
+</body>
+</html>

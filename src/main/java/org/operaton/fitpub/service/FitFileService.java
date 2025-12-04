@@ -45,6 +45,10 @@ public class FitFileService {
     private final ActivityRepository activityRepository;
     private final ActivityMetricsRepository metricsRepository;
     private final ObjectMapper objectMapper;
+    private final PersonalRecordService personalRecordService;
+    private final AchievementService achievementService;
+    private final TrainingLoadService trainingLoadService;
+    private final ActivitySummaryService activitySummaryService;
 
     /**
      * Processes an uploaded FIT file and creates an activity.
@@ -103,6 +107,14 @@ public class FitFileService {
                 savedActivity.getId(),
                 parsedData.getTrackPoints().size(),
                 simplifiedTrack.getNumPoints());
+
+            // Check for personal records and achievements
+            personalRecordService.checkAndUpdatePersonalRecords(savedActivity);
+            achievementService.checkAndAwardAchievements(savedActivity);
+
+            // Update training load and summaries (async)
+            trainingLoadService.updateTrainingLoad(savedActivity);
+            activitySummaryService.updateSummariesForActivity(savedActivity);
 
             return savedActivity;
         } catch (IOException e) {
@@ -185,7 +197,15 @@ public class FitFileService {
             activity.setMetrics(metrics);
         }
 
-        return activityRepository.save(activity);
+        Activity savedActivity = activityRepository.save(activity);
+
+        // Update analytics
+        personalRecordService.checkAndUpdatePersonalRecords(savedActivity);
+        achievementService.checkAndAwardAchievements(savedActivity);
+        trainingLoadService.updateTrainingLoad(savedActivity);
+        activitySummaryService.updateSummariesForActivity(savedActivity);
+
+        return savedActivity;
     }
 
     /**

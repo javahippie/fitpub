@@ -794,7 +794,6 @@ For ActivityPub federated posts and thumbnails:
 ### Phase 3: Advanced Analytics
 - [ ] Personal records tracking
 - [ ] Training load and recovery metrics
-- [ ] Segment comparison (Strava-like)
 - [ ] Achievement/badge system
 - [ ] Weekly/monthly summaries
 - [ ] Route recommendations

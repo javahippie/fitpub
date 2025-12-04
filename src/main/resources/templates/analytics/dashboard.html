@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Analytics Dashboard - FitPub</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="container py-4">
+        <h1 class="mb-4">
+            <i class="bi bi-graph-up"></i> Analytics Dashboard
+        </h1>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading your analytics...</p>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboard-content" style="display: none;">
+
+            <!-- Stats Overview Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-trophy-fill text-warning" style="font-size: 2rem;"></i>
+                            <h3 class="mt-2 mb-0" id="pr-count">0</h3>
+                            <p class="text-muted mb-0">Personal Records</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-award-fill" style="font-size: 2rem; color: var(--accent-orange);"></i>
+                            <h3 class="mt-2 mb-0" id="achievement-count">0</h3>
+                            <p class="text-muted mb-0">Achievements</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-activity" style="font-size: 2rem; color: var(--secondary-color);"></i>
+                            <h3 class="mt-2 mb-0" id="form-status">-</h3>
+                            <p class="text-muted mb-0">Form Status</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-calendar-week-fill" style="font-size: 2rem; color: var(--accent-lime);"></i>
+                            <h3 class="mt-2 mb-0" id="week-activities">0</h3>
+                            <p class="text-muted mb-0">This Week</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Week & Month Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Current Week</h5>
+                        </div>
+                        <div class="card-body" id="current-week-summary">
+                            <p class="text-muted">No data for current week</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-calendar-month"></i> Current Month</h5>
+                        </div>
+                        <div class="card-body" id="current-month-summary">
+                            <p class="text-muted">No data for current month</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Personal Records -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-trophy"></i> Recent Personal Records</h5>
+                            <a href="/analytics/personal-records" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                        <div class="card-body">
+                            <div id="recent-prs-list"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-award"></i> Recent Achievements</h5>
+                            <a href="/analytics/achievements" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                        <div class="card-body">
+                            <div id="recent-achievements-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <a href="/analytics/personal-records" class="card analytics-link-card text-decoration-none">
+                        <div class="card-body text-center">
+                            <i class="bi bi-trophy-fill" style="font-size: 3rem; color: var(--warning-color);"></i>
+                            <h5 class="mt-3">Personal Records</h5>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/analytics/achievements" class="card analytics-link-card text-decoration-none">
+                        <div class="card-body text-center">
+                            <i class="bi bi-award-fill" style="font-size: 3rem; color: var(--accent-orange);"></i>
+                            <h5 class="mt-3">Achievements</h5>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/analytics/training-load" class="card analytics-link-card text-decoration-none">
+                        <div class="card-body text-center">
+                            <i class="bi bi-graph-up" style="font-size: 3rem; color: var(--secondary-color);"></i>
+                            <h5 class="mt-3">Training Load</h5>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="/analytics/summaries" class="card analytics-link-card text-decoration-none">
+                        <div class="card-body text-center">
+                            <i class="bi bi-calendar-range" style="font-size: 3rem; color: var(--accent-lime);"></i>
+                            <h5 class="mt-3">Summaries</h5>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" style="display: none;" class="alert alert-danger"></div>
+    </div>
+
+    <script>
+        // Load analytics dashboard
+        async function loadDashboard() {
+            try {
+                const response = await FitPubAuth.authenticatedFetch('/api/analytics/dashboard');
+
+                if (!response.ok) {
+                    throw new Error('Failed to load analytics');
+                }
+
+                const data = await response.json();
+                displayDashboard(data);
+
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('dashboard-content').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('error-message').textContent = 'Failed to load analytics dashboard';
+                document.getElementById('error-message').style.display = 'block';
+            }
+        }
+
+        function displayDashboard(data) {
+            // Stats
+            document.getElementById('pr-count').textContent = data.personalRecordsCount || 0;
+            document.getElementById('achievement-count').textContent = data.achievementsCount || 0;
+            document.getElementById('form-status').textContent = formatFormStatus(data.formStatus);
+            document.getElementById('week-activities').textContent = data.currentWeekSummary?.activityCount || 0;
+
+            // Current week summary
+            if (data.currentWeekSummary) {
+                displaySummary('current-week-summary', data.currentWeekSummary);
+            }
+
+            // Current month summary
+            if (data.currentMonthSummary) {
+                displaySummary('current-month-summary', data.currentMonthSummary);
+            }
+
+            // Recent PRs
+            displayRecentPRs(data.recentPersonalRecords || []);
+
+            // Recent achievements
+            displayRecentAchievements(data.recentAchievements || []);
+        }
+
+        function formatFormStatus(status) {
+            const statusMap = {
+                'FRESH': '😊 Fresh',
+                'OPTIMAL': '💪 Optimal',
+                'FATIGUED': '😴 Fatigued',
+                'UNKNOWN': '❓ Unknown'
+            };
+            return statusMap[status] || status;
+        }
+
+        function displaySummary(elementId, summary) {
+            const distanceKm = (summary.totalDistanceMeters / 1000).toFixed(2);
+            const durationHours = (summary.totalDurationSeconds / 3600).toFixed(1);
+            const elevationM = summary.totalElevationGainMeters?.toFixed(0) || 0;
+
+            const html = `
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-value">${summary.activityCount}</div>
+                            <div class="metric-label">Activities</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-value">${distanceKm} km</div>
+                            <div class="metric-label">Distance</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-value">${durationHours} h</div>
+                            <div class="metric-label">Duration</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-value">${elevationM} m</div>
+                            <div class="metric-label">Elevation</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById(elementId).innerHTML = html;
+        }
+
+        function displayRecentPRs(prs) {
+            const container = document.getElementById('recent-prs-list');
+
+            if (prs.length === 0) {
+                container.innerHTML = '<p class="text-muted">No personal records yet. Keep training!</p>';
+                return;
+            }
+
+            const html = prs.map(pr => {
+                const value = formatPRValue(pr.recordType, pr.value, pr.unit);
+                const date = new Date(pr.achievedAt).toLocaleDateString();
+                return `
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                        <div>
+                            <h6 class="mb-1">${formatRecordType(pr.recordType)}</h6>
+                            <small class="text-muted">${pr.activityType} • ${date}</small>
+                        </div>
+                        <div class="text-end">
+                            <strong class="text-primary">${value}</strong>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        function displayRecentAchievements(achievements) {
+            const container = document.getElementById('recent-achievements-list');
+
+            if (achievements.length === 0) {
+                container.innerHTML = '<p class="text-muted">No achievements yet. Complete activities to earn badges!</p>';
+                return;
+            }
+
+            const html = achievements.map(ach => {
+                const date = new Date(ach.earnedAt).toLocaleDateString();
+                return `
+                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
+                        <div class="me-3" style="font-size: 2.5rem;">${ach.badgeIcon || '🏆'}</div>
+                        <div>
+                            <h6 class="mb-1">${ach.name}</h6>
+                            <small class="text-muted">${ach.description}</small><br>
+                            <small class="text-muted">${date}</small>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        function formatRecordType(type) {
+            return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        function formatPRValue(type, value, unit) {
+            if (unit === 'seconds') {
+                const hours = Math.floor(value / 3600);
+                const minutes = Math.floor((value % 3600) / 60);
+                const seconds = Math.floor(value % 60);
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            } else if (unit === 'meters') {
+                return `${(value / 1000).toFixed(2)} km`;
+            } else if (unit === 'mps') {
+                return `${(value * 3.6).toFixed(2)} km/h`;
+            }
+            return value;
+        }
+
+        // Load dashboard on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!FitPubAuth.isAuthenticated()) {
+                window.location.href = '/auth/login';
+                return;
+            }
+            loadDashboard();
+        });
+    </script>
+
+    <style>
+        .analytics-link-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .analytics-link-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 16px rgba(255, 0, 255, 0.2);
+        }
+
+        .stat-card {
+            border: 2px solid var(--primary-color);
+        }
+    </style>
+</div>
+</body>
+</html>

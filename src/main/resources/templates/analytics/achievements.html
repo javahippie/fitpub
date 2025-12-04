@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Achievements - FitPub</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="bi bi-award-fill" style="color: var(--accent-orange);"></i> Achievements
+            </h1>
+            <a href="/analytics" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h2 class="mb-0" id="earned-count">0</h2>
+                        <p class="text-muted mb-0">Achievements Earned</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h2 class="mb-0" id="latest-date">-</h2>
+                        <p class="text-muted mb-0">Latest Achievement</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h2 class="mb-0" id="completion-percent">0%</h2>
+                        <p class="text-muted mb-0">Collection Progress</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading your achievements...</p>
+        </div>
+
+        <!-- Achievements Grid -->
+        <div id="achievements-content" style="display: none;">
+            <div id="achievements-grid" class="row g-4"></div>
+
+            <!-- Empty State -->
+            <div id="empty-state" style="display: none;" class="empty-state empty-state-activities">
+                <div class="empty-state-icon">🏆</div>
+                <h3 class="empty-state-title">No Achievements Yet</h3>
+                <p class="empty-state-message">Complete activities to earn badges and achievements!</p>
+                <div class="empty-state-action">
+                    <a href="/activities/upload" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload"></i> Upload Activity
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" style="display: none;" class="alert alert-danger"></div>
+    </div>
+
+    <script>
+        const TOTAL_ACHIEVEMENTS = 25; // Total possible achievements
+
+        async function loadAchievements() {
+            try {
+                const response = await FitPubAuth.authenticatedFetch('/api/analytics/achievements');
+
+                if (!response.ok) {
+                    throw new Error('Failed to load achievements');
+                }
+
+                const achievements = await response.json();
+                displayAchievements(achievements);
+                updateStats(achievements);
+
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('achievements-content').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading achievements:', error);
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('error-message').textContent = 'Failed to load achievements';
+                document.getElementById('error-message').style.display = 'block';
+            }
+        }
+
+        function updateStats(achievements) {
+            // Earned count
+            document.getElementById('earned-count').textContent = achievements.length;
+
+            // Latest achievement date
+            if (achievements.length > 0) {
+                const latest = new Date(achievements[0].earnedAt);
+                document.getElementById('latest-date').textContent = latest.toLocaleDateString();
+            }
+
+            // Completion percentage
+            const percent = ((achievements.length / TOTAL_ACHIEVEMENTS) * 100).toFixed(0);
+            document.getElementById('completion-percent').textContent = percent + '%';
+        }
+
+        function displayAchievements(achievements) {
+            const grid = document.getElementById('achievements-grid');
+            const emptyState = document.getElementById('empty-state');
+
+            if (achievements.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'flex';
+            emptyState.style.display = 'none';
+
+            const html = achievements.map(ach => {
+                const date = new Date(ach.earnedAt).toLocaleDateString();
+                const timeAgo = getTimeAgo(ach.earnedAt);
+                const metadataHtml = formatMetadata(ach.metadata);
+
+                return `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 achievement-card" style="border-color: ${ach.badgeColor || 'var(--primary-color)'};">
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <div class="achievement-icon" style="font-size: 4rem;">
+                                        ${ach.badgeIcon || '🏆'}
+                                    </div>
+                                </div>
+                                <h5 class="card-title text-center mb-2">${ach.name}</h5>
+                                <p class="card-text text-center text-muted">${ach.description}</p>
+                                ${metadataHtml}
+                                <div class="text-center mt-3">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> ${date}
+                                        <br>
+                                        <i class="bi bi-clock"></i> ${timeAgo}
+                                    </small>
+                                </div>
+                                ${ach.activityId ? `
+                                    <a href="/activities/detail/${ach.activityId}" class="btn btn-sm btn-outline-primary mt-3 w-100">
+                                        View Activity <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            grid.innerHTML = html;
+        }
+
+        function formatMetadata(metadata) {
+            if (!metadata) return '';
+
+            let html = '<div class="achievement-metadata mt-2">';
+
+            if (metadata.distance_km) {
+                html += `<div class="text-center"><strong>${metadata.distance_km} km</strong> total distance</div>`;
+            }
+            if (metadata.activity_count) {
+                html += `<div class="text-center"><strong>${metadata.activity_count}</strong> activities completed</div>`;
+            }
+            if (metadata.streak_days) {
+                html += `<div class="text-center"><strong>${metadata.streak_days} days</strong> in a row</div>`;
+            }
+            if (metadata.max_speed_kmh) {
+                html += `<div class="text-center"><strong>${metadata.max_speed_kmh.toFixed(2)} km/h</strong> max speed</div>`;
+            }
+            if (metadata.elevation_gain) {
+                html += `<div class="text-center"><strong>${metadata.elevation_gain} m</strong> elevation</div>`;
+            }
+            if (metadata.total_elevation) {
+                html += `<div class="text-center"><strong>${metadata.total_elevation.toFixed(0)} m</strong> total elevation</div>`;
+            }
+            if (metadata.activity_types) {
+                html += `<div class="text-center"><strong>${metadata.activity_types}</strong> activity types</div>`;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function getTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+            if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+            return `${Math.floor(diffDays / 365)} years ago`;
+        }
+
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!FitPubAuth.isAuthenticated()) {
+                window.location.href = '/auth/login';
+                return;
+            }
+            loadAchievements();
+        });
+    </script>
+
+    <style>
+        .achievement-card {
+            transition: all 0.3s ease;
+            border: 3px solid;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .achievement-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(255, 0, 255, 0.3);
+        }
+
+        .achievement-icon {
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .achievement-metadata {
+            background: var(--light-color);
+            padding: 0.5rem;
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+        }
+    </style>
+</div>
+</body>
+</html>

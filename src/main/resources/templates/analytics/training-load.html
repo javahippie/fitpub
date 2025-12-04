@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Training Load - FitPub</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="bi bi-graph-up" style="color: var(--secondary-color);"></i> Training Load
+            </h1>
+            <a href="/analytics" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Form Status Card -->
+        <div class="card mb-4" id="form-status-card">
+            <div class="card-body text-center">
+                <h3 class="mb-2">Current Form Status</h3>
+                <h2 id="form-status-display" class="mb-2">-</h2>
+                <p id="form-status-description" class="text-muted mb-0"></p>
+            </div>
+        </div>
+
+        <!-- Period Selector -->
+        <div class="btn-group mb-4 w-100" role="group">
+            <button type="button" class="btn btn-outline-primary active" onclick="loadTrainingLoad(30)">
+                Last 30 Days
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="loadTrainingLoad(60)">
+                Last 60 Days
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="loadTrainingLoad(90)">
+                Last 90 Days
+            </button>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading training load data...</p>
+        </div>
+
+        <!-- Charts -->
+        <div id="charts-content" style="display: none;">
+            <!-- Training Stress Score Chart -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-activity"></i> Training Stress Score (TSS)</h5>
+                    <small class="text-muted">Daily training load intensity</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="tss-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- ATL vs CTL Chart -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Acute vs Chronic Training Load</h5>
+                    <small class="text-muted">7-day fatigue vs 28-day fitness</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="atl-ctl-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Training Stress Balance Chart -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Training Stress Balance (TSB)</h5>
+                    <small class="text-muted">Fitness - Fatigue (positive = fresh, negative = fatigued)</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="tsb-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" style="display: none;" class="alert alert-danger"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        let tssChart, atlCtlChart, tsbChart;
+
+        async function loadFormStatus() {
+            try {
+                const response = await FitPubAuth.authenticatedFetch('/api/analytics/form-status');
+                if (response.ok) {
+                    const data = await response.json();
+                    displayFormStatus(data.formStatus, data.description);
+                }
+            } catch (error) {
+                console.error('Error loading form status:', error);
+            }
+        }
+
+        function displayFormStatus(status, description) {
+            const statusDisplay = document.getElementById('form-status-display');
+            const descriptionEl = document.getElementById('form-status-description');
+            const card = document.getElementById('form-status-card');
+
+            const statusConfig = {
+                'FRESH': { text: '😊 Fresh', color: '#10b981', bgColor: '#d1fae5' },
+                'OPTIMAL': { text: '💪 Optimal', color: '#00ffff', bgColor: '#e0ffff' },
+                'FATIGUED': { text: '😴 Fatigued', color: '#ef4444', bgColor: '#fee2e2' },
+                'UNKNOWN': { text: '❓ Unknown', color: '#6b7280', bgColor: '#f3f4f6' }
+            };
+
+            const config = statusConfig[status] || statusConfig['UNKNOWN'];
+            statusDisplay.textContent = config.text;
+            statusDisplay.style.color = config.color;
+            descriptionEl.textContent = description;
+            card.style.backgroundColor = config.bgColor;
+        }
+
+        async function loadTrainingLoad(days = 30) {
+            try {
+                // Update active button
+                document.querySelectorAll('.btn-group button').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+
+                document.getElementById('loading-spinner').style.display = 'block';
+                document.getElementById('charts-content').style.display = 'none';
+
+                const response = await FitPubAuth.authenticatedFetch(`/api/analytics/training-load?days=${days}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load training load data');
+                }
+
+                const data = await response.json();
+                displayCharts(data);
+
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('charts-content').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading training load:', error);
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('error-message').textContent = 'Failed to load training load data';
+                document.getElementById('error-message').style.display = 'block';
+            }
+        }
+
+        function displayCharts(data) {
+            // Reverse data to show chronologically
+            data = data.reverse();
+
+            const dates = data.map(d => new Date(d.date).toLocaleDateString());
+            const tss = data.map(d => d.trainingStressScore || 0);
+            const atl = data.map(d => d.acuteTrainingLoad || 0);
+            const ctl = data.map(d => d.chronicTrainingLoad || 0);
+            const tsb = data.map(d => d.trainingStressBalance || 0);
+
+            // Destroy existing charts
+            if (tssChart) tssChart.destroy();
+            if (atlCtlChart) atlCtlChart.destroy();
+            if (tsbChart) tsbChart.destroy();
+
+            // TSS Chart
+            const tssCtx = document.getElementById('tss-chart').getContext('2d');
+            tssChart = new Chart(tssCtx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Training Stress Score',
+                        data: tss,
+                        backgroundColor: 'rgba(255, 0, 255, 0.5)',
+                        borderColor: 'rgb(255, 0, 255)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    plugins: {
+                        legend: { display: true }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // ATL vs CTL Chart
+            const atlCtlCtx = document.getElementById('atl-ctl-chart').getContext('2d');
+            atlCtlChart = new Chart(atlCtlCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Acute Load (Fatigue)',
+                            data: atl,
+                            borderColor: 'rgb(255, 20, 147)',
+                            backgroundColor: 'rgba(255, 20, 147, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Chronic Load (Fitness)',
+                            data: ctl,
+                            borderColor: 'rgb(0, 255, 255)',
+                            backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    plugins: {
+                        legend: { display: true }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // TSB Chart
+            const tsbCtx = document.getElementById('tsb-chart').getContext('2d');
+            tsbChart = new Chart(tsbCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Training Stress Balance',
+                        data: tsb,
+                        borderColor: 'rgb(204, 255, 0)',
+                        backgroundColor: function(context) {
+                            const value = context.parsed.y;
+                            return value >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+                        },
+                        segment: {
+                            borderColor: function(context) {
+                                const value = context.p1.parsed.y;
+                                return value >= 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)';
+                            }
+                        },
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    plugins: {
+                        legend: { display: true }
+                    },
+                    scales: {
+                        y: {
+                            grid: {
+                                color: function(context) {
+                                    if (context.tick.value === 0) {
+                                        return 'rgba(0, 0, 0, 0.3)';
+                                    }
+                                    return 'rgba(0, 0, 0, 0.1)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!FitPubAuth.isAuthenticated()) {
+                window.location.href = '/auth/login';
+                return;
+            }
+            loadFormStatus();
+            loadTrainingLoad(30);
+        });
+    </script>
+</div>
+</body>
+</html>

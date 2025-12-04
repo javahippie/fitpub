@@ -139,4 +139,49 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
         Activity.Visibility visibility,
         Pageable pageable
     );
+
+    /**
+     * Count activities by user and activity type.
+     */
+    long countByUserIdAndActivityType(UUID userId, Activity.ActivityType activityType);
+
+    /**
+     * Sum total distance for a user.
+     */
+    @Query("SELECT COALESCE(SUM(a.totalDistance), 0) FROM Activity a WHERE a.userId = :userId")
+    java.math.BigDecimal sumDistanceByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Sum total elevation gain for a user.
+     */
+    @Query("SELECT COALESCE(SUM(a.elevationGain), 0) FROM Activity a WHERE a.userId = :userId")
+    java.math.BigDecimal sumElevationGainByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Count activities by user and start time before a specific time.
+     */
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.userId = :userId " +
+           "AND FUNCTION('TIME', a.startedAt) < :time")
+    long countByUserIdAndStartTimeBefore(@Param("userId") UUID userId, @Param("time") java.time.LocalTime time);
+
+    /**
+     * Count activities by user and start time after a specific time.
+     */
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.userId = :userId " +
+           "AND FUNCTION('TIME', a.startedAt) > :time")
+    long countByUserIdAndStartTimeAfter(@Param("userId") UUID userId, @Param("time") java.time.LocalTime time);
+
+    /**
+     * Count distinct activity types for a user.
+     */
+    @Query("SELECT COUNT(DISTINCT a.activityType) FROM Activity a WHERE a.userId = :userId")
+    long countDistinctActivityTypesByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Check if user has activity on a specific date.
+     */
+    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Activity a " +
+           "WHERE a.userId = :userId " +
+           "AND FUNCTION('DATE', a.startedAt) = :date")
+    boolean existsByUserIdAndDate(@Param("userId") UUID userId, @Param("date") java.time.LocalDate date);
 }

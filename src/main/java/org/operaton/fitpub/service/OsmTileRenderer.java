@@ -134,11 +134,38 @@ public class OsmTileRenderer {
                 Math.min(cropHeight, fullHeight - cropY)
         );
 
-        // Scale to target dimensions
+        // Scale to target dimensions with letterboxing to preserve aspect ratio
         BufferedImage scaledMap = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = scaledMap.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g.drawImage(croppedMap, 0, 0, width, height, null);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        // Calculate aspect ratios
+        double sourceAspect = (double) croppedMap.getWidth() / croppedMap.getHeight();
+        double targetAspect = (double) width / height;
+
+        int drawWidth, drawHeight, drawX, drawY;
+
+        if (sourceAspect > targetAspect) {
+            // Source is wider - fit to width, letterbox top/bottom
+            drawWidth = width;
+            drawHeight = (int) (width / sourceAspect);
+            drawX = 0;
+            drawY = (height - drawHeight) / 2;
+        } else {
+            // Source is taller - fit to height, letterbox left/right
+            drawHeight = height;
+            drawWidth = (int) (height * sourceAspect);
+            drawX = (width - drawWidth) / 2;
+            drawY = 0;
+        }
+
+        // Fill background with neutral gray
+        g.setColor(new Color(240, 240, 240));
+        g.fillRect(0, 0, width, height);
+
+        // Draw scaled image centered with preserved aspect ratio
+        g.drawImage(croppedMap, drawX, drawY, drawWidth, drawHeight, null);
         g.dispose();
 
         return scaledMap;

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Personal Records - FitPub</title>
+</head>
+<body>
+<div th:fragment="content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="bi bi-trophy-fill text-warning"></i> Personal Records
+            </h1>
+            <a href="/analytics" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Loading your personal records...</p>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div id="pr-content" style="display: none;">
+            <ul class="nav nav-tabs mb-4" id="activityTypeTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="all-tab" data-type="ALL" onclick="filterByType('ALL')">
+                        All
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="run-tab" data-type="RUN" onclick="filterByType('RUN')">
+                        🏃 Run
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="ride-tab" data-type="RIDE" onclick="filterByType('RIDE')">
+                        🚴 Ride
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="hike-tab" data-type="HIKE" onclick="filterByType('HIKE')">
+                        🥾 Hike
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="walk-tab" data-type="WALK" onclick="filterByType('WALK')">
+                        🚶 Walk
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Personal Records Grid -->
+            <div id="pr-grid" class="row g-4"></div>
+
+            <!-- Empty State -->
+            <div id="empty-state" style="display: none;" class="empty-state empty-state-activities">
+                <div class="empty-state-icon">🏆</div>
+                <h3 class="empty-state-title">No Personal Records Yet</h3>
+                <p class="empty-state-message">Complete more activities to set personal records!</p>
+                <div class="empty-state-action">
+                    <a href="/activities/upload" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload"></i> Upload Activity
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" style="display: none;" class="alert alert-danger"></div>
+    </div>
+
+    <script>
+        let allRecords = [];
+
+        async function loadPersonalRecords(activityType = null) {
+            try {
+                let url = '/api/analytics/personal-records';
+                if (activityType && activityType !== 'ALL') {
+                    url += `?activityType=${activityType}`;
+                }
+
+                const response = await FitPubAuth.authenticatedFetch(url);
+
+                if (!response.ok) {
+                    throw new Error('Failed to load personal records');
+                }
+
+                allRecords = await response.json();
+                displayPersonalRecords(allRecords);
+
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('pr-content').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading personal records:', error);
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('error-message').textContent = 'Failed to load personal records';
+                document.getElementById('error-message').style.display = 'block';
+            }
+        }
+
+        function filterByType(type) {
+            // Update active tab
+            document.querySelectorAll('#activityTypeTabs .nav-link').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+
+            // Filter records
+            if (type === 'ALL') {
+                displayPersonalRecords(allRecords);
+            } else {
+                const filtered = allRecords.filter(pr => pr.activityType === type);
+                displayPersonalRecords(filtered);
+            }
+        }
+
+        function displayPersonalRecords(records) {
+            const grid = document.getElementById('pr-grid');
+            const emptyState = document.getElementById('empty-state');
+
+            if (records.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'flex';
+            emptyState.style.display = 'none';
+
+            const html = records.map(pr => {
+                const value = formatPRValue(pr.recordType, pr.value, pr.unit);
+                const date = new Date(pr.achievedAt).toLocaleDateString();
+                const icon = getRecordTypeIcon(pr.recordType);
+                const improvement = pr.previousValue ? calculateImprovement(pr) : null;
+
+                return `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 pr-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div style="font-size: 2.5rem;">${icon}</div>
+                                    <span class="badge" style="background: var(--primary-color);">${pr.activityType}</span>
+                                </div>
+                                <h5 class="card-title">${formatRecordType(pr.recordType)}</h5>
+                                <h2 class="text-primary mb-2">${value}</h2>
+                                ${improvement ? `
+                                    <div class="alert alert-success py-1 px-2 mb-2">
+                                        <small><i class="bi bi-graph-up-arrow"></i> ${improvement}</small>
+                                    </div>
+                                ` : ''}
+                                <div class="text-muted">
+                                    <small><i class="bi bi-calendar"></i> ${date}</small>
+                                </div>
+                                ${pr.activityId ? `
+                                    <a href="/activities/detail/${pr.activityId}" class="btn btn-sm btn-outline-primary mt-3 w-100">
+                                        View Activity <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            grid.innerHTML = html;
+        }
+
+        function getRecordTypeIcon(type) {
+            const icons = {
+                'FASTEST_1K': '⚡',
+                'FASTEST_5K': '🏃‍♂️',
+                'FASTEST_10K': '💨',
+                'FASTEST_HALF_MARATHON': '🏃',
+                'FASTEST_MARATHON': '🏅',
+                'LONGEST_DISTANCE': '📏',
+                'LONGEST_DURATION': '⏱️',
+                'HIGHEST_ELEVATION_GAIN': '⛰️',
+                'MAX_SPEED': '🚀',
+                'BEST_AVERAGE_PACE': '⚡'
+            };
+            return icons[type] || '🏆';
+        }
+
+        function formatRecordType(type) {
+            return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        function formatPRValue(type, value, unit) {
+            if (unit === 'seconds' || unit === 'seconds_per_km') {
+                const hours = Math.floor(value / 3600);
+                const minutes = Math.floor((value % 3600) / 60);
+                const seconds = Math.floor(value % 60);
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            } else if (unit === 'meters') {
+                return `${(value / 1000).toFixed(2)} km`;
+            } else if (unit === 'mps') {
+                return `${(value * 3.6).toFixed(2)} km/h`;
+            }
+            return value;
+        }
+
+        function calculateImprovement(pr) {
+            if (!pr.previousValue) return null;
+
+            const current = parseFloat(pr.value);
+            const previous = parseFloat(pr.previousValue);
+
+            // For time/pace records, lower is better
+            if (pr.unit === 'seconds' || pr.unit === 'seconds_per_km') {
+                const diff = previous - current;
+                const percentImprove = (diff / previous * 100).toFixed(1);
+                const timeDiff = formatTimeDiff(diff);
+                return `${timeDiff} faster (${percentImprove}% improvement)`;
+            } else {
+                // For distance/speed, higher is better
+                const diff = current - previous;
+                const percentImprove = (diff / previous * 100).toFixed(1);
+                if (pr.unit === 'meters') {
+                    return `${(diff / 1000).toFixed(2)} km more (${percentImprove}% improvement)`;
+                } else if (pr.unit === 'mps') {
+                    return `${(diff * 3.6).toFixed(2)} km/h faster (${percentImprove}% improvement)`;
+                }
+            }
+            return null;
+        }
+
+        function formatTimeDiff(seconds) {
+            const mins = Math.floor(Math.abs(seconds) / 60);
+            const secs = Math.floor(Math.abs(seconds) % 60);
+            if (mins > 0) {
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+            return `${secs}s`;
+        }
+
+        // Load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!FitPubAuth.isAuthenticated()) {
+                window.location.href = '/auth/login';
+                return;
+            }
+            loadPersonalRecords();
+        });
+    </script>
+
+    <style>
+        .pr-card {
+            transition: all 0.3s ease;
+            border: 2px solid var(--light-color);
+        }
+
+        .pr-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 8px 16px rgba(255, 0, 255, 0.2);
+        }
+
+        #activityTypeTabs .nav-link {
+            cursor: pointer;
+        }
+
+        #activityTypeTabs .nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-color: var(--primary-color);
+        }
+    </style>
+</div>
+</body>
+</html>
