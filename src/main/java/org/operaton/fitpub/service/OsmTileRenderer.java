@@ -53,6 +53,37 @@ public class OsmTileRenderer {
     }
 
     /**
+     * Holder for letterboxing transformation parameters.
+     */
+    public static class LetterboxTransform {
+        public final int offsetX;
+        public final int offsetY;
+        public final int scaledWidth;
+        public final int scaledHeight;
+        public final double scaleFactorX;
+        public final double scaleFactorY;
+
+        public LetterboxTransform(int offsetX, int offsetY, int scaledWidth, int scaledHeight,
+                                 int originalWidth, int originalHeight) {
+            this.offsetX = offsetX;
+            this.offsetY = offsetY;
+            this.scaledWidth = scaledWidth;
+            this.scaledHeight = scaledHeight;
+            this.scaleFactorX = (double) scaledWidth / originalWidth;
+            this.scaleFactorY = (double) scaledHeight / originalHeight;
+        }
+    }
+
+    private LetterboxTransform lastLetterboxTransform;
+
+    /**
+     * Get the letterbox transformation from the last render operation.
+     */
+    public LetterboxTransform getLastLetterboxTransform() {
+        return lastLetterboxTransform;
+    }
+
+    /**
      * Render a map image with OSM tiles covering the specified geographic bounds.
      *
      * @param minLat minimum latitude
@@ -167,6 +198,12 @@ public class OsmTileRenderer {
         // Draw scaled image centered with preserved aspect ratio
         g.drawImage(croppedMap, drawX, drawY, drawWidth, drawHeight, null);
         g.dispose();
+
+        // Store letterbox transform for track rendering
+        lastLetterboxTransform = new LetterboxTransform(
+                drawX, drawY, drawWidth, drawHeight,
+                croppedMap.getWidth(), croppedMap.getHeight()
+        );
 
         return scaledMap;
     }

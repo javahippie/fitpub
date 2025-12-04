@@ -150,6 +150,9 @@ public class ActivityImageService {
         int trackWidth = (int) (width * 0.6);
         int trackHeight = height;
 
+        // Get letterbox transformation from OSM renderer
+        OsmTileRenderer.LetterboxTransform letterbox = osmTileRenderer.getLastLetterboxTransform();
+
         // Convert bounds to Web Mercator normalized coordinates (0-1)
         // This matches the projection used by OSM tiles
         double minX = longitudeToWebMercatorX(bounds.minLon);
@@ -158,8 +161,15 @@ public class ActivityImageService {
         double maxY = latitudeToWebMercatorY(bounds.minLat); // Note: minLat -> maxY (inverted)
 
         // Calculate scale to map Web Mercator coordinates to pixels
-        double scaleX = trackWidth / (maxX - minX);
-        double scaleY = trackHeight / (maxY - minY);
+        // Apply letterbox scaling if available
+        double baseScaleX = trackWidth / (maxX - minX);
+        double baseScaleY = trackHeight / (maxY - minY);
+
+        double scaleX = letterbox != null ? baseScaleX * letterbox.scaleFactorX : baseScaleX;
+        double scaleY = letterbox != null ? baseScaleY * letterbox.scaleFactorY : baseScaleY;
+
+        int offsetX = letterbox != null ? letterbox.offsetX : 0;
+        int offsetY = letterbox != null ? letterbox.offsetY : 0;
 
         // Draw track segments with privacy fade
         g2d.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
@@ -184,10 +194,11 @@ public class ActivityImageService {
                 double mercatorY2 = latitudeToWebMercatorY(lat2);
 
                 // Map Web Mercator coordinates to pixel coordinates
-                double x1 = (mercatorX1 - minX) * scaleX;
-                double y1 = (mercatorY1 - minY) * scaleY;
-                double x2 = (mercatorX2 - minX) * scaleX;
-                double y2 = (mercatorY2 - minY) * scaleY;
+                // Apply letterbox offset
+                double x1 = (mercatorX1 - minX) * scaleX + offsetX;
+                double y1 = (mercatorY1 - minY) * scaleY + offsetY;
+                double x2 = (mercatorX2 - minX) * scaleX + offsetX;
+                double y2 = (mercatorY2 - minY) * scaleY + offsetY;
 
                 // Calculate opacity based on distance from start/end
                 double distanceFromStart = cumulativeDistances[i];
