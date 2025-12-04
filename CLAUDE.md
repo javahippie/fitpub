@@ -777,7 +777,7 @@ For ActivityPub federated posts and thumbnails:
 - [x] Followers/following lists (ActorDTO, GET /api/users/{username}/followers, GET /api/users/{username}/following)
 - [x] Follower/following counts (UserController.populateSocialCounts, UserDTO with followersCount/followingCount, frontend displays real counts)
 - [x] Heart rate chart over time on activity details (Chart.js line chart, elapsed time x-axis, heart rate y-axis)
-- [x] Speed/pace chart over time on activity details (Chart.js line chart with smoothing, displays speed in km/h with pace in tooltip)
+- [x] Speed/pace chart over time on activity details (Chart.js line chart with smoothin[69287079d5e0a4532ba818ee.fit](src/test/resources/69287079d5e0a4532ba818ee.fit)g, displays speed in km/h with pace in tooltip)
 - [x] Notifications system (Notification entity, NotificationRepository, NotificationService, NotificationController REST API, notifications.html UI, notification bell in nav with unread count, polling every 30s, mark as read/delete, all/unread filter tabs)
 - [x] Custom 404 Not Found page (error/404.html with animated compass icon, suggestions, gradient background)
 - [x] Custom 403 Forbidden page (error/403.html with shield-lock icon, auth-aware login button, gradient background)

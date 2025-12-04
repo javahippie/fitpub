@@ -197,24 +197,33 @@ public class PersonalRecordService {
                 .findByUserIdAndActivityTypeAndRecordType(userId, activityType, recordType);
 
         if (existingRecord.isEmpty() || value.compareTo(existingRecord.get().getValue()) > 0) {
-            PersonalRecord newRecord = PersonalRecord.builder()
-                    .userId(userId)
-                    .activityType(activityType)
-                    .recordType(recordType)
-                    .value(value)
-                    .unit(unit)
-                    .activityId(activityId)
-                    .achievedAt(achievedAt)
-                    .build();
+            PersonalRecord recordToSave;
 
-            existingRecord.ifPresent(record -> {
-                newRecord.setPreviousValue(record.getValue());
-                newRecord.setPreviousAchievedAt(record.getAchievedAt());
-            });
+            if (existingRecord.isPresent()) {
+                // Update existing record
+                PersonalRecord existing = existingRecord.get();
+                recordToSave = existing;
+                recordToSave.setPreviousValue(existing.getValue());
+                recordToSave.setPreviousAchievedAt(existing.getAchievedAt());
+                recordToSave.setValue(value);
+                recordToSave.setActivityId(activityId);
+                recordToSave.setAchievedAt(achievedAt);
+            } else {
+                // Create new record
+                recordToSave = PersonalRecord.builder()
+                        .userId(userId)
+                        .activityType(activityType)
+                        .recordType(recordType)
+                        .value(value)
+                        .unit(unit)
+                        .activityId(activityId)
+                        .achievedAt(achievedAt)
+                        .build();
+            }
 
-            personalRecordRepository.save(newRecord);
-            log.info("New personal record set: {} {} - {} {}", activityType, recordType, value, unit);
-            return newRecord;
+            personalRecordRepository.save(recordToSave);
+            log.info("Personal record set: {} {} - {} {}", activityType, recordType, value, unit);
+            return recordToSave;
         }
 
         return null;
@@ -230,24 +239,33 @@ public class PersonalRecordService {
                 .findByUserIdAndActivityTypeAndRecordType(userId, activityType, recordType);
 
         if (existingRecord.isEmpty() || value.compareTo(existingRecord.get().getValue()) < 0) {
-            PersonalRecord newRecord = PersonalRecord.builder()
-                    .userId(userId)
-                    .activityType(activityType)
-                    .recordType(recordType)
-                    .value(value)
-                    .unit(unit)
-                    .activityId(activityId)
-                    .achievedAt(achievedAt)
-                    .build();
+            PersonalRecord recordToSave;
 
-            existingRecord.ifPresent(record -> {
-                newRecord.setPreviousValue(record.getValue());
-                newRecord.setPreviousAchievedAt(record.getAchievedAt());
-            });
+            if (existingRecord.isPresent()) {
+                // Update existing record
+                PersonalRecord existing = existingRecord.get();
+                recordToSave = existing;
+                recordToSave.setPreviousValue(existing.getValue());
+                recordToSave.setPreviousAchievedAt(existing.getAchievedAt());
+                recordToSave.setValue(value);
+                recordToSave.setActivityId(activityId);
+                recordToSave.setAchievedAt(achievedAt);
+            } else {
+                // Create new record
+                recordToSave = PersonalRecord.builder()
+                        .userId(userId)
+                        .activityType(activityType)
+                        .recordType(recordType)
+                        .value(value)
+                        .unit(unit)
+                        .activityId(activityId)
+                        .achievedAt(achievedAt)
+                        .build();
+            }
 
-            personalRecordRepository.save(newRecord);
-            log.info("New personal record set: {} {} - {} {}", activityType, recordType, value, unit);
-            return newRecord;
+            personalRecordRepository.save(recordToSave);
+            log.info("Personal record set: {} {} - {} {}", activityType, recordType, value, unit);
+            return recordToSave;
         }
 
         return null;
