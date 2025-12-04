@@ -43,6 +43,7 @@ public class ActivityController {
     private final UserRepository userRepository;
     private final FederationService federationService;
     private final ActivityImageService activityImageService;
+    private final org.operaton.fitpub.service.WeatherService weatherService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -527,6 +528,48 @@ public class ActivityController {
                 .body(resource);
         } catch (Exception e) {
             log.error("Error serving activity image for {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Get weather data for an activity.
+     *
+     * @param id the activity ID
+     * @return weather data or 404 if not found
+     */
+    @GetMapping("/{id}/weather")
+    public ResponseEntity<?> getActivityWeather(@PathVariable UUID id) {
+        try {
+            return weatherService.getWeatherForActivity(id)
+                .map(weatherData -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("id", weatherData.getId());
+                    response.put("activityId", weatherData.getActivityId());
+                    response.put("temperatureCelsius", weatherData.getTemperatureCelsius());
+                    response.put("feelsLikeCelsius", weatherData.getFeelsLikeCelsius());
+                    response.put("humidity", weatherData.getHumidity());
+                    response.put("pressure", weatherData.getPressure());
+                    response.put("windSpeedMps", weatherData.getWindSpeedMps());
+                    response.put("windSpeedKmh", weatherData.getWindSpeedKmh());
+                    response.put("windDirection", weatherData.getWindDirection());
+                    response.put("windDirectionCardinal", weatherData.getWindDirectionCardinal());
+                    response.put("weatherCondition", weatherData.getWeatherCondition());
+                    response.put("weatherDescription", weatherData.getWeatherDescription());
+                    response.put("weatherIcon", weatherData.getWeatherIcon());
+                    response.put("weatherEmoji", weatherData.getWeatherEmoji());
+                    response.put("cloudiness", weatherData.getCloudiness());
+                    response.put("visibilityMeters", weatherData.getVisibilityMeters());
+                    response.put("precipitationMm", weatherData.getPrecipitationMm());
+                    response.put("snowMm", weatherData.getSnowMm());
+                    response.put("sunrise", weatherData.getSunrise());
+                    response.put("sunset", weatherData.getSunset());
+                    response.put("dataSource", weatherData.getDataSource());
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            log.error("Error retrieving weather data for activity {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

@@ -49,6 +49,7 @@ public class FitFileService {
     private final AchievementService achievementService;
     private final TrainingLoadService trainingLoadService;
     private final ActivitySummaryService activitySummaryService;
+    private final WeatherService weatherService;
 
     /**
      * Processes an uploaded FIT file and creates an activity.
@@ -115,6 +116,14 @@ public class FitFileService {
             // Update training load and summaries (async)
             trainingLoadService.updateTrainingLoad(savedActivity);
             activitySummaryService.updateSummariesForActivity(savedActivity);
+
+            // Fetch weather data (async, non-blocking)
+            try {
+                weatherService.fetchWeatherForActivity(savedActivity);
+            } catch (Exception e) {
+                log.warn("Failed to fetch weather data for activity {}: {}", savedActivity.getId(), e.getMessage());
+                // Don't fail the activity creation if weather fetching fails
+            }
 
             return savedActivity;
         } catch (IOException e) {

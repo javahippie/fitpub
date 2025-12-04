@@ -837,13 +837,15 @@ For ActivityPub federated posts and thumbnails:
 - [x] Database migration V10__create_analytics_tables.sql
 - [x] Integration with FitFileService (auto-update analytics on activity save)
 - [x] Security configuration updated (analytics routes and API endpoints)
-- [ ] Weather data integration
+- [x] Weather data integration (WeatherData entity, WeatherDataRepository, WeatherService with OpenWeatherMap API)
+- [x] Weather database migration V11__create_weather_data_table.sql
+- [x] Weather API configuration (fitpub.weather.enabled, fitpub.weather.api-key)
+- [x] Weather fetching on activity upload (automatic for activities within 5 days)
+- [x] Weather API endpoint GET /api/activities/{id}/weather
+- [x] Weather display on activity detail page (temperature, humidity, wind, pressure, precipitation)
 
 ### Phase 4: Enhanced Federation
 - [ ] Rich preview cards for activities
-- [ ] Media attachments (photos from workout)
-- [ ] Activity challenges (federated events)
-- [ ] Group/club support
 - [ ] Cross-platform activity sync
 
 ### Phase 5: Mobile & Integrations

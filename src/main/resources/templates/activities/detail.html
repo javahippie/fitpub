@@ -77,6 +77,65 @@
                 </table>
             </div>
 
+            <!-- Weather Card -->
+            <div class="row mb-4" id="weatherSection" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-cloud-sun"></i> Weather Conditions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-2 text-center">
+                                    <div id="weatherEmoji" style="font-size: 4rem;">🌡️</div>
+                                    <div id="weatherCondition" class="text-muted">--</div>
+                                </div>
+                                <div class="col-md-10">
+                                    <div class="row">
+                                        <div class="col-md-3 mb-2">
+                                            <div class="text-muted small">Temperature</div>
+                                            <div class="fw-bold fs-4" id="weatherTemp">--</div>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <div class="text-muted small">Feels Like</div>
+                                            <div class="fw-bold" id="weatherFeelsLike">--</div>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <div class="text-muted small">Humidity</div>
+                                            <div class="fw-bold" id="weatherHumidity">--</div>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <div class="text-muted small">Wind</div>
+                                            <div class="fw-bold" id="weatherWind">--</div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-3 mb-2">
+                                            <div class="text-muted small">Pressure</div>
+                                            <div class="fw-bold" id="weatherPressure">--</div>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <div class="text-muted small">Visibility</div>
+                                            <div class="fw-bold" id="weatherVisibility">--</div>
+                                        </div>
+                                        <div class="col-md-3 mb-2">
+                                            <div class="text-muted small">Cloudiness</div>
+                                            <div class="fw-bold" id="weatherCloudiness">--</div>
+                                        </div>
+                                        <div class="col-md-3 mb-2" id="weatherPrecipSection" style="display: none;">
+                                            <div class="text-muted small">Precipitation</div>
+                                            <div class="fw-bold" id="weatherPrecip">--</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Map -->
             <div class="row mb-4">
                 <div class="col-12">
@@ -369,6 +428,9 @@
                         renderMap(activity.simplifiedTrack);
                     }
 
+                    // Load weather data
+                    loadWeatherData(activity.id);
+
                     // Render elevation chart if data exists
                     if (activity.trackPoints && activity.trackPoints.length > 0) {
                         const hasElevation = activity.trackPoints.some(p => p.elevation != null);
@@ -417,6 +479,75 @@
                     } catch (error) {
                         console.error('Error checking activity ownership:', error);
                         // Don't show buttons if there's an error
+                    }
+                }
+
+                async function loadWeatherData(activityId) {
+                    try {
+                        const response = await fetch(`/api/activities/${activityId}/weather`);
+                        if (response.ok) {
+                            const weather = await response.json();
+                            displayWeather(weather);
+                        } else if (response.status === 404) {
+                            // No weather data available, hide section
+                            console.debug('No weather data available for activity');
+                        }
+                    } catch (error) {
+                        console.error('Error loading weather data:', error);
+                        // Silently fail - weather is optional
+                    }
+                }
+
+                function displayWeather(weather) {
+                    // Show weather section
+                    document.getElementById('weatherSection').style.display = 'block';
+
+                    // Display emoji and condition
+                    document.getElementById('weatherEmoji').textContent = weather.weatherEmoji || '🌡️';
+                    document.getElementById('weatherCondition').textContent = weather.weatherDescription || weather.weatherCondition || '--';
+
+                    // Temperature
+                    if (weather.temperatureCelsius != null) {
+                        document.getElementById('weatherTemp').textContent = Math.round(weather.temperatureCelsius) + '°C';
+                    }
+
+                    // Feels like
+                    if (weather.feelsLikeCelsius != null) {
+                        document.getElementById('weatherFeelsLike').textContent = Math.round(weather.feelsLikeCelsius) + '°C';
+                    }
+
+                    // Humidity
+                    if (weather.humidity != null) {
+                        document.getElementById('weatherHumidity').textContent = weather.humidity + '%';
+                    }
+
+                    // Wind
+                    if (weather.windSpeedKmh != null) {
+                        const windText = Math.round(weather.windSpeedKmh) + ' km/h';
+                        const direction = weather.windDirectionCardinal ? ' ' + weather.windDirectionCardinal : '';
+                        document.getElementById('weatherWind').textContent = windText + direction;
+                    }
+
+                    // Pressure
+                    if (weather.pressure != null) {
+                        document.getElementById('weatherPressure').textContent = weather.pressure + ' hPa';
+                    }
+
+                    // Visibility
+                    if (weather.visibilityMeters != null) {
+                        const visibilityKm = (weather.visibilityMeters / 1000).toFixed(1);
+                        document.getElementById('weatherVisibility').textContent = visibilityKm + ' km';
+                    }
+
+                    // Cloudiness
+                    if (weather.cloudiness != null) {
+                        document.getElementById('weatherCloudiness').textContent = weather.cloudiness + '%';
+                    }
+
+                    // Precipitation
+                    if (weather.precipitationMm != null && weather.precipitationMm > 0) {
+                        document.getElementById('weatherPrecipSection').style.display = 'block';
+                        document.getElementById('weatherPrecip').textContent = weather.precipitationMm.toFixed(1) + ' mm';
                     }
                 }
 

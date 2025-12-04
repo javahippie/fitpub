@@ -81,6 +81,11 @@ fitpub:
     osm-tiles:
       enabled: ${OSM_TILES_ENABLED:true}
 
+  # Weather API settings
+  weather:
+    enabled: ${WEATHER_ENABLED:false}
+    api-key: ${OPENWEATHERMAP_API_KEY:}
+
 # Logging configuration
 logging:
   level:
