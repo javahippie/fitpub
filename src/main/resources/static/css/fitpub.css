@@ -1,34 +1,166 @@
-/* FitPub - Custom Styles */
+/* FitPub - ULTRA 80s Aerobic Neon Style */
 
 :root {
     --primary-color: #ff00ff;      /* Hot Magenta */
     --secondary-color: #00ffff;    /* Cyan */
     --danger-color: #ff1493;       /* Deep Pink */
     --warning-color: #ffff00;      /* Electric Yellow */
-    --dark-color: #1a0033;         /* Deep Purple */
+    --dark-color: #0a0015;         /* Ultra Deep Purple */
     --light-color: #f0f0ff;        /* Light Lavender */
     --accent-orange: #ff6600;      /* Neon Orange */
     --accent-lime: #ccff00;        /* Lime Green */
+    --neon-pink: #ff10f0;          /* Hot Neon Pink */
+    --neon-blue: #10d0ff;          /* Electric Blue */
+    --neon-green: #39ff14;         /* Radioactive Green */
+    --neon-purple: #bc13fe;        /* Purple Haze */
     --border-radius: 0.5rem;
 }
 
-/* Base styles */
+/* Animated neon background */
+@keyframes neon-pulse {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 5px var(--primary-color),
+                    0 0 10px var(--primary-color),
+                    0 0 15px var(--primary-color);
+    }
+    50% {
+        box-shadow: 0 0 10px var(--secondary-color),
+                    0 0 20px var(--secondary-color),
+                    0 0 30px var(--secondary-color);
+    }
+}
+
+@keyframes rainbow-border {
+    0% { border-color: var(--primary-color); }
+    25% { border-color: var(--secondary-color); }
+    50% { border-color: var(--accent-orange); }
+    75% { border-color: var(--accent-lime); }
+    100% { border-color: var(--primary-color); }
+}
+
+/* Base styles with animated gradient */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Arial Black', 'Impact', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--dark-color);
-    background: linear-gradient(135deg, #f0f0ff 0%, #ffe0ff 25%, #e0f0ff 50%, #fff0e0 75%, #f0ffe0 100%);
+    background: linear-gradient(
+        135deg,
+        #ff00ff 0%,   /* Magenta */
+        #00ffff 10%,  /* Cyan */
+        #ffff00 20%,  /* Yellow */
+        #ff00ff 30%,  /* Magenta */
+        #00ff00 40%,  /* Green */
+        #0000ff 50%,  /* Blue */
+        #ff00ff 60%,  /* Magenta */
+        #ff6600 70%,  /* Orange */
+        #00ffff 80%,  /* Cyan */
+        #ff00ff 90%,  /* Magenta */
+        #ccff00 100%  /* Lime */
+    );
+    background-size: 400% 400%;
+    animation: neon-pulse 15s ease infinite;
     background-attachment: fixed;
 }
 
-/* Navigation */
+/* Neon overlay pattern */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.03) 10px,
+            rgba(255, 255, 255, 0.03) 20px
+        ),
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 10px,
+            rgba(0, 255, 255, 0.02) 10px,
+            rgba(0, 255, 255, 0.02) 20px
+        );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Add sparkle effect */
+@keyframes sparkle {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+}
+
+body::after {
+    content: '✨';
+    position: fixed;
+    font-size: 2rem;
+    animation: sparkle 2s infinite;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* Navigation with MEGA NEON */
+.navbar {
+    background: rgba(10, 0, 21, 0.95) !important;
+    border-bottom: 3px solid var(--primary-color);
+    box-shadow: 0 5px 20px rgba(255, 0, 255, 0.5),
+                0 5px 40px rgba(0, 255, 255, 0.3);
+    animation: rainbow-border 3s linear infinite;
+}
+
 .navbar-brand {
-    font-weight: 700;
-    font-size: 1.5rem;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, var(--accent-orange) 100%);
+    font-weight: 900;
+    font-size: 2rem;
+    background: linear-gradient(
+        90deg,
+        var(--primary-color) 0%,
+        var(--secondary-color) 25%,
+        var(--accent-orange) 50%,
+        var(--accent-lime) 75%,
+        var(--primary-color) 100%
+    );
+    background-size: 200% auto;
+    animation: neon-pulse 3s linear infinite;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 2px 2px 4px rgba(255, 0, 255, 0.2);
+    filter: drop-shadow(0 0 10px var(--primary-color))
+            drop-shadow(0 0 20px var(--secondary-color));
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.navbar-brand:hover {
+    animation: glow 0.5s ease-in-out infinite,
+               neon-pulse 3s linear infinite;
+}
+
+.nav-link {
+    color: var(--secondary-color) !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px var(--secondary-color);
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    color: var(--primary-color) !important;
+    text-shadow: 0 0 20px var(--primary-color),
+                 0 0 30px var(--primary-color);
+    transform: scale(1.1);
 }
 
 /* Map container */
@@ -43,16 +175,57 @@ body {
     height: 600px;
 }
 
+/* Cards with ULTRA NEON GLOW */
+.card {
+    background: rgba(255, 255, 255, 0.98);
+    border: 3px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.4),
+                0 0 40px rgba(0, 255, 255, 0.2),
+                inset 0 0 20px rgba(255, 0, 255, 0.05);
+    transition: all 0.3s ease;
+    animation: rainbow-border 5s linear infinite;
+}
+
+.card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.6),
+                0 0 60px rgba(0, 255, 255, 0.4),
+                0 10px 40px rgba(255, 0, 255, 0.3),
+                inset 0 0 30px rgba(255, 0, 255, 0.1);
+    border-width: 4px;
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+    color: white !important;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5),
+                 0 0 20px rgba(255, 255, 255, 0.3);
+    border-bottom: 3px solid var(--accent-orange);
+}
+
 /* Activity cards */
 .activity-card {
-    transition: box-shadow 0.2s;
-    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
     background: linear-gradient(white, white) padding-box,
-                linear-gradient(135deg, var(--primary-color), var(--secondary-color)) border-box;
+        linear-gradient(135deg,
+            var(--primary-color) 0%,
+            var(--secondary-color) 25%,
+            var(--accent-orange) 50%,
+            var(--accent-lime) 75%,
+            var(--primary-color) 100%
+        ) border-box;
+    animation: rainbow-border 4s linear infinite;
 }
 
 .activity-card:hover {
-    box-shadow: 0 4px 20px rgba(255, 0, 255, 0.4), 0 0 40px rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.6),
+                0 0 60px rgba(0, 255, 255, 0.4);
+    transform: translateY(-8px) rotate(-1deg) scale(1.02);
 }
 
 .activity-type-badge {
@@ -81,20 +254,40 @@ body {
     font-weight: 700;
 }
 
-/* Metrics display */
+/* Metrics display - HYPER NEON */
 .metric-card {
-    background: white;
-    border-radius: 0.375rem;
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 0, 255, 0.05) 50%,
+        rgba(0, 255, 255, 0.05) 100%
+    );
+    border-radius: 0.5rem;
     padding: 0.75rem 1rem;
     text-align: left;
-    border-left: 3px solid var(--primary-color);
-    transition: all 0.2s ease;
+    border: 2px solid var(--primary-color);
+    border-left: 5px solid var(--primary-color);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.3),
+                inset 0 0 10px rgba(255, 0, 255, 0.1);
+    transition: all 0.3s ease;
+    animation: rainbow-border 6s linear infinite;
 }
 
 .metric-card:hover {
-    border-left-color: var(--secondary-color);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
+    border-left-width: 8px;
+    box-shadow: 0 0 25px rgba(255, 0, 255, 0.6),
+                0 0 50px rgba(0, 255, 255, 0.4),
+                inset 0 0 20px rgba(255, 0, 255, 0.2);
+    transform: translateY(-5px) scale(1.05) rotate(1deg);
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.98) 0%,
+        rgba(255, 0, 255, 0.1) 50%,
+        rgba(0, 255, 255, 0.1) 100%
+    );
+}
+
+.metric-card .fw-bold {
+    text-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
+    font-weight: 900 !important;
 }
 
 .metric-value {
@@ -409,4 +602,125 @@ body {
     .empty-state-title {
         font-size: 1.25rem;
     }
+}
+
+/* 🌈 ULTRA MEGA NEON BUTTONS 🌈 */
+.btn {
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-width: 3px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--neon-purple) 100%) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.5),
+                0 0 40px rgba(255, 0, 255, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--neon-purple) 0%, var(--primary-color) 100%) !important;
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.8),
+                0 0 60px rgba(255, 0, 255, 0.5),
+                0 0 90px rgba(255, 0, 255, 0.3);
+    transform: scale(1.1) translateY(-3px);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--neon-green) 0%, #00ff00 100%) !important;
+    border-color: var(--neon-green) !important;
+    color: var(--dark-color) !important;
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.5);
+    font-weight: 900;
+}
+
+.btn-success:hover {
+    box-shadow: 0 0 40px rgba(57, 255, 20, 0.8),
+                0 0 80px rgba(57, 255, 20, 0.4);
+    transform: scale(1.15) rotate(2deg);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--danger-color) 0%, #ff0000 100%) !important;
+    border-color: var(--danger-color) !important;
+    box-shadow: 0 0 20px rgba(255, 20, 147, 0.5);
+}
+
+.btn-danger:hover {
+    box-shadow: 0 0 40px rgba(255, 20, 147, 0.8),
+                0 0 80px rgba(255, 20, 147, 0.4);
+    transform: scale(1.15) rotate(-2deg);
+}
+
+.btn-outline-primary {
+    border-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    border-width: 3px !important;
+    background: transparent !important;
+    text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary-color) !important;
+    color: white !important;
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.8),
+                0 0 60px rgba(255, 0, 255, 0.5);
+    transform: scale(1.1);
+}
+
+/* Activity Type Badges - NEON EDITION */
+.activity-type-badge {
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.35rem 1rem;
+    border: 2px solid;
+    box-shadow: 0 0 15px currentColor;
+    animation: glow 2s ease-in-out infinite;
+}
+
+/* PULSING HEADINGS */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+h1 {
+    background: linear-gradient(90deg,
+        var(--primary-color) 0%,
+        var(--secondary-color) 25%,
+        var(--accent-orange) 50%,
+        var(--accent-lime) 75%,
+        var(--primary-color) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: neon-pulse 3s linear infinite;
+    filter: drop-shadow(0 0 20px rgba(255, 0, 255, 0.5));
 }
