@@ -94,4 +94,17 @@ public class ProfileViewController {
         model.addAttribute("username", username);
         return "profile/following";
     }
+
+    /**
+     * User discovery page.
+     * Allows searching and browsing all users.
+     *
+     * @param model the model
+     * @return discover template
+     */
+    @GetMapping("/discover")
+    public String discoverUsers(Model model) {
+        model.addAttribute("pageTitle", "Discover Users");
+        return "users/discover";
+    }
 }

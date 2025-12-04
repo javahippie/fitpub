@@ -698,7 +698,7 @@ For ActivityPub federated posts and thumbnails:
 - [x] Public user profile page (profile/public.html)
 - [x] User profile display (avatar, bio, display name)
 - [x] User's activity list on profile with pagination
-- [x] Follower/following counts display (static for now)
+- [x] Follower/following counts display (real data from backend)
 - [x] Profile edit page (profile/edit.html)
 - [x] Avatar URL input
 - [x] Profile settings form with validation
@@ -718,9 +718,20 @@ For ActivityPub federated posts and thumbnails:
 - [x] Settings page placeholder (settings.html)
 - [x] Client-side authentication checks for protected pages
 
+**User Discovery UI** ✅
+- [x] Discover users page (users/discover.html)
+- [x] User search functionality with live search bar
+- [x] Browse all users with pagination
+- [x] User cards grid layout with avatar, bio, and stats
+- [x] Responsive design for mobile and desktop
+- [x] Empty state for no results
+- [x] Loading indicators
+- [x] View controller route (GET /discover)
+- [x] Integration with backend search and browse APIs
+
 **Navigation & Layout** ✅
 - [x] Top navigation bar with logo
-- [x] Navigation links (Timeline, My Activities, Upload, Profile)
+- [x] Navigation links (Timeline, Discover, My Activities, Upload, Profile)
 - [x] User menu dropdown (Profile, Settings, Logout)
 - [x] Footer with app info
 - [x] Mobile hamburger menu (Bootstrap responsive navbar)
@@ -761,9 +772,10 @@ For ActivityPub federated posts and thumbnails:
 - [x] Activity image generation with track overlay (ActivityImageService)
 - [x] FIT epoch timestamp fix (631065600 second offset for proper date handling)
 - [x] Web Mercator projection for accurate track-to-map alignment
-- [x] User search and discovery (UserRepository.searchUsers, UserRepository.findAllEnabledUsers, GET /api/users/search, GET /api/users/browse)
+- [x] User search and discovery backend (UserRepository.searchUsers, UserRepository.findAllEnabledUsers, GET /api/users/search, GET /api/users/browse)
+- [x] User search and discovery UI (users/discover.html, /discover route, search bar with live filtering, user cards grid, pagination)
 - [x] Followers/following lists (ActorDTO, GET /api/users/{username}/followers, GET /api/users/{username}/following)
-- [ ] Follower/following counts (populate with real data)
+- [x] Follower/following counts (UserController.populateSocialCounts, UserDTO with followersCount/followingCount, frontend displays real counts)
 - [ ] Notifications system
 - [ ] Enhanced privacy controls UI
 - [ ] Follow/unfollow buttons on user profiles

@@ -194,8 +194,15 @@
                     const joinedDate = new Date(user.createdAt);
                     document.getElementById('joinedDate').textContent = joinedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+                    // Followers/Following counts
+                    if (user.followersCount !== undefined) {
+                        document.getElementById('followersCount').textContent = user.followersCount;
+                    }
+                    if (user.followingCount !== undefined) {
+                        document.getElementById('followingCount').textContent = user.followingCount;
+                    }
+
                     // Stats (activities count will be loaded separately)
-                    // Followers/Following counts TODO: implement when federation is ready
                 }
 
                 async function loadRecentActivities() {

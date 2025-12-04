@@ -58,6 +58,7 @@ public class SecurityConfig {
                 // Public endpoints - Web UI pages
                 .requestMatchers("/", "/login", "/register", "/timeline", "/timeline/**", "/activities", "/activities/**").permitAll()
                 .requestMatchers("/profile", "/profile/**", "/settings").permitAll() // Auth checked client-side
+                .requestMatchers("/discover").permitAll() // User discovery page
 
                 // Public endpoints - ActivityPub federation
                 .requestMatchers("/.well-known/**").permitAll()
@@ -110,6 +111,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/users/{username}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/id/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll() // User search
+                .requestMatchers(HttpMethod.GET, "/api/users/browse").permitAll() // Browse all users
+                .requestMatchers(HttpMethod.GET, "/api/users/*/followers").permitAll() // User followers list
+                .requestMatchers(HttpMethod.GET, "/api/users/*/following").permitAll() // User following list
 
                 // All other requests require authentication
                 .anyRequest().authenticated()
