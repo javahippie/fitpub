@@ -53,6 +53,14 @@ public class Activity {
     @Column(name = "ended_at", nullable = false)
     private LocalDateTime endedAt;
 
+    /**
+     * Timezone ID where the activity was recorded (e.g., "Europe/Berlin", "America/New_York").
+     * Stored to display activity times in the athlete's local timezone.
+     * Defaults to UTC if timezone cannot be determined from FIT file.
+     */
+    @Column(name = "timezone", length = 50)
+    private String timezone;
+
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private Visibility visibility;

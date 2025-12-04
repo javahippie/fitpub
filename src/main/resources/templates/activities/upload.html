@@ -303,16 +303,23 @@
                                         metadataSection.classList.remove('d-none');
 
                                         // Populate summary
+                                        const formattedDateTime = FitPub.formatDateTimeWithTimezone(
+                                            response.startedAt,
+                                            response.timezone || 'UTC'
+                                        );
+                                        const formattedDate = FitPub.formatDateWithTimezone(
+                                            response.startedAt,
+                                            response.timezone || 'UTC'
+                                        );
                                         document.getElementById('summaryContent').innerHTML = `
                                             <p class="mb-1"><strong>Type:</strong> ${response.activityType || 'Unknown'}</p>
                                             <p class="mb-1"><strong>Distance:</strong> ${formatDistance(response.totalDistance)}</p>
                                             <p class="mb-1"><strong>Duration:</strong> ${formatDuration(response.totalDurationSeconds)}</p>
-                                            <p class="mb-0"><strong>Date:</strong> ${new Date(response.startedAt).toLocaleString()}</p>
+                                            <p class="mb-0"><strong>Date:</strong> ${formattedDateTime}</p>
                                         `;
 
                                         // Pre-fill title with activity type and date
-                                        const activityDate = new Date(response.startedAt);
-                                        document.getElementById('title').value = `${response.activityType || 'Activity'} - ${activityDate.toLocaleDateString()}`;
+                                        document.getElementById('title').value = `${response.activityType || 'Activity'} - ${formattedDate}`;
                                     }
 
                                     // Reset form state

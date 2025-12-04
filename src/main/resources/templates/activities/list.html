@@ -162,7 +162,7 @@
                                             </span>
                                             <span class="ms-2">
                                                 <i class="bi bi-calendar"></i>
-                                                ${new Date(activity.startedAt).toLocaleDateString()}
+                                                ${FitPub.formatDateWithTimezone(activity.startedAt, activity.timezone || 'UTC')}
                                             </span>
                                             <span class="ms-2 visibility-${activity.visibility.toLowerCase()}">
                                                 <i class="bi bi-${getVisibilityIcon(activity.visibility)}"></i>

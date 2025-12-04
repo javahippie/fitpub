@@ -37,6 +37,7 @@ public class ActivityDTO {
     private String description;
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
+    private String timezone; // IANA timezone ID (e.g., "Europe/Berlin")
     private String visibility;
     private BigDecimal totalDistance;
     private Long totalDurationSeconds;
@@ -97,6 +98,7 @@ public class ActivityDTO {
             .description(activity.getDescription())
             .startedAt(activity.getStartedAt())
             .endedAt(activity.getEndedAt())
+            .timezone(activity.getTimezone())
             .visibility(activity.getVisibility().name())
             .totalDistance(activity.getTotalDistance())
             .elevationGain(activity.getElevationGain())

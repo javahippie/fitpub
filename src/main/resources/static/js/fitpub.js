@@ -418,6 +418,58 @@ function formatPace(speed) {
     return `${minutes}:${seconds.toString().padStart(2, '0')} /km`;
 }
 
+/**
+ * Format a timestamp with timezone awareness
+ *
+ * @param {string} timestamp - ISO timestamp or LocalDateTime string
+ * @param {string} timezone - IANA timezone ID (e.g., "Europe/Berlin")
+ * @param {object} options - Intl.DateTimeFormat options
+ * @returns {string} Formatted date/time string
+ */
+function formatDateTimeWithTimezone(timestamp, timezone, options = {}) {
+    if (!timestamp) return '';
+
+    // Parse the timestamp - backend sends LocalDateTime without 'Z'
+    // We need to interpret it in the specified timezone
+    const date = new Date(timestamp);
+
+    // Default options for date/time display
+    const defaultOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: timezone || 'UTC',
+        ...options
+    };
+
+    try {
+        return new Intl.DateTimeFormat('en-US', defaultOptions).format(date);
+    } catch (e) {
+        console.error('Error formatting date with timezone:', e);
+        // Fallback to simple formatting
+        return date.toLocaleString();
+    }
+}
+
+/**
+ * Format a date with timezone awareness (date only, no time)
+ *
+ * @param {string} timestamp - ISO timestamp or LocalDateTime string
+ * @param {string} timezone - IANA timezone ID
+ * @returns {string} Formatted date string
+ */
+function formatDateWithTimezone(timestamp, timezone) {
+    return formatDateTimeWithTimezone(timestamp, timezone, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: undefined,
+        minute: undefined
+    });
+}
+
 // Make functions available globally for inline scripts
 window.FitPub = {
     createActivityMap,
@@ -425,5 +477,7 @@ window.FitPub = {
     showAlert,
     formatDuration,
     formatDistance,
-    formatPace
+    formatPace,
+    formatDateTimeWithTimezone,
+    formatDateWithTimezone
 };

@@ -391,7 +391,11 @@
                     document.getElementById('activityTitle').textContent = activity.title || 'Untitled Activity';
                     document.getElementById('activityType').textContent = activity.activityType;
                     document.getElementById('activityType').className = `activity-type-badge activity-type-${activity.activityType.toLowerCase()}`;
-                    document.getElementById('activityDate').textContent = new Date(activity.startedAt).toLocaleString();
+                    // Format date with timezone awareness
+                    document.getElementById('activityDate').textContent = FitPub.formatDateTimeWithTimezone(
+                        activity.startedAt,
+                        activity.timezone || 'UTC'
+                    );
                     document.getElementById('activityVisibility').textContent = activity.visibility;
 
                     // Visibility icon

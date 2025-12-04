@@ -2,6 +2,7 @@ package org.operaton.fitpub.util;
 
 import com.garmin.fit.*;
 import lombok.extern.slf4j.Slf4j;
+import net.iakovlev.timeshape.TimeZoneEngine;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Parser for Garmin FIT files.
@@ -36,6 +38,9 @@ public class FitParser {
 
     private static final double SEMICIRCLES_TO_DEGREES = 180.0 / Math.pow(2, 31);
     private static final double MPS_TO_KPH = 3.6;
+
+    // Lazy-loaded timezone engine (expensive to initialize)
+    private static TimeZoneEngine timezoneEngine = null;
 
     /**
      * Parses a FIT file and returns the extracted data.
@@ -96,8 +101,11 @@ public class FitParser {
                 throw new FitFileProcessingException("No GPS track points found in FIT file");
             }
 
-            log.info("Successfully parsed FIT file: {} track points, activity type: {}",
-                parsedData.getTrackPoints().size(), parsedData.getActivityType());
+            // Determine timezone from first GPS coordinate
+            determineTimezone(parsedData);
+
+            log.info("Successfully parsed FIT file: {} track points, activity type: {}, timezone: {}",
+                parsedData.getTrackPoints().size(), parsedData.getActivityType(), parsedData.getTimezone());
 
             return parsedData;
         } catch (FitRuntimeException e) {
@@ -281,6 +289,43 @@ public class FitParser {
     }
 
     /**
+     * Determines the timezone based on the first GPS coordinate.
+     * Uses TimeZoneEngine library for accurate timezone lookup from coordinates.
+     */
+    private void determineTimezone(ParsedFitData parsedData) {
+        if (parsedData.getTrackPoints().isEmpty()) {
+            parsedData.setTimezone("UTC");
+            return;
+        }
+
+        TrackPointData firstPoint = parsedData.getTrackPoints().get(0);
+        double latitude = firstPoint.getLatitude();
+        double longitude = firstPoint.getLongitude();
+
+        try {
+            // Lazy-load timezone engine (expensive initialization ~200ms first time)
+            if (timezoneEngine == null) {
+                log.info("Initializing TimeZoneEngine for timezone lookup...");
+                timezoneEngine = TimeZoneEngine.initialize();
+            }
+
+            Optional<ZoneId> zoneId = timezoneEngine.query(latitude, longitude);
+            if (zoneId.isPresent()) {
+                parsedData.setTimezone(zoneId.get().getId());
+                log.debug("Determined timezone: {} from coordinates ({}, {})",
+                    zoneId.get().getId(), latitude, longitude);
+            } else {
+                log.warn("Could not determine timezone for coordinates ({}, {}), defaulting to UTC",
+                    latitude, longitude);
+                parsedData.setTimezone("UTC");
+            }
+        } catch (Exception e) {
+            log.error("Error determining timezone, defaulting to UTC", e);
+            parsedData.setTimezone("UTC");
+        }
+    }
+
+    /**
      * Converts FIT DateTime to LocalDateTime.
      * FIT timestamps use a special epoch: December 31, 1989, 00:00:00 UTC.
      * We need to add the offset from Unix epoch (1970) to FIT epoch (1989).
@@ -397,6 +442,7 @@ public class FitParser {
         private LocalDateTime startTime;
         private LocalDateTime endTime;
         private LocalDateTime activityTimestamp;
+        private String timezone; // IANA timezone ID (e.g., "Europe/Berlin")
         private BigDecimal totalDistance;
         private Duration totalDuration;
         private BigDecimal elevationGain;

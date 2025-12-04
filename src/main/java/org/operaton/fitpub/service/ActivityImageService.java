@@ -153,6 +153,11 @@ public class ActivityImageService {
         // Get letterbox transformation from OSM renderer
         OsmTileRenderer.LetterboxTransform letterbox = osmTileRenderer.getLastLetterboxTransform();
 
+        if (letterbox == null) {
+            log.warn("No letterbox transform available, track overlay may be misaligned");
+            return;
+        }
+
         // Convert bounds to Web Mercator normalized coordinates (0-1)
         // This matches the projection used by OSM tiles
         double minX = longitudeToWebMercatorX(bounds.minLon);
@@ -160,16 +165,16 @@ public class ActivityImageService {
         double minY = latitudeToWebMercatorY(bounds.maxLat); // Note: maxLat -> minY (inverted)
         double maxY = latitudeToWebMercatorY(bounds.minLat); // Note: minLat -> maxY (inverted)
 
-        // Calculate scale to map Web Mercator coordinates to pixels
-        // Apply letterbox scaling if available
-        double baseScaleX = trackWidth / (maxX - minX);
-        double baseScaleY = trackHeight / (maxY - minY);
+        // The letterbox transform gives us the actual rendered area within trackWidth x trackHeight
+        // We need to map our mercator coordinates to fit within that rendered area
 
-        double scaleX = letterbox != null ? baseScaleX * letterbox.scaleFactorX : baseScaleX;
-        double scaleY = letterbox != null ? baseScaleY * letterbox.scaleFactorY : baseScaleY;
+        // Calculate the mercator range that corresponds to the letterboxed (cropped/scaled) map
+        double mercatorWidth = maxX - minX;
+        double mercatorHeight = maxY - minY;
 
-        int offsetX = letterbox != null ? letterbox.offsetX : 0;
-        int offsetY = letterbox != null ? letterbox.offsetY : 0;
+        // The scale factors tell us how the mercator coordinates map to the letterboxed area
+        double pixelsPerMercatorX = letterbox.scaledWidth / mercatorWidth;
+        double pixelsPerMercatorY = letterbox.scaledHeight / mercatorHeight;
 
         // Draw track segments with privacy fade
         g2d.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
@@ -193,12 +198,11 @@ public class ActivityImageService {
                 double mercatorX2 = longitudeToWebMercatorX(lon2);
                 double mercatorY2 = latitudeToWebMercatorY(lat2);
 
-                // Map Web Mercator coordinates to pixel coordinates
-                // Apply letterbox offset
-                double x1 = (mercatorX1 - minX) * scaleX + offsetX;
-                double y1 = (mercatorY1 - minY) * scaleY + offsetY;
-                double x2 = (mercatorX2 - minX) * scaleX + offsetX;
-                double y2 = (mercatorY2 - minY) * scaleY + offsetY;
+                // Map Web Mercator coordinates to pixel coordinates within the letterbox
+                double x1 = (mercatorX1 - minX) * pixelsPerMercatorX + letterbox.offsetX;
+                double y1 = (mercatorY1 - minY) * pixelsPerMercatorY + letterbox.offsetY;
+                double x2 = (mercatorX2 - minX) * pixelsPerMercatorX + letterbox.offsetX;
+                double y2 = (mercatorY2 - minY) * pixelsPerMercatorY + letterbox.offsetY;
 
                 // Calculate opacity based on distance from start/end
                 double distanceFromStart = cumulativeDistances[i];

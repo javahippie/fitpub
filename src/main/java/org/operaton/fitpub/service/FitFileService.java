@@ -171,6 +171,7 @@ public class FitFileService {
             .description(description)
             .startedAt(parsedData.getStartTime())
             .endedAt(parsedData.getEndTime())
+            .timezone(parsedData.getTimezone())
             .visibility(activityVisibility)
             .totalDistance(parsedData.getTotalDistance())
             .totalDurationSeconds(parsedData.getTotalDuration() != null ? parsedData.getTotalDuration().getSeconds() : null)
