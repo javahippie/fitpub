@@ -216,6 +216,7 @@ const FitPubAuth = {
         const usernameDisplay = document.getElementById('usernameDisplay');
         const myActivitiesLink = document.getElementById('myActivitiesLink');
         const uploadLink = document.getElementById('uploadLink');
+        const notificationsBell = document.getElementById('notificationsBell');
 
         if (this.isAuthenticated()) {
             // Show authenticated menu, hide guest menu
@@ -236,15 +237,26 @@ const FitPubAuth = {
                 uploadLink.parentElement.style.display = '';
             }
 
+            // Show notifications bell
+            if (notificationsBell) {
+                notificationsBell.classList.remove('d-none');
+            }
+
             // Display username
             const username = this.getUsername();
             if (usernameDisplay && username) {
                 usernameDisplay.textContent = username;
             }
+
+            // Start polling for unread notifications
+            this.startNotificationPolling();
         } else {
             // Show guest menu, hide authenticated menu
             if (authUserMenu) {
                 authUserMenu.classList.add('d-none');
+            }
+            if (notificationsBell) {
+                notificationsBell.classList.add('d-none');
             }
             if (guestMenu) {
                 guestMenu.style.display = '';
@@ -329,6 +341,52 @@ const FitPubAuth = {
      */
     refreshPage: function() {
         window.location.reload();
+    },
+
+    /**
+     * Start polling for unread notifications
+     */
+    notificationPollInterval: null,
+
+    startNotificationPolling: function() {
+        // Stop any existing polling
+        this.stopNotificationPolling();
+
+        // Initial fetch
+        this.updateUnreadNotificationCount();
+
+        // Poll every 30 seconds
+        this.notificationPollInterval = setInterval(() => {
+            this.updateUnreadNotificationCount();
+        }, 30000);
+    },
+
+    stopNotificationPolling: function() {
+        if (this.notificationPollInterval) {
+            clearInterval(this.notificationPollInterval);
+            this.notificationPollInterval = null;
+        }
+    },
+
+    async updateUnreadNotificationCount() {
+        try {
+            const response = await this.authenticatedFetch('/api/notifications/unread/count');
+            if (response.ok) {
+                const data = await response.json();
+                const badge = document.getElementById('navNotificationCount');
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 99 ? '99+' : data.count;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            }
+        } catch (error) {
+            // Silently fail - don't spam console with errors
+            console.debug('Failed to fetch notification count:', error);
+        }
     }
 };
 

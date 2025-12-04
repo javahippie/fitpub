@@ -778,7 +778,7 @@ For ActivityPub federated posts and thumbnails:
 - [x] Follower/following counts (UserController.populateSocialCounts, UserDTO with followersCount/followingCount, frontend displays real counts)
 - [x] Heart rate chart over time on activity details (Chart.js line chart, elapsed time x-axis, heart rate y-axis)
 - [x] Speed/pace chart over time on activity details (Chart.js line chart with smoothing, displays speed in km/h with pace in tooltip)
-- [ ] Notifications system
+- [x] Notifications system (Notification entity, NotificationRepository, NotificationService, NotificationController REST API, notifications.html UI, notification bell in nav with unread count, polling every 30s, mark as read/delete, all/unread filter tabs)
 - [ ] Enhanced privacy controls UI
 - [ ] Follow/unfollow buttons on user profiles
 - [ ] Activity visibility to followers (implement FOLLOWERS visibility enforcement)

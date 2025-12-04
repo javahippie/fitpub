@@ -59,6 +59,7 @@ public class SecurityConfig {
                 .requestMatchers("/", "/login", "/register", "/timeline", "/timeline/**", "/activities", "/activities/**").permitAll()
                 .requestMatchers("/profile", "/profile/**", "/settings").permitAll() // Auth checked client-side
                 .requestMatchers("/discover").permitAll() // User discovery page
+                .requestMatchers("/notifications").permitAll() // Auth checked client-side
 
                 // Public endpoints - ActivityPub federation
                 .requestMatchers("/.well-known/**").permitAll()
@@ -96,6 +97,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/activities/*/likes").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/activities/*/comments").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/activities/*/comments/*").authenticated()
+
+                // Protected endpoints - Notifications API
+                .requestMatchers("/api/notifications/**").authenticated()
 
                 // Protected endpoints - Activities API (upload, edit, delete)
                 .requestMatchers(HttpMethod.POST, "/api/activities/upload").authenticated()

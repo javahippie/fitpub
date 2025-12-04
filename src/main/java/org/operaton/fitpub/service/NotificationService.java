@@ -38,8 +38,16 @@ public class NotificationService {
      */
     @Transactional
     public void createActivityLikedNotification(Activity activity, String likerActorUri) {
+        // Get the activity owner
+        User activityOwner = userRepository.findById(activity.getUserId())
+            .orElse(null);
+        if (activityOwner == null) {
+            log.warn("Could not find activity owner for activity: {}", activity.getId());
+            return;
+        }
+
         // Don't notify if user liked their own activity
-        String activityOwnerUri = activity.getUser().getActorUri(baseUrl);
+        String activityOwnerUri = activityOwner.getActorUri(baseUrl);
         if (activityOwnerUri.equals(likerActorUri)) {
             return;
         }
@@ -52,7 +60,7 @@ public class NotificationService {
         }
 
         Notification notification = Notification.builder()
-            .user(activity.getUser())
+            .user(activityOwner)
             .type(Notification.NotificationType.ACTIVITY_LIKED)
             .actorUri(likerActorUri)
             .actorDisplayName(actorInfo.displayName)
@@ -63,7 +71,7 @@ public class NotificationService {
             .build();
 
         notificationRepository.save(notification);
-        log.debug("Created ACTIVITY_LIKED notification for user {} from {}", activity.getUser().getUsername(), actorInfo.username);
+        log.debug("Created ACTIVITY_LIKED notification for user {} from {}", activityOwner.getUsername(), actorInfo.username);
     }
 
     /**
@@ -75,8 +83,16 @@ public class NotificationService {
      */
     @Transactional
     public void createActivityCommentedNotification(Activity activity, Comment comment, String commenterActorUri) {
+        // Get the activity owner
+        User activityOwner = userRepository.findById(activity.getUserId())
+            .orElse(null);
+        if (activityOwner == null) {
+            log.warn("Could not find activity owner for activity: {}", activity.getId());
+            return;
+        }
+
         // Don't notify if user commented on their own activity
-        String activityOwnerUri = activity.getUser().getActorUri(baseUrl);
+        String activityOwnerUri = activityOwner.getActorUri(baseUrl);
         if (activityOwnerUri.equals(commenterActorUri)) {
             return;
         }
@@ -95,7 +111,7 @@ public class NotificationService {
         }
 
         Notification notification = Notification.builder()
-            .user(activity.getUser())
+            .user(activityOwner)
             .type(Notification.NotificationType.ACTIVITY_COMMENTED)
             .actorUri(commenterActorUri)
             .actorDisplayName(actorInfo.displayName)
@@ -108,7 +124,7 @@ public class NotificationService {
             .build();
 
         notificationRepository.save(notification);
-        log.debug("Created ACTIVITY_COMMENTED notification for user {} from {}", activity.getUser().getUsername(), actorInfo.username);
+        log.debug("Created ACTIVITY_COMMENTED notification for user {} from {}", activityOwner.getUsername(), actorInfo.username);
     }
 
     /**

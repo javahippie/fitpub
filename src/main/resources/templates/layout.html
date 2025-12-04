@@ -74,6 +74,18 @@
 
                 <!-- Right side navigation -->
                 <ul class="navbar-nav">
+                    <!-- Notifications bell (hidden by default, shown by JS if JWT exists) -->
+                    <li class="nav-item d-none" id="notificationsBell">
+                        <a class="nav-link position-relative" th:href="@{/notifications}" title="Notifications">
+                            <i class="bi bi-bell"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                  id="navNotificationCount"
+                                  style="display: none; font-size: 0.6rem;">
+                                0
+                            </span>
+                        </a>
+                    </li>
+
                     <!-- Authenticated user menu (hidden by default, shown by JS if JWT exists) -->
                     <li class="nav-item dropdown d-none" id="authUserMenu">
                         <a class="nav-link dropdown-toggle"

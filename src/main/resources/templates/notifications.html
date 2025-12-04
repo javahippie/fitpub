@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - FitPub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/fitpub.css}">
+    <style>
+        .notification-item {
+            border-bottom: 1px solid #dee2e6;
+            padding: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .notification-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .notification-item.unread {
+            background-color: #e7f3ff;
+        }
+
+        .notification-item.unread:hover {
+            background-color: #d4e9ff;
+        }
+
+        .notification-icon {
+            font-size: 1.5rem;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .notification-icon.like {
+            background-color: #ffe0e0;
+            color: #dc3545;
+        }
+
+        .notification-icon.comment {
+            background-color: #e0f0ff;
+            color: #0d6efd;
+        }
+
+        .notification-icon.follow {
+            background-color: #e0ffe0;
+            color: #198754;
+        }
+
+        .notification-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-actor {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .notification-time {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .notification-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #0d6efd;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+
+        .empty-notifications {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-notifications i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 1rem;
+        }
+
+        .filter-tabs {
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div th:replace="~{layout :: header}"></div>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-lg-8 offset-lg-2">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1>Notifications</h1>
+                    <button id="markAllReadBtn" class="btn btn-outline-primary btn-sm" style="display: none;">
+                        <i class="bi bi-check-all"></i> Mark all as read
+                    </button>
+                </div>
+
+                <!-- Filter tabs -->
+                <ul class="nav nav-tabs filter-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all"
+                                type="button" role="tab" aria-controls="all" aria-selected="true">
+                            All
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="unread-tab" data-bs-toggle="tab" data-bs-target="#unread"
+                                type="button" role="tab" aria-controls="unread" aria-selected="false">
+                            Unread <span id="unreadCount" class="badge bg-primary ms-1" style="display: none;"></span>
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                        <div id="allNotifications" class="notifications-list">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading notifications...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="unread" role="tabpanel" aria-labelledby="unread-tab">
+                        <div id="unreadNotifications" class="notifications-list">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Loading notifications...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Notifications pagination" class="mt-4">
+                    <ul id="pagination" class="pagination justify-content-center">
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{layout :: footer}"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/auth.js}"></script>
+    <script>
+        const NotificationsPage = {
+            currentPage: 0,
+            pageSize: 20,
+            currentFilter: 'all',
+
+            init() {
+                // Check authentication
+                if (!FitPubAuth.isAuthenticated()) {
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
+
+                // Load initial notifications
+                this.loadNotifications('all');
+                this.updateUnreadCount();
+
+                // Setup event listeners
+                this.setupEventListeners();
+            },
+
+            setupEventListeners() {
+                // Tab switching
+                document.getElementById('all-tab').addEventListener('click', () => {
+                    this.currentFilter = 'all';
+                    this.currentPage = 0;
+                    this.loadNotifications('all');
+                });
+
+                document.getElementById('unread-tab').addEventListener('click', () => {
+                    this.currentFilter = 'unread';
+                    this.currentPage = 0;
+                    this.loadNotifications('unread');
+                });
+
+                // Mark all as read
+                document.getElementById('markAllReadBtn').addEventListener('click', () => {
+                    this.markAllAsRead();
+                });
+            },
+
+            async loadNotifications(filter) {
+                const endpoint = filter === 'unread'
+                    ? '/api/notifications/unread'
+                    : '/api/notifications';
+
+                const containerId = filter === 'unread'
+                    ? 'unreadNotifications'
+                    : 'allNotifications';
+
+                try {
+                    const response = await FitPubAuth.authenticatedFetch(
+                        `${endpoint}?page=${this.currentPage}&size=${this.pageSize}`
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to load notifications');
+                    }
+
+                    const data = await response.json();
+                    this.renderNotifications(data, containerId);
+                    this.renderPagination(data);
+
+                    // Show/hide mark all as read button
+                    const hasUnread = data.content.some(n => !n.read);
+                    document.getElementById('markAllReadBtn').style.display =
+                        hasUnread ? 'block' : 'none';
+
+                } catch (error) {
+                    console.error('Error loading notifications:', error);
+                    document.getElementById(containerId).innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Failed to load notifications. Please try again.
+                        </div>
+                    `;
+                }
+            },
+
+            renderNotifications(data, containerId) {
+                const container = document.getElementById(containerId);
+
+                if (data.content.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-notifications">
+                            <i class="bi bi-bell-slash"></i>
+                            <h4>No notifications</h4>
+                            <p class="text-muted">You're all caught up!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = data.content.map(notification =>
+                    this.createNotificationHtml(notification)
+                ).join('');
+
+                // Add click handlers
+                container.querySelectorAll('.notification-item').forEach(item => {
+                    const notificationId = item.dataset.id;
+                    const isRead = item.dataset.read === 'true';
+                    const activityId = item.dataset.activityId;
+
+                    item.addEventListener('click', async (e) => {
+                        // Don't trigger if clicking delete button
+                        if (e.target.closest('.delete-notification')) return;
+
+                        // Mark as read if unread
+                        if (!isRead) {
+                            await this.markAsRead(notificationId);
+                        }
+
+                        // Navigate to activity if applicable
+                        if (activityId) {
+                            window.location.href = `/activities/detail?id=${activityId}`;
+                        }
+                    });
+                });
+
+                // Add delete handlers
+                container.querySelectorAll('.delete-notification').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const notificationId = btn.dataset.id;
+                        await this.deleteNotification(notificationId);
+                    });
+                });
+            },
+
+            createNotificationHtml(notification) {
+                const icon = this.getNotificationIcon(notification.type);
+                const message = this.getNotificationMessage(notification);
+                const time = this.formatTimeAgo(notification.createdAt);
+                const unreadClass = notification.read ? '' : 'unread';
+                const unreadBadge = notification.read ? '' : '<span class="notification-badge"></span>';
+
+                return `
+                    <div class="notification-item ${unreadClass}"
+                         data-id="${notification.id}"
+                         data-read="${notification.read}"
+                         data-activity-id="${notification.activityId || ''}"
+                         style="cursor: pointer;">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="notification-icon ${icon.class}">
+                                <i class="bi ${icon.icon}"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="d-flex align-items-center">
+                                    <span class="notification-actor">${this.escapeHtml(notification.actorDisplayName || notification.actorUsername)}</span>
+                                    ${unreadBadge}
+                                </div>
+                                <div>${message}</div>
+                                <div class="notification-time">${time}</div>
+                            </div>
+                            <div class="notification-actions">
+                                <button class="btn btn-sm btn-outline-danger delete-notification"
+                                        data-id="${notification.id}"
+                                        title="Delete notification">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            getNotificationIcon(type) {
+                switch (type) {
+                    case 'ACTIVITY_LIKED':
+                        return { icon: 'bi-heart-fill', class: 'like' };
+                    case 'ACTIVITY_COMMENTED':
+                        return { icon: 'bi-chat-fill', class: 'comment' };
+                    case 'USER_FOLLOWED':
+                        return { icon: 'bi-person-plus-fill', class: 'follow' };
+                    case 'FOLLOW_ACCEPTED':
+                        return { icon: 'bi-check-circle-fill', class: 'follow' };
+                    default:
+                        return { icon: 'bi-bell-fill', class: 'comment' };
+                }
+            },
+
+            getNotificationMessage(notification) {
+                switch (notification.type) {
+                    case 'ACTIVITY_LIKED':
+                        return `liked your activity <strong>${this.escapeHtml(notification.activityTitle)}</strong>`;
+                    case 'ACTIVITY_COMMENTED':
+                        const preview = notification.commentText
+                            ? `: "${this.escapeHtml(notification.commentText)}"`
+                            : '';
+                        return `commented on your activity <strong>${this.escapeHtml(notification.activityTitle)}</strong>${preview}`;
+                    case 'USER_FOLLOWED':
+                        return 'started following you';
+                    case 'FOLLOW_ACCEPTED':
+                        return 'accepted your follow request';
+                    default:
+                        return 'notification';
+                }
+            },
+
+            formatTimeAgo(timestamp) {
+                const now = new Date();
+                const then = new Date(timestamp);
+                const seconds = Math.floor((now - then) / 1000);
+
+                if (seconds < 60) return 'just now';
+                if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+                if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+                if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+                if (seconds < 2592000) return `${Math.floor(seconds / 604800)}w ago`;
+                return then.toLocaleDateString();
+            },
+
+            async markAsRead(notificationId) {
+                try {
+                    const response = await FitPubAuth.authenticatedFetch(
+                        `/api/notifications/${notificationId}/read`,
+                        { method: 'PUT' }
+                    );
+
+                    if (response.ok) {
+                        // Update UI
+                        const item = document.querySelector(`[data-id="${notificationId}"]`);
+                        if (item) {
+                            item.classList.remove('unread');
+                            item.dataset.read = 'true';
+                            const badge = item.querySelector('.notification-badge');
+                            if (badge) badge.remove();
+                        }
+
+                        // Update unread count
+                        this.updateUnreadCount();
+                    }
+                } catch (error) {
+                    console.error('Error marking notification as read:', error);
+                }
+            },
+
+            async markAllAsRead() {
+                if (!confirm('Mark all notifications as read?')) return;
+
+                try {
+                    const response = await FitPubAuth.authenticatedFetch(
+                        '/api/notifications/read-all',
+                        { method: 'PUT' }
+                    );
+
+                    if (response.ok) {
+                        // Reload current view
+                        this.loadNotifications(this.currentFilter);
+                        this.updateUnreadCount();
+                    }
+                } catch (error) {
+                    console.error('Error marking all as read:', error);
+                    alert('Failed to mark all notifications as read');
+                }
+            },
+
+            async deleteNotification(notificationId) {
+                if (!confirm('Delete this notification?')) return;
+
+                try {
+                    const response = await FitPubAuth.authenticatedFetch(
+                        `/api/notifications/${notificationId}`,
+                        { method: 'DELETE' }
+                    );
+
+                    if (response.ok) {
+                        // Remove from UI
+                        const item = document.querySelector(`[data-id="${notificationId}"]`);
+                        if (item) {
+                            item.remove();
+                        }
+
+                        // Reload if no notifications left
+                        const container = document.getElementById(
+                            this.currentFilter === 'unread' ? 'unreadNotifications' : 'allNotifications'
+                        );
+                        if (container.querySelectorAll('.notification-item').length === 0) {
+                            this.loadNotifications(this.currentFilter);
+                        }
+
+                        this.updateUnreadCount();
+                    }
+                } catch (error) {
+                    console.error('Error deleting notification:', error);
+                    alert('Failed to delete notification');
+                }
+            },
+
+            async updateUnreadCount() {
+                try {
+                    const response = await FitPubAuth.authenticatedFetch('/api/notifications/unread/count');
+                    if (response.ok) {
+                        const data = await response.json();
+                        const badge = document.getElementById('unreadCount');
+                        if (data.count > 0) {
+                            badge.textContent = data.count;
+                            badge.style.display = 'inline-block';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+
+                        // Update navigation bell badge
+                        const navBadge = document.getElementById('navNotificationCount');
+                        if (navBadge) {
+                            if (data.count > 0) {
+                                navBadge.textContent = data.count > 99 ? '99+' : data.count;
+                                navBadge.style.display = 'inline-block';
+                            } else {
+                                navBadge.style.display = 'none';
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching unread count:', error);
+                }
+            },
+
+            renderPagination(data) {
+                const pagination = document.getElementById('pagination');
+
+                if (data.totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+
+                let html = '';
+
+                // Previous button
+                if (data.number > 0) {
+                    html += `<li class="page-item">
+                        <a class="page-link" href="#" data-page="${data.number - 1}">Previous</a>
+                    </li>`;
+                }
+
+                // Page numbers
+                for (let i = 0; i < data.totalPages; i++) {
+                    if (i === data.number) {
+                        html += `<li class="page-item active"><span class="page-link">${i + 1}</span></li>`;
+                    } else if (i < 3 || i >= data.totalPages - 3 || Math.abs(i - data.number) <= 1) {
+                        html += `<li class="page-item">
+                            <a class="page-link" href="#" data-page="${i}">${i + 1}</a>
+                        </li>`;
+                    } else if (Math.abs(i - data.number) === 2) {
+                        html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+                }
+
+                // Next button
+                if (data.number < data.totalPages - 1) {
+                    html += `<li class="page-item">
+                        <a class="page-link" href="#" data-page="${data.number + 1}">Next</a>
+                    </li>`;
+                }
+
+                pagination.innerHTML = html;
+
+                // Add click handlers
+                pagination.querySelectorAll('a[data-page]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.currentPage = parseInt(link.dataset.page);
+                        this.loadNotifications(this.currentFilter);
+                        window.scrollTo(0, 0);
+                    });
+                });
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        };
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            NotificationsPage.init();
+        });
+    </script>
+</body>
+</html>
