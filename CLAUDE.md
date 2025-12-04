@@ -845,8 +845,8 @@ For ActivityPub federated posts and thumbnails:
 - [x] Weather display on activity detail page (temperature, humidity, wind, pressure, precipitation)
 
 ### Phase 4: Enhanced Federation
-- [ ] Rich preview cards for activities
-- [ ] Cross-platform activity sync
+- [x] Rich preview cards for activities
+- [x] Cross-platform activity sync
 
 ### Phase 5: Mobile & Integrations
 - [ ] Progressive Web App (PWA)

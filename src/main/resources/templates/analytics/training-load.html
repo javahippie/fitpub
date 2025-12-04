@@ -135,10 +135,13 @@
                 const response = await FitPubAuth.authenticatedFetch(`/api/analytics/training-load?days=${days}`);
 
                 if (!response.ok) {
-                    throw new Error('Failed to load training load data');
+                    const errorText = await response.text();
+                    console.error('API Error:', response.status, errorText);
+                    throw new Error(`Failed to load training load data: ${response.status} ${response.statusText}`);
                 }
 
                 const data = await response.json();
+                console.log('Training load data received:', data);
                 displayCharts(data);
 
                 document.getElementById('loading-spinner').style.display = 'none';
@@ -146,12 +149,25 @@
             } catch (error) {
                 console.error('Error loading training load:', error);
                 document.getElementById('loading-spinner').style.display = 'none';
-                document.getElementById('error-message').textContent = 'Failed to load training load data';
+                const errorMsg = error.message || 'Failed to load training load data';
+                document.getElementById('error-message').textContent = errorMsg;
                 document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').classList.add('alert-danger');
+                document.getElementById('error-message').classList.remove('alert-info');
             }
         }
 
         function displayCharts(data) {
+            // Check if data is empty
+            if (!data || data.length === 0) {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('error-message').textContent = 'No training load data available. Upload some activities to see your training metrics!';
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').classList.remove('alert-danger');
+                document.getElementById('error-message').classList.add('alert-info');
+                return;
+            }
+
             // Reverse data to show chronologically
             data = data.reverse();
 
