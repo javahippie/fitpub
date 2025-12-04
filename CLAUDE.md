@@ -791,12 +791,52 @@ For ActivityPub federated posts and thumbnails:
 - [ ] Active route highlighting in navigation
 - [ ] Global error boundary/handler
 
-### Phase 3: Advanced Analytics
-- [ ] Personal records tracking
-- [ ] Training load and recovery metrics
-- [ ] Achievement/badge system
-- [ ] Weekly/monthly summaries
-- [ ] Route recommendations
+### Phase 3: Advanced Analytics ✅
+- [x] Personal records tracking (PersonalRecord entity, PersonalRecordRepository, PersonalRecordService)
+- [x] 10 record types (FASTEST_1K, FASTEST_5K, FASTEST_10K, FASTEST_HALF_MARATHON, FASTEST_MARATHON, LONGEST_DISTANCE, LONGEST_DURATION, HIGHEST_ELEVATION_GAIN, MAX_SPEED, BEST_AVERAGE_PACE)
+- [x] Automatic PR detection on activity save
+- [x] Split time calculations for distance PRs
+- [x] Previous value tracking and improvement calculations
+- [x] Training load and recovery metrics (TrainingLoad entity, TrainingLoadRepository, TrainingLoadService)
+- [x] Training Stress Score (TSS) calculation based on duration, distance, and elevation
+- [x] Acute Training Load (ATL) - 7-day rolling average (fatigue)
+- [x] Chronic Training Load (CTL) - 28-day rolling average (fitness)
+- [x] Training Stress Balance (TSB) - CTL - ATL (freshness)
+- [x] Form status calculation (FRESH, OPTIMAL, FATIGUED, UNKNOWN)
+- [x] Achievement/badge system (Achievement entity, AchievementRepository, AchievementService)
+- [x] 25+ achievement types with badge icons and colors
+- [x] First activity achievements (by type)
+- [x] Distance milestones (10K, 50K, 100K, 250K, 500K, 1000K)
+- [x] Activity count milestones (10, 50, 100, 250, 500, 1000 activities)
+- [x] Streak achievements (7, 30, 100 days)
+- [x] Time-based achievements (early bird, night owl)
+- [x] Elevation achievements (mountaineer 1000m, 5000m, 10000m)
+- [x] Variety achievements (trying multiple activity types)
+- [x] Speed achievements (speed demon 40+ km/h)
+- [x] Weekly/monthly/yearly summaries (ActivitySummary entity, ActivitySummaryRepository, ActivitySummaryService)
+- [x] Period-based aggregations (weekly, monthly, yearly)
+- [x] Activity type breakdown per period
+- [x] Total metrics (distance, duration, elevation gain)
+- [x] Average and max speed tracking
+- [x] PRs and achievements counts per period
+- [x] Async summary updates
+- [x] Analytics REST API (AnalyticsController)
+- [x] GET /api/analytics/dashboard - Dashboard stats
+- [x] GET /api/analytics/personal-records - List PRs with optional activity type filter
+- [x] GET /api/analytics/achievements - List earned achievements
+- [x] GET /api/analytics/training-load - Training load data with date range
+- [x] GET /api/analytics/form-status - Current form status
+- [x] GET /api/analytics/summaries/{period} - Weekly/monthly/yearly summaries
+- [x] Analytics UI pages (AnalyticsViewController)
+- [x] Analytics dashboard (analytics/dashboard.html) with stats overview, current week/month, recent PRs and achievements
+- [x] Personal records page (analytics/personal-records.html) with activity type filters, improvement display
+- [x] Achievements page (analytics/achievements.html) with badge gallery, animations, metadata display
+- [x] Training load page (analytics/training-load.html) with form status card, Chart.js charts (TSS bar chart, ATL vs CTL line chart, TSB line chart with color zones)
+- [x] Summaries page (analytics/summaries.html) with weekly/monthly/yearly tabs, summary cards, type breakdown
+- [x] Analytics link in navigation (authenticated users only)
+- [x] Database migration V10__create_analytics_tables.sql
+- [x] Integration with FitFileService (auto-update analytics on activity save)
+- [x] Security configuration updated (analytics routes and API endpoints)
 - [ ] Weather data integration
 
 ### Phase 4: Enhanced Federation

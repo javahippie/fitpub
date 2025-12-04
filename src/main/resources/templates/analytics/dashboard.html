@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
     <title>Analytics Dashboard - FitPub</title>
 </head>
 <body>
-<div th:fragment="content">
+<div layout:fragment="content">
     <div class="container py-4">
         <h1 class="mb-4">
             <i class="bi bi-graph-up"></i> Analytics Dashboard
