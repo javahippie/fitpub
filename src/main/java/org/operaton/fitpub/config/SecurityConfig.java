@@ -60,6 +60,7 @@ public class SecurityConfig {
                 .requestMatchers("/profile", "/profile/**", "/settings").permitAll() // Auth checked client-side
                 .requestMatchers("/discover").permitAll() // User discovery page
                 .requestMatchers("/notifications").permitAll() // Auth checked client-side
+                .requestMatchers("/analytics", "/analytics/**").permitAll() // Auth checked client-side
 
                 // Public endpoints - ActivityPub federation
                 .requestMatchers("/.well-known/**").permitAll()
@@ -100,6 +101,9 @@ public class SecurityConfig {
 
                 // Protected endpoints - Notifications API
                 .requestMatchers("/api/notifications/**").authenticated()
+
+                // Protected endpoints - Analytics API
+                .requestMatchers("/api/analytics/**").authenticated()
 
                 // Protected endpoints - Activities API (upload, edit, delete)
                 .requestMatchers(HttpMethod.POST, "/api/activities/upload").authenticated()
