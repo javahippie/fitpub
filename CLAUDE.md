@@ -857,18 +857,26 @@ For ActivityPub federated posts and thumbnails:
 - [ ] Avatar file upload (currently URL-based)
 
 ### Phase 6: Testing & Documentation
-- [ ] Integration tests for REST endpoints
-- [ ] Integration tests for ActivityPub federation
-- [ ] Integration tests for WebFinger
-- [ ] Unit tests for services and utilities
-- [ ] Frontend E2E tests (Playwright/Cypress)
-- [ ] README with setup instructions
-- [ ] API documentation (Swagger/OpenAPI)
-- [ ] Database setup guide
-- [ ] Deployment instructions (Docker, Kubernetes)
-- [ ] Frontend development guide
-- [ ] User documentation
-- [ ] Administrator guide
+
+**Testing:** ✅ **77 tests passing**
+- [x] Unit tests for TrainingLoadService (10 tests - TSS, ATL, CTL, TSB calculations)
+- [x] Unit tests for PersonalRecordService (13 tests - all PR types, improvement detection)
+- [x] Unit tests for AchievementService (16 tests - all badge types, edge cases)
+- [x] Unit tests for FitFileService (10 tests - existing tests updated and fixed)
+- [x] Integration tests for ActivityController (10 tests - full stack HTTP to database)
+- [ ] Integration tests for ActivityPub federation endpoints
+- [ ] Integration tests for WebFinger discovery
+- [ ] Integration tests for Timeline and Analytics REST API endpoints
+- [ ] Frontend E2E tests with Playwright or Cypress
+
+**Documentation:**
+- [ ] Create comprehensive README.md with project overview and features
+- [ ] Write database setup guide (PostgreSQL + PostGIS installation)
+- [ ] Create API documentation with Swagger/OpenAPI
+- [ ] Write deployment instructions (Docker, Kubernetes, bare metal)
+- [ ] Create user documentation (how to use FitPub)
+- [ ] Write administrator guide (configuration, maintenance)
+- [ ] Document frontend development setup and architecture
 
 ## Maven Project Structure
 

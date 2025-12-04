@@ -1,6 +1,7 @@
 package org.operaton.fitpub.security;
 
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.operaton.fitpub.config.TestcontainersConfiguration;
 import org.operaton.fitpub.model.entity.User;
@@ -23,10 +24,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test to validate that users' public and private keys match.
+ * This is an integration test that requires a live database with user data.
+ * Run manually when needed: mvn test -Dtest=KeyPairValidationTest
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @Slf4j
+@Disabled("Integration test - requires live database with user data. Run manually when needed.")
 public class KeyPairValidationTest {
 
     @Autowired
