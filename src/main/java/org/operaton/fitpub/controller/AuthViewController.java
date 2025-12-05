@@ -15,6 +15,11 @@ public class AuthViewController {
         return "auth/login";
     }
 
+    @GetMapping("/register")
+    public String register() {
+        return "auth/register";
+    }
+
     @PostMapping("/logout")
     public String logout() {
         // Logout is handled client-side (removing JWT token)

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+
+<head>
+    <title>Register - FitPub</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-body p-5">
+                        <h2 class="text-center mb-4">
+                            <i class="bi bi-person-plus text-primary"></i>
+                            Create Account
+                        </h2>
+
+                        <p class="text-muted text-center mb-4">
+                            Join FitPub and start tracking your fitness journey
+                        </p>
+
+                        <!-- Registration Form -->
+                        <form id="registerForm">
+                            <!-- Error Alert -->
+                            <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span id="errorMessage"></span>
+                            </div>
+
+                            <!-- Success Alert -->
+                            <div id="successAlert" class="alert alert-success d-none" role="alert">
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span id="successMessage"></span>
+                            </div>
+
+                            <!-- Username -->
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    Username <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="username"
+                                       name="username"
+                                       placeholder="Choose a unique username"
+                                       required
+                                       pattern="[a-zA-Z0-9_]{3,30}"
+                                       autocomplete="username">
+                                <div class="form-text">
+                                    3-30 characters, letters, numbers and underscores only
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please enter a valid username (3-30 characters, alphanumeric and underscores).
+                                </div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    Email <span class="text-danger">*</span>
+                                </label>
+                                <input type="email"
+                                       class="form-control"
+                                       id="email"
+                                       name="email"
+                                       placeholder="your.email@example.com"
+                                       required
+                                       autocomplete="email">
+                                <div class="invalid-feedback">
+                                    Please enter a valid email address.
+                                </div>
+                            </div>
+
+                            <!-- Display Name -->
+                            <div class="mb-3">
+                                <label for="displayName" class="form-label">
+                                    Display Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="displayName"
+                                       name="displayName"
+                                       placeholder="Your full name"
+                                       required
+                                       maxlength="100">
+                                <div class="form-text">
+                                    This is how your name will appear to others
+                                </div>
+                                <div class="invalid-feedback">
+                                    Please enter your display name.
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    Password <span class="text-danger">*</span>
+                                </label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="password"
+                                       name="password"
+                                       placeholder="Enter a strong password"
+                                       required
+                                       minlength="8"
+                                       autocomplete="new-password">
+                                <div class="form-text">
+                                    At least 8 characters
+                                </div>
+                                <div class="invalid-feedback">
+                                    Password must be at least 8 characters long.
+                                </div>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div class="mb-4">
+                                <label for="confirmPassword" class="form-label">
+                                    Confirm Password <span class="text-danger">*</span>
+                                </label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="confirmPassword"
+                                       name="confirmPassword"
+                                       placeholder="Re-enter your password"
+                                       required
+                                       autocomplete="new-password">
+                                <div class="invalid-feedback" id="confirmPasswordFeedback">
+                                    Please confirm your password.
+                                </div>
+                            </div>
+
+                            <!-- Terms and Conditions -->
+                            <div class="mb-3 form-check">
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       id="acceptTerms"
+                                       name="acceptTerms"
+                                       required>
+                                <label class="form-check-label" for="acceptTerms">
+                                    I agree to the <a href="#" class="text-decoration-none">Terms of Service</a>
+                                    and <a href="#" class="text-decoration-none">Privacy Policy</a>
+                                </label>
+                                <div class="invalid-feedback">
+                                    You must agree to the terms before registering.
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
+                                    <span id="registerBtnText">
+                                        <i class="bi bi-person-plus"></i> Create Account
+                                    </span>
+                                    <span id="registerBtnSpinner" class="d-none">
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        Creating account...
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Divider -->
+                        <div class="text-center my-3">
+                            <hr>
+                        </div>
+
+                        <!-- Login Link -->
+                        <div class="text-center">
+                            <p class="text-muted mb-0">
+                                Already have an account?
+                                <a th:href="@{/login}" class="text-decoration-none fw-bold">Sign in</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="card border-0 bg-light mt-4">
+                    <div class="card-body">
+                        <h6><i class="bi bi-info-circle text-primary"></i> Why Join FitPub?</h6>
+                        <ul class="text-muted small mb-0">
+                            <li>Track your fitness activities with GPS</li>
+                            <li>Share your progress with the Fediverse</li>
+                            <li>Earn achievements and personal records</li>
+                            <li>Own your data - it's yours, not ours</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Scripts -->
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('registerForm');
+                const registerBtn = document.getElementById('registerBtn');
+                const registerBtnText = document.getElementById('registerBtnText');
+                const registerBtnSpinner = document.getElementById('registerBtnSpinner');
+                const errorAlert = document.getElementById('errorAlert');
+                const errorMessage = document.getElementById('errorMessage');
+                const successAlert = document.getElementById('successAlert');
+                const successMessage = document.getElementById('successMessage');
+                const password = document.getElementById('password');
+                const confirmPassword = document.getElementById('confirmPassword');
+                const confirmPasswordFeedback = document.getElementById('confirmPasswordFeedback');
+
+                // Password confirmation validation
+                confirmPassword.addEventListener('input', function() {
+                    if (password.value !== confirmPassword.value) {
+                        confirmPassword.setCustomValidity('Passwords do not match');
+                        confirmPasswordFeedback.textContent = 'Passwords do not match.';
+                    } else {
+                        confirmPassword.setCustomValidity('');
+                        confirmPasswordFeedback.textContent = 'Please confirm your password.';
+                    }
+                });
+
+                // Form submission
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    // Validate form
+                    if (!form.checkValidity()) {
+                        form.classList.add('was-validated');
+                        return;
+                    }
+
+                    // Check password match
+                    if (password.value !== confirmPassword.value) {
+                        errorMessage.textContent = 'Passwords do not match.';
+                        errorAlert.classList.remove('d-none');
+                        return;
+                    }
+
+                    // Hide alerts
+                    errorAlert.classList.add('d-none');
+                    successAlert.classList.add('d-none');
+
+                    // Show loading state
+                    registerBtn.disabled = true;
+                    registerBtnText.classList.add('d-none');
+                    registerBtnSpinner.classList.remove('d-none');
+
+                    // Prepare request data
+                    const formData = {
+                        username: document.getElementById('username').value,
+                        email: document.getElementById('email').value,
+                        displayName: document.getElementById('displayName').value,
+                        password: password.value
+                    };
+
+                    try {
+                        const response = await fetch('/api/auth/register', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData)
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            // Show success message
+                            successMessage.textContent = 'Account created successfully! Redirecting to login...';
+                            successAlert.classList.remove('d-none');
+
+                            // Store JWT token and redirect
+                            localStorage.setItem('jwtToken', data.token);
+                            localStorage.setItem('username', data.username);
+
+                            // Redirect after 1.5 seconds
+                            setTimeout(() => {
+                                window.location.href = '/activities';
+                            }, 1500);
+                        } else {
+                            // Show error message
+                            errorMessage.textContent = data.message || 'Registration failed. Please try again.';
+                            errorAlert.classList.remove('d-none');
+
+                            // Reset button state
+                            registerBtn.disabled = false;
+                            registerBtnText.classList.remove('d-none');
+                            registerBtnSpinner.classList.add('d-none');
+                        }
+                    } catch (error) {
+                        console.error('Registration error:', error);
+                        errorMessage.textContent = 'An unexpected error occurred. Please try again.';
+                        errorAlert.classList.remove('d-none');
+
+                        // Reset button state
+                        registerBtn.disabled = false;
+                        registerBtnText.classList.remove('d-none');
+                        registerBtnSpinner.classList.add('d-none');
+                    }
+                });
+            });
+        </script>
+    </th:block>
+</body>
+</html>
