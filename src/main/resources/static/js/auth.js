@@ -288,7 +288,7 @@ const FitPubAuth = {
      */
     checkAuthStatus: function() {
         const currentPath = window.location.pathname;
-        const publicPaths = ['/', '/login', '/timeline'];
+        const publicPaths = ['/', '/login', '/register', '/timeline'];
 
         // Skip check for public paths
         if (publicPaths.includes(currentPath)) {
