@@ -2,10 +2,12 @@ package org.operaton.fitpub.security;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.operaton.fitpub.config.TestcontainersConfiguration;
 import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -23,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test to validate that users' public and private keys match.
  */
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
 @Slf4j
 public class KeyPairValidationTest {
 

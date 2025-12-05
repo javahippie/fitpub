@@ -29,13 +29,13 @@
 
         <!-- Period Selector -->
         <div class="btn-group mb-4 w-100" role="group">
-            <button type="button" class="btn btn-outline-primary active" onclick="loadTrainingLoad(30)">
+            <button type="button" class="btn btn-outline-primary active" onclick="loadTrainingLoad(event, 30)">
                 Last 30 Days
             </button>
-            <button type="button" class="btn btn-outline-primary" onclick="loadTrainingLoad(60)">
+            <button type="button" class="btn btn-outline-primary" onclick="loadTrainingLoad(event, 60)">
                 Last 60 Days
             </button>
-            <button type="button" class="btn btn-outline-primary" onclick="loadTrainingLoad(90)">
+            <button type="button" class="btn btn-outline-primary" onclick="loadTrainingLoad(event, 90)">
                 Last 90 Days
             </button>
         </div>
@@ -123,11 +123,13 @@
             card.style.backgroundColor = config.bgColor;
         }
 
-        async function loadTrainingLoad(days = 30) {
+        async function loadTrainingLoad(event, days = 30) {
             try {
-                // Update active button
-                document.querySelectorAll('.btn-group button').forEach(btn => btn.classList.remove('active'));
-                event.target.classList.add('active');
+                // Update active button (only if called from a button click)
+                if (event && event.target) {
+                    document.querySelectorAll('.btn-group button').forEach(btn => btn.classList.remove('active'));
+                    event.target.classList.add('active');
+                }
 
                 document.getElementById('loading-spinner').style.display = 'block';
                 document.getElementById('charts-content').style.display = 'none';
@@ -301,7 +303,7 @@
                 return;
             }
             loadFormStatus();
-            loadTrainingLoad(30);
+            loadTrainingLoad(null, 30);
         });
     </script>
 </div>

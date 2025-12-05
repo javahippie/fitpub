@@ -68,7 +68,7 @@ public class Actor {
                 .mediaType("image/jpeg")
                 .url(user.getAvatarUrl())
                 .build() : null)
-            .url(baseUrl + "/@" + user.getUsername())
+            .url(baseUrl + "/users/" + user.getUsername())
             .build();
     }
 

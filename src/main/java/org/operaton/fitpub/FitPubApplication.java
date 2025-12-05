@@ -5,11 +5,9 @@ import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.io.HttpClientConnectionManager;
-import org.operaton.fitpub.config.TestcontainersConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.client.RestTemplate;
@@ -22,7 +20,6 @@ import org.springframework.web.client.RestTemplate;
 @SpringBootApplication
 @EnableAsync
 @Slf4j
-@Import(TestcontainersConfiguration.class)
 public class FitPubApplication {
 
     public static void main(String[] args) {

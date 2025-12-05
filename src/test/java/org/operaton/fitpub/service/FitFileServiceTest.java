@@ -55,6 +55,21 @@ class FitFileServiceTest {
     @Mock
     private ActivityMetricsRepository metricsRepository;
 
+    @Mock
+    private PersonalRecordService personalRecordService;
+
+    @Mock
+    private AchievementService achievementService;
+
+    @Mock
+    private TrainingLoadService trainingLoadService;
+
+    @Mock
+    private ActivitySummaryService activitySummaryService;
+
+    @Mock
+    private WeatherService weatherService;
+
     @Spy
     private ObjectMapper objectMapper;
 
@@ -148,7 +163,9 @@ class FitFileServiceTest {
         // Assert
         assertNotNull(result);
         assertTrue(result.getTitle().contains("Run"));
-        assertTrue(result.getTitle().contains(testParsedData.getStartTime().toLocalDate().toString()));
+        // Title format is "[Time of Day] [Activity Type]" (e.g., "Morning Run")
+        // Start time is 8:00 AM, which is "Morning"
+        assertTrue(result.getTitle().contains("Morning"));
     }
 
     @Test

@@ -266,11 +266,19 @@
 
         #activityTypeTabs .nav-link {
             cursor: pointer;
+            color: var(--dark-color) !important;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        #activityTypeTabs .nav-link:hover {
+            color: var(--primary-color) !important;
+            background-color: rgba(255, 20, 147, 0.1);
         }
 
         #activityTypeTabs .nav-link.active {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
+            color: white !important;
             border-color: var(--primary-color);
         }
     </style>

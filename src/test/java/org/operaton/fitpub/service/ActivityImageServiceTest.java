@@ -3,6 +3,7 @@ package org.operaton.fitpub.service;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.operaton.fitpub.config.TestcontainersConfiguration;
 import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.ActivityMetrics;
 import org.operaton.fitpub.model.entity.User;
@@ -11,6 +12,7 @@ import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.util.FitParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.File;
@@ -30,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "fitpub.image.osm-tiles.enabled=true"
 })
 @ActiveProfiles("test")
+@Import(TestcontainersConfiguration.class)
 class ActivityImageServiceTest {
 
     @Autowired
