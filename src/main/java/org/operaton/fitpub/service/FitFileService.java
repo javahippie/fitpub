@@ -382,25 +382,26 @@ public class FitFileService {
     /**
      * Update an existing activity's metadata.
      *
-     * @param activity the activity with updated fields
+     * @param activityId the activity ID
+     * @param userId the user ID (for authorization)
+     * @param title new title
+     * @param description new description
+     * @param visibility new visibility
      * @return the updated activity
      * @throws IllegalArgumentException if activity doesn't exist or user doesn't own it
      */
     @Transactional
-    public Activity updateActivity(Activity activity) {
-        // Verify activity exists and belongs to the user
-        Activity existing = activityRepository.findById(activity.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Activity not found: " + activity.getId()));
-
-        if (!existing.getUserId().equals(activity.getUserId())) {
-            throw new IllegalArgumentException("User does not own this activity");
-        }
+    public Activity updateActivity(UUID activityId, UUID userId, String title, String description, Activity.Visibility visibility) {
+        // Fetch the existing activity within the transaction
+        Activity existing = activityRepository.findByIdAndUserId(activityId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("Activity not found or user does not own it: " + activityId));
 
         // Update allowed fields
-        existing.setTitle(activity.getTitle());
-        existing.setDescription(activity.getDescription());
-        existing.setVisibility(activity.getVisibility());
+        existing.setTitle(title);
+        existing.setDescription(description);
+        existing.setVisibility(visibility);
 
+        // Save will UPDATE because the entity is already managed by the persistence context
         return activityRepository.save(existing);
     }
 }

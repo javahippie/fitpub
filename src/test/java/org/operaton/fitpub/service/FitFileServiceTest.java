@@ -346,6 +346,166 @@ class FitFileServiceTest {
         assertEquals(testParsedData.getTotalDuration().getSeconds(), savedActivity.getTotalDurationSeconds());
     }
 
+    @Test
+    @DisplayName("Should update existing activity without creating a new one")
+    void testUpdateActivity_Success() {
+        // Arrange
+        UUID activityId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Activity existingActivity = Activity.builder()
+            .id(activityId)
+            .userId(userId)
+            .title("Old Title")
+            .description("Old Description")
+            .visibility(Activity.Visibility.PRIVATE)
+            .activityType(Activity.ActivityType.RUN)
+            .totalDistance(BigDecimal.valueOf(5000))
+            .build();
+
+        when(activityRepository.findByIdAndUserId(activityId, userId))
+            .thenReturn(Optional.of(existingActivity));
+        when(activityRepository.save(any(Activity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Activity result = fitFileService.updateActivity(
+            activityId,
+            userId,
+            "New Title",
+            "New Description",
+            Activity.Visibility.PUBLIC
+        );
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(activityId, result.getId(), "Activity ID should remain the same (no new entity created)");
+        assertEquals("New Title", result.getTitle());
+        assertEquals("New Description", result.getDescription());
+        assertEquals(Activity.Visibility.PUBLIC, result.getVisibility());
+
+        // Verify that only the allowed fields were updated
+        assertEquals(Activity.ActivityType.RUN, result.getActivityType(), "Activity type should not change");
+        assertEquals(BigDecimal.valueOf(5000), result.getTotalDistance(), "Distance should not change");
+
+        // Verify repository interactions
+        verify(activityRepository).findByIdAndUserId(activityId, userId);
+        verify(activityRepository).save(existingActivity);
+
+        // Verify that save was called exactly once (UPDATE, not INSERT)
+        ArgumentCaptor<Activity> activityCaptor = ArgumentCaptor.forClass(Activity.class);
+        verify(activityRepository, times(1)).save(activityCaptor.capture());
+        Activity savedActivity = activityCaptor.getValue();
+        assertEquals(activityId, savedActivity.getId(), "Saved activity should have the same ID");
+    }
+
+    @Test
+    @DisplayName("Should throw exception when updating non-existent activity")
+    void testUpdateActivity_NotFound() {
+        // Arrange
+        UUID activityId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(activityRepository.findByIdAndUserId(activityId, userId))
+            .thenReturn(Optional.empty());
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> fitFileService.updateActivity(
+                activityId,
+                userId,
+                "New Title",
+                "New Description",
+                Activity.Visibility.PUBLIC
+            )
+        );
+
+        assertTrue(exception.getMessage().contains("Activity not found or user does not own it"));
+        verify(activityRepository).findByIdAndUserId(activityId, userId);
+        verify(activityRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when user does not own the activity")
+    void testUpdateActivity_WrongUser() {
+        // Arrange
+        UUID activityId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        UUID differentUserId = UUID.randomUUID();
+
+        // Repository returns empty when querying with wrong user ID
+        when(activityRepository.findByIdAndUserId(activityId, differentUserId))
+            .thenReturn(Optional.empty());
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> fitFileService.updateActivity(
+                activityId,
+                differentUserId,
+                "Hacked Title",
+                "Hacked Description",
+                Activity.Visibility.PUBLIC
+            )
+        );
+
+        assertTrue(exception.getMessage().contains("Activity not found or user does not own it"));
+        verify(activityRepository).findByIdAndUserId(activityId, differentUserId);
+        verify(activityRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should only update allowed fields (title, description, visibility)")
+    void testUpdateActivity_OnlyAllowedFields() {
+        // Arrange
+        UUID activityId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        LocalDateTime originalStartTime = LocalDateTime.of(2024, 1, 15, 8, 0);
+        BigDecimal originalDistance = BigDecimal.valueOf(10000);
+
+        Activity existingActivity = Activity.builder()
+            .id(activityId)
+            .userId(userId)
+            .title("Original Title")
+            .description("Original Description")
+            .visibility(Activity.Visibility.PRIVATE)
+            .activityType(Activity.ActivityType.RIDE)
+            .startedAt(originalStartTime)
+            .totalDistance(originalDistance)
+            .totalDurationSeconds(3600L)
+            .elevationGain(BigDecimal.valueOf(200))
+            .build();
+
+        when(activityRepository.findByIdAndUserId(activityId, userId))
+            .thenReturn(Optional.of(existingActivity));
+        when(activityRepository.save(any(Activity.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        Activity result = fitFileService.updateActivity(
+            activityId,
+            userId,
+            "Updated Title",
+            "Updated Description",
+            Activity.Visibility.PUBLIC
+        );
+
+        // Assert - verify updated fields
+        assertEquals("Updated Title", result.getTitle());
+        assertEquals("Updated Description", result.getDescription());
+        assertEquals(Activity.Visibility.PUBLIC, result.getVisibility());
+
+        // Assert - verify fields that should NOT change
+        assertEquals(activityId, result.getId());
+        assertEquals(userId, result.getUserId());
+        assertEquals(Activity.ActivityType.RIDE, result.getActivityType());
+        assertEquals(originalStartTime, result.getStartedAt());
+        assertEquals(originalDistance, result.getTotalDistance());
+        assertEquals(3600L, result.getTotalDurationSeconds());
+        assertEquals(BigDecimal.valueOf(200), result.getElevationGain());
+    }
+
     /**
      * Creates test parsed FIT data with realistic values.
      */

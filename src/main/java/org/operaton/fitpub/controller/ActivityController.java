@@ -307,20 +307,21 @@ public class ActivityController {
 
         UUID userId = getUserId(userDetails);
 
-        Activity activity = fitFileService.getActivity(id, userId);
-        if (activity == null) {
+        try {
+            Activity updated = fitFileService.updateActivity(
+                id,
+                userId,
+                request.getTitle(),
+                request.getDescription(),
+                request.getVisibility()
+            );
+
+            ActivityDTO dto = ActivityDTO.fromEntity(updated);
+            return ResponseEntity.ok(dto);
+        } catch (IllegalArgumentException e) {
+            log.warn("Activity update failed: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         }
-
-        // Update fields
-        activity.setTitle(request.getTitle());
-        activity.setDescription(request.getDescription());
-        activity.setVisibility(request.getVisibility());
-
-        Activity updated = fitFileService.updateActivity(activity);
-
-        ActivityDTO dto = ActivityDTO.fromEntity(updated);
-        return ResponseEntity.ok(dto);
     }
 
     /**
