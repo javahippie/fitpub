@@ -4,16 +4,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.operaton.fitpub.model.activitypub.Actor;
 import org.operaton.fitpub.model.activitypub.OrderedCollection;
+import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.User;
+import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.UserRepository;
+import org.operaton.fitpub.service.ActivityImageService;
+import org.operaton.fitpub.util.ActivityFormatter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * ActivityPub protocol controller.
@@ -27,6 +30,8 @@ import java.util.Optional;
 public class ActivityPubController {
 
     private final UserRepository userRepository;
+    private final ActivityRepository activityRepository;
+    private final ActivityImageService activityImageService;
     private final org.operaton.fitpub.service.InboxProcessor inboxProcessor;
 
     @Value("${fitpub.base-url}")
@@ -172,5 +177,136 @@ public class ActivityPubController {
         OrderedCollection collection = OrderedCollection.empty(followingUrl);
 
         return ResponseEntity.ok(collection);
+    }
+
+    /**
+     * Activity object endpoint.
+     * Returns a single activity as an ActivityPub Note object.
+     * This is needed for quote posts and other federation features.
+     *
+     * GET /activities/{id}
+     *
+     * @param id the activity ID
+     * @return Note object in ActivityPub format
+     */
+    @GetMapping(
+        value = "/activities/{id}",
+        produces = {ACTIVITY_JSON, LD_JSON, MediaType.APPLICATION_JSON_VALUE}
+    )
+    public ResponseEntity<Map<String, Object>> getActivity(@PathVariable UUID id) {
+        log.debug("ActivityPub activity request for ID: {}", id);
+
+        Optional<Activity> activityOpt = activityRepository.findById(id);
+        if (activityOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Activity activity = activityOpt.get();
+
+        // Only return public activities via ActivityPub
+        if (activity.getVisibility() != Activity.Visibility.PUBLIC) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        // Get the user
+        Optional<User> userOpt = userRepository.findById(activity.getUserId());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        User user = userOpt.get();
+        String actorUri = baseUrl + "/users/" + user.getUsername();
+        String activityUri = baseUrl + "/activities/" + activity.getId();
+
+        // Build the Note object (same format as used in federation)
+        Map<String, Object> noteObject = new HashMap<>();
+        noteObject.put("@context", "https://www.w3.org/ns/activitystreams");
+        noteObject.put("id", activityUri);
+        noteObject.put("type", "Note");
+        noteObject.put("attributedTo", actorUri);
+        noteObject.put("published", activity.getCreatedAt().toString());
+        noteObject.put("content", formatActivityContent(activity));
+        noteObject.put("url", activityUri);
+
+        // Audience
+        noteObject.put("to", List.of("https://www.w3.org/ns/activitystreams#Public"));
+        noteObject.put("cc", List.of(actorUri + "/followers"));
+
+        // Add conversation/context for threading
+        noteObject.put("conversation", activityUri);
+
+        // Add activity image if available
+        String imageUrl = activityImageService.getActivityImageUrl(activity);
+        if (imageUrl != null) {
+            Map<String, Object> imageAttachment = new HashMap<>();
+            imageAttachment.put("type", "Image");
+            imageAttachment.put("mediaType", "image/png");
+            imageAttachment.put("url", imageUrl);
+            imageAttachment.put("name", "Activity map showing " + activity.getActivityType() + " route");
+            noteObject.put("attachment", List.of(imageAttachment));
+        }
+
+        return ResponseEntity.ok(noteObject);
+    }
+
+    /**
+     * Format activity content for ActivityPub.
+     * Uses plain text with Unicode symbols for maximum compatibility.
+     */
+    private String formatActivityContent(Activity activity) {
+        StringBuilder content = new StringBuilder();
+
+        // Title (if present)
+        if (activity.getTitle() != null && !activity.getTitle().isEmpty()) {
+            content.append(activity.getTitle()).append("\n\n");
+        }
+
+        // Description (if present)
+        if (activity.getDescription() != null && !activity.getDescription().isEmpty()) {
+            content.append(activity.getDescription()).append("\n\n");
+        }
+
+        // Activity type with emoji
+        String activityEmoji = getActivityEmoji(activity.getActivityType());
+        String formattedType = ActivityFormatter.formatActivityType(activity.getActivityType());
+        content.append(activityEmoji).append(" ").append(formattedType);
+
+        // Metrics
+        if (activity.getTotalDistance() != null) {
+            content.append("\n📏 ")
+                .append(String.format("%.2f km", activity.getTotalDistance().doubleValue() / 1000.0));
+        }
+
+        if (activity.getTotalDurationSeconds() != null) {
+            long hours = activity.getTotalDurationSeconds() / 3600;
+            long minutes = (activity.getTotalDurationSeconds() % 3600) / 60;
+            long seconds = activity.getTotalDurationSeconds() % 60;
+            content.append("\n⏱️ ");
+            if (hours > 0) {
+                content.append(hours).append("h ");
+            }
+            content.append(minutes).append("m ").append(seconds).append("s");
+        }
+
+        if (activity.getElevationGain() != null) {
+            content.append("\n⛰️ ")
+                .append(String.format("%.0f m", activity.getElevationGain().doubleValue()));
+        }
+
+        return content.toString();
+    }
+
+    /**
+     * Get emoji for activity type.
+     */
+    private String getActivityEmoji(Activity.ActivityType activityType) {
+        return switch (activityType) {
+            case RUN -> "🏃";
+            case RIDE -> "🚴";
+            case HIKE -> "🥾";
+            case WALK -> "🚶";
+            case SWIM -> "🏊";
+            default -> "💪";
+        };
     }
 }
