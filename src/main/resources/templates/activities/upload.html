@@ -227,6 +227,14 @@
                     e.preventDefault();
 
                     console.log('Form submitted');
+                    console.log('Uploaded activity ID:', uploadedActivityId);
+
+                    // If activity is already uploaded, update metadata instead
+                    if (uploadedActivityId) {
+                        await updateActivityMetadata();
+                        return;
+                    }
+
                     console.log('File input files:', fitFileInput.files);
 
                     // Validate form
@@ -257,16 +265,9 @@
                     uploadBtnText.classList.add('d-none');
                     uploadBtnSpinner.classList.remove('d-none');
 
-                    // Prepare form data
+                    // Prepare form data (file only for initial upload)
                     const formData = new FormData();
                     formData.append('file', fitFileInput.files[0]);
-
-                    // If metadata is filled, include it
-                    if (!metadataSection.classList.contains('d-none')) {
-                        formData.append('title', document.getElementById('title').value);
-                        formData.append('description', document.getElementById('description').value);
-                        formData.append('visibility', document.getElementById('visibility').value);
-                    }
 
                     try {
                         // Upload with progress tracking
@@ -397,6 +398,60 @@
                         progressContainer.classList.add('d-none');
                     }
                 });
+
+                // Update activity metadata (after initial upload)
+                async function updateActivityMetadata() {
+                    console.log('Updating metadata for activity:', uploadedActivityId);
+
+                    // Disable buttons
+                    uploadBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                    uploadBtnText.classList.add('d-none');
+                    uploadBtnSpinner.classList.remove('d-none');
+
+                    // Hide alerts
+                    errorAlert.classList.add('d-none');
+                    successAlert.classList.add('d-none');
+
+                    try {
+                        const updateData = {
+                            title: document.getElementById('title').value,
+                            description: document.getElementById('description').value,
+                            visibility: document.getElementById('visibility').value
+                        };
+
+                        const response = await FitPubAuth.authenticatedFetch(
+                            `/api/activities/${uploadedActivityId}`,
+                            {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(updateData)
+                            }
+                        );
+
+                        if (response.ok) {
+                            // Success - redirect to activity detail page
+                            FitPub.showAlert('Activity updated successfully!', 'success');
+                            setTimeout(() => {
+                                window.location.href = '/activities/' + uploadedActivityId;
+                            }, 1000);
+                        } else {
+                            throw new Error('Failed to update activity');
+                        }
+                    } catch (error) {
+                        console.error('Update error:', error);
+                        errorMessage.textContent = error.message || 'Failed to update activity. Please try again.';
+                        errorAlert.classList.remove('d-none');
+
+                        // Reset button state
+                        uploadBtn.disabled = false;
+                        cancelBtn.disabled = false;
+                        uploadBtnText.classList.remove('d-none');
+                        uploadBtnSpinner.classList.add('d-none');
+                    }
+                }
 
                 // Helper functions
                 function formatDistance(meters) {

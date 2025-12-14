@@ -62,95 +62,75 @@
                 <div class="col-12">
                     <div class="card border shadow-sm">
                         <div class="card-body">
-                            <div class="row g-3">
+                            <div class="row g-2">
                                 <!-- Distance -->
                                 <div class="col-md-3 col-6">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-signpost-2"></i> Distance
+                                    <div class="d-flex align-items-center py-2">
+                                        <i class="bi bi-signpost-2 text-primary me-2" style="font-size: 1.5rem;"></i>
+                                        <div>
+                                            <div class="text-muted small">Distance</div>
+                                            <div class="fw-bold" id="metricDistance">--</div>
                                         </div>
-                                        <div class="fw-bold fs-5" id="metricDistance">--</div>
                                     </div>
                                 </div>
                                 <!-- Duration -->
                                 <div class="col-md-3 col-6">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-clock"></i> Duration
+                                    <div class="d-flex align-items-center py-2">
+                                        <i class="bi bi-clock text-primary me-2" style="font-size: 1.5rem;"></i>
+                                        <div>
+                                            <div class="text-muted small">Duration</div>
+                                            <div class="fw-bold" id="metricDuration">--</div>
                                         </div>
-                                        <div class="fw-bold fs-5" id="metricDuration">--</div>
                                     </div>
                                 </div>
                                 <!-- Elevation Gain -->
                                 <div class="col-md-3 col-6">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-graph-up-arrow"></i> Elevation Gain
+                                    <div class="d-flex align-items-center py-2">
+                                        <i class="bi bi-graph-up-arrow text-primary me-2" style="font-size: 1.5rem;"></i>
+                                        <div>
+                                            <div class="text-muted small">Elevation</div>
+                                            <div class="fw-bold" id="metricElevationGain">--</div>
                                         </div>
-                                        <div class="fw-bold fs-5" id="metricElevationGain">--</div>
                                     </div>
                                 </div>
                                 <!-- Avg Pace -->
                                 <div class="col-md-3 col-6">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-speedometer"></i> Avg Pace
+                                    <div class="d-flex align-items-center py-2">
+                                        <i class="bi bi-speedometer text-primary me-2" style="font-size: 1.5rem;"></i>
+                                        <div>
+                                            <div class="text-muted small">Avg Pace</div>
+                                            <div class="fw-bold" id="metricPace">--</div>
                                         </div>
-                                        <div class="fw-bold fs-5" id="metricPace">--</div>
                                     </div>
                                 </div>
                                 <!-- Avg Speed -->
                                 <div class="col-md-3 col-6" id="metricAvgSpeedContainer" style="display: none;">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-speedometer2"></i> Avg Speed
+                                    <div class="d-flex align-items-center py-2">
+                                        <i class="bi bi-speedometer2 text-primary me-2" style="font-size: 1.5rem;"></i>
+                                        <div>
+                                            <div class="text-muted small">Avg Speed</div>
+                                            <div class="fw-bold" id="metricAvgSpeed">--</div>
                                         </div>
-                                        <div class="fw-bold fs-5" id="metricAvgSpeed">--</div>
-                                    </div>
-                                </div>
-                                <!-- Max Speed -->
-                                <div class="col-md-3 col-6" id="metricMaxSpeedContainer" style="display: none;">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-lightning"></i> Max Speed
-                                        </div>
-                                        <div class="fw-bold fs-5" id="metricMaxSpeed">--</div>
                                     </div>
                                 </div>
                                 <!-- Avg Heart Rate -->
                                 <div class="col-md-3 col-6" id="metricAvgHRContainer" style="display: none;">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-heart"></i> Avg Heart Rate
+                                    <div class="d-flex align-items-center py-2">
+                                        <i class="bi bi-heart text-danger me-2" style="font-size: 1.5rem;"></i>
+                                        <div>
+                                            <div class="text-muted small">Avg HR</div>
+                                            <div class="fw-bold" id="metricAvgHR">--</div>
                                         </div>
-                                        <div class="fw-bold fs-5" id="metricAvgHR">--</div>
-                                    </div>
-                                </div>
-                                <!-- Max Heart Rate -->
-                                <div class="col-md-3 col-6" id="metricMaxHRContainer" style="display: none;">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-heart-pulse-fill"></i> Max Heart Rate
-                                        </div>
-                                        <div class="fw-bold fs-5" id="metricMaxHR">--</div>
                                     </div>
                                 </div>
                                 <!-- Calories -->
                                 <div class="col-md-3 col-6" id="metricCaloriesContainer" style="display: none;">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-fire"></i> Calories
+                                    <div class="d-flex align-items-center py-2">
+                                        <i class="bi bi-fire text-orange me-2" style="font-size: 1.5rem;"></i>
+                                        <div>
+                                            <div class="text-muted small">Calories</div>
+                                            <div class="fw-bold" id="metricCalories">--</div>
                                         </div>
-                                        <div class="fw-bold fs-5" id="metricCalories">--</div>
-                                    </div>
-                                </div>
-                                <!-- Cadence -->
-                                <div class="col-md-3 col-6" id="metricCadenceContainer" style="display: none;">
-                                    <div class="metric-card">
-                                        <div class="text-muted small mb-1">
-                                            <i class="bi bi-arrow-repeat"></i> Avg Cadence
-                                        </div>
-                                        <div class="fw-bold fs-5" id="metricCadence">--</div>
                                     </div>
                                 </div>
                             </div>
@@ -511,25 +491,13 @@
                         document.getElementById('metricAvgSpeedContainer').style.display = 'block';
                         document.getElementById('metricAvgSpeed').textContent = (activity.averageSpeed * 3.6).toFixed(1) + ' km/h';
                     }
-                    if (activity.maxSpeed) {
-                        document.getElementById('metricMaxSpeedContainer').style.display = 'block';
-                        document.getElementById('metricMaxSpeed').textContent = (activity.maxSpeed * 3.6).toFixed(1) + ' km/h';
-                    }
                     if (activity.averageHeartRate) {
                         document.getElementById('metricAvgHRContainer').style.display = 'block';
                         document.getElementById('metricAvgHR').textContent = activity.averageHeartRate + ' bpm';
                     }
-                    if (activity.maxHeartRate) {
-                        document.getElementById('metricMaxHRContainer').style.display = 'block';
-                        document.getElementById('metricMaxHR').textContent = activity.maxHeartRate + ' bpm';
-                    }
                     if (activity.calories) {
                         document.getElementById('metricCaloriesContainer').style.display = 'block';
                         document.getElementById('metricCalories').textContent = activity.calories + ' kcal';
-                    }
-                    if (activity.averageCadence) {
-                        document.getElementById('metricCadenceContainer').style.display = 'block';
-                        document.getElementById('metricCadence').textContent = activity.averageCadence + ' spm';
                     }
 
                     // Render map if track data exists

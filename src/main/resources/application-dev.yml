@@ -3,10 +3,10 @@
 
 spring:
   datasource:
-    # For dev: Start PostgreSQL with: docker run -d --name fitpub-postgres -p 5432:5432 -e POSTGRES_DB=fitpub -e POSTGRES_USER=fitpub -e POSTGRES_PASSWORD=fitpub postgis/postgis:16-3.4
+    # For dev: Start PostgreSQL with: docker run -d --name fitpub-postgres -p 5432:5432 -e POSTGRES_DB=fitpub -e POSTGRES_USER=fitpub -e POSTGRES_PASSWORD=change_me_in_production postgis/postgis:16-3.4
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fitpub}
     username: ${SPRING_DATASOURCE_USERNAME:fitpub}
-    password: ${SPRING_DATASOURCE_PASSWORD:fitpub}
+    password: ${SPRING_DATASOURCE_PASSWORD:change_me_in_production}
     driver-class-name: org.postgresql.Driver
 
   jpa:

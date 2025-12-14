@@ -78,7 +78,7 @@ public class AchievementService {
 
         // First activity overall
         long totalActivities = activityRepository.countByUserId(userId);
-        if (totalActivities == 1) {
+        if (totalActivities == 1 && !hasAchievement(userId, Achievement.AchievementType.FIRST_ACTIVITY)) {
             achievements.add(awardAchievement(
                     userId,
                     Achievement.AchievementType.FIRST_ACTIVITY,
@@ -103,7 +103,7 @@ public class AchievementService {
                 default -> null;
             };
 
-            if (achievementType != null) {
+            if (achievementType != null && !hasAchievement(userId, achievementType)) {
                 achievements.add(awardAchievement(
                         userId,
                         achievementType,
