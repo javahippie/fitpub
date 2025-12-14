@@ -10,9 +10,11 @@ import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.security.JwtTokenProvider;
+import org.operaton.fitpub.config.TestcontainersConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
@@ -37,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
+@Import(TestcontainersConfiguration.class)
 class ActivityControllerIntegrationTest {
 
     @Autowired

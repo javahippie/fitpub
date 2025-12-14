@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -236,8 +237,16 @@ public class ActivityPubController {
         noteObject.put("conversation", activityUri);
 
         // Add activity image if available
-        String imageUrl = activityImageService.getActivityImageUrl(activity);
-        if (imageUrl != null) {
+        // Check if image exists, otherwise generate it
+        File imageFile = activityImageService.getActivityImageFile(activity.getId());
+        if (!imageFile.exists()) {
+            // Generate image if it doesn't exist
+            activityImageService.generateActivityImage(activity);
+        }
+
+        // Only add attachment if image was successfully generated/exists
+        if (imageFile.exists()) {
+            String imageUrl = baseUrl + "/api/activities/" + activity.getId() + "/image";
             Map<String, Object> imageAttachment = new HashMap<>();
             imageAttachment.put("type", "Image");
             imageAttachment.put("mediaType", "image/png");
