@@ -260,11 +260,19 @@
                         data: tsb,
                         borderColor: 'rgb(204, 255, 0)',
                         backgroundColor: function(context) {
+                            // Check if parsed data exists (can be undefined during legend rendering)
+                            if (!context.parsed) {
+                                return 'rgba(204, 255, 0, 0.2)';
+                            }
                             const value = context.parsed.y;
                             return value >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
                         },
                         segment: {
                             borderColor: function(context) {
+                                // Check if parsed data exists
+                                if (!context.p1 || !context.p1.parsed) {
+                                    return 'rgb(204, 255, 0)';
+                                }
                                 const value = context.p1.parsed.y;
                                 return value >= 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)';
                             }
