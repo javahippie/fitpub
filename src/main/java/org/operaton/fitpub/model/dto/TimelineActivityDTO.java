@@ -1,5 +1,6 @@
 package org.operaton.fitpub.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,6 +40,8 @@ public class TimelineActivityDTO {
     private String username;
     private String displayName;
     private String avatarUrl;
+
+    @JsonProperty("isLocal")
     private boolean isLocal;
 
     // Remote activity fields (only populated for federated activities)
