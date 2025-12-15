@@ -158,11 +158,60 @@ public class TrainingLoadService {
 
     /**
      * Get recent training load (last 30 days).
+     * Fills in missing days (rest days) with zero TSS but calculated ATL/CTL/TSB.
      */
     @Transactional(readOnly = true)
     public List<TrainingLoad> getRecentTrainingLoad(UUID userId, int days) {
         LocalDate startDate = LocalDate.now().minusDays(days - 1);
-        return trainingLoadRepository.findByUserIdSinceDate(userId, startDate);
+        LocalDate endDate = LocalDate.now();
+
+        // Get existing training load data
+        List<TrainingLoad> existingData = trainingLoadRepository.findByUserIdSinceDate(userId, startDate);
+
+        // Create a map of date -> TrainingLoad for quick lookup
+        java.util.Map<LocalDate, TrainingLoad> dataMap = new java.util.HashMap<>();
+        for (TrainingLoad tl : existingData) {
+            dataMap.put(tl.getDate(), tl);
+        }
+
+        // Fill in missing days
+        List<TrainingLoad> result = new java.util.ArrayList<>();
+        LocalDate currentDate = startDate;
+
+        while (!currentDate.isAfter(endDate)) {
+            if (dataMap.containsKey(currentDate)) {
+                // Day with activity - use existing data
+                result.add(dataMap.get(currentDate));
+            } else {
+                // Rest day - create entry with zero TSS but calculate rolling averages
+                TrainingLoad restDay = createRestDayEntry(userId, currentDate);
+                result.add(restDay);
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return result;
+    }
+
+    /**
+     * Create a TrainingLoad entry for a rest day (no activities).
+     * Calculates ATL, CTL, TSB based on previous days.
+     */
+    private TrainingLoad createRestDayEntry(UUID userId, LocalDate date) {
+        TrainingLoad restDay = TrainingLoad.builder()
+                .userId(userId)
+                .date(date)
+                .activityCount(0)
+                .totalDurationSeconds(0L)
+                .totalDistanceMeters(BigDecimal.ZERO)
+                .totalElevationGainMeters(BigDecimal.ZERO)
+                .trainingStressScore(BigDecimal.ZERO)
+                .build();
+
+        // Calculate rolling averages using existing data
+        calculateRollingAverages(restDay, userId, date);
+
+        return restDay;
     }
 
     /**
