@@ -170,8 +170,7 @@
                 return;
             }
 
-            // Reverse data to show chronologically
-            data = data.reverse();
+            // Data is already in chronological order from backend (oldest to newest)
 
             const dates = data.map(d => new Date(d.date).toLocaleDateString());
             const tss = data.map(d => d.trainingStressScore || 0);
