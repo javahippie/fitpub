@@ -29,6 +29,15 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
 
     /**
+     * Finds a user by username (case-insensitive).
+     * Used for WebFinger discovery to allow case-insensitive lookups.
+     *
+     * @param username the username
+     * @return optional user
+     */
+    Optional<User> findByUsernameIgnoreCase(String username);
+
+    /**
      * Finds a user by email.
      * Used for login and duplicate email checking.
      *

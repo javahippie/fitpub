@@ -50,8 +50,8 @@ public class WebFingerController {
             return ResponseEntity.badRequest().build();
         }
 
-        // Look up user
-        Optional<User> userOpt = userRepository.findByUsername(username);
+        // Look up user (case-insensitive)
+        Optional<User> userOpt = userRepository.findByUsernameIgnoreCase(username);
         if (userOpt.isEmpty()) {
             log.warn("User not found for WebFinger request: {}", username);
             return ResponseEntity.notFound().build();
