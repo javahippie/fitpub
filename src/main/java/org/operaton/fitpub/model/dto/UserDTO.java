@@ -32,6 +32,9 @@ public class UserDTO {
     private Long followersCount;
     private Long followingCount;
 
+    // Follow status (populated separately, indicates if the current user is following this user)
+    private Boolean isFollowing;
+
     /**
      * Creates a DTO from a User entity.
      * Note: email should only be included when user is viewing their own profile.

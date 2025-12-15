@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -270,5 +272,160 @@ public class UserController {
 
         log.debug("Found {} following for user {}", actorDTOs.size(), username);
         return ResponseEntity.ok(actorDTOs);
+    }
+
+    /**
+     * Follow a user.
+     *
+     * @param username the username to follow
+     * @param userDetails the authenticated user
+     * @return success response
+     */
+    @PostMapping("/{username}/follow")
+    public ResponseEntity<Map<String, Object>> followUser(
+        @PathVariable String username,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.info("User {} attempting to follow {}", userDetails.getUsername(), username);
+
+        // Get the current user
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+            .orElseThrow(() -> new UsernameNotFoundException("Current user not found"));
+
+        // Get the user to follow
+        User userToFollow = userRepository.findByUsername(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        // Cannot follow yourself
+        if (currentUser.getId().equals(userToFollow.getId())) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Cannot follow yourself"));
+        }
+
+        String followingActorUri = userToFollow.getActorUri(baseUrl);
+
+        // Check if already following
+        Optional<Follow> existingFollow = followRepository.findByFollowerIdAndFollowingActorUri(
+            currentUser.getId(), followingActorUri
+        );
+
+        if (existingFollow.isPresent()) {
+            if (existingFollow.get().getStatus() == Follow.FollowStatus.ACCEPTED) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Already following this user"));
+            } else {
+                // Update existing pending follow to accepted
+                Follow follow = existingFollow.get();
+                follow.setStatus(Follow.FollowStatus.ACCEPTED);
+                followRepository.save(follow);
+                log.info("Updated pending follow to accepted: {} -> {}", currentUser.getUsername(), username);
+            }
+        } else {
+            // Create new follow relationship
+            String activityId = baseUrl + "/activities/follow/" + UUID.randomUUID();
+            Follow follow = Follow.builder()
+                .followerId(currentUser.getId())
+                .followingActorUri(followingActorUri)
+                .status(Follow.FollowStatus.ACCEPTED) // Auto-accept for local-to-local follows
+                .activityId(activityId)
+                .build();
+            followRepository.save(follow);
+            log.info("Created new follow: {} -> {}", currentUser.getUsername(), username);
+        }
+
+        // Get updated follower count
+        long followersCount = followRepository.countAcceptedFollowersByActorUri(followingActorUri);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Successfully followed " + username,
+            "followersCount", followersCount
+        ));
+    }
+
+    /**
+     * Unfollow a user.
+     *
+     * @param username the username to unfollow
+     * @param userDetails the authenticated user
+     * @return success response
+     */
+    @DeleteMapping("/{username}/follow")
+    public ResponseEntity<Map<String, Object>> unfollowUser(
+        @PathVariable String username,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.info("User {} attempting to unfollow {}", userDetails.getUsername(), username);
+
+        // Get the current user
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+            .orElseThrow(() -> new UsernameNotFoundException("Current user not found"));
+
+        // Get the user to unfollow
+        User userToUnfollow = userRepository.findByUsername(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        String followingActorUri = userToUnfollow.getActorUri(baseUrl);
+
+        // Find the follow relationship
+        Optional<Follow> follow = followRepository.findByFollowerIdAndFollowingActorUri(
+            currentUser.getId(), followingActorUri
+        );
+
+        if (follow.isEmpty()) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Not following this user"));
+        }
+
+        // Delete the follow relationship
+        followRepository.delete(follow.get());
+        log.info("Deleted follow: {} -> {}", currentUser.getUsername(), username);
+
+        // Get updated follower count
+        long followersCount = followRepository.countAcceptedFollowersByActorUri(followingActorUri);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Successfully unfollowed " + username,
+            "followersCount", followersCount
+        ));
+    }
+
+    /**
+     * Check if the current user is following a specific user.
+     *
+     * @param username the username to check
+     * @param userDetails the authenticated user
+     * @return follow status
+     */
+    @GetMapping("/{username}/follow-status")
+    public ResponseEntity<Map<String, Boolean>> getFollowStatus(
+        @PathVariable String username,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        if (userDetails == null) {
+            return ResponseEntity.ok(Map.of("isFollowing", false));
+        }
+
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+            .orElse(null);
+
+        if (currentUser == null) {
+            return ResponseEntity.ok(Map.of("isFollowing", false));
+        }
+
+        User targetUser = userRepository.findByUsername(username)
+            .orElse(null);
+
+        if (targetUser == null) {
+            return ResponseEntity.ok(Map.of("isFollowing", false));
+        }
+
+        String followingActorUri = targetUser.getActorUri(baseUrl);
+        Optional<Follow> follow = followRepository.findByFollowerIdAndFollowingActorUri(
+            currentUser.getId(), followingActorUri
+        );
+
+        boolean isFollowing = follow.isPresent() && follow.get().getStatus() == Follow.FollowStatus.ACCEPTED;
+
+        return ResponseEntity.ok(Map.of("isFollowing", isFollowing));
     }
 }

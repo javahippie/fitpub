@@ -50,7 +50,8 @@
                                 </div>
                                 <div id="followButtonContainer" class="d-none">
                                     <button class="btn btn-primary" id="followBtn">
-                                        <i class="bi bi-person-plus"></i> Follow
+                                        <span id="followBtnIcon"><i class="bi bi-person-plus"></i></span>
+                                        <span id="followBtnText">Follow</span>
                                     </button>
                                 </div>
                             </div>
@@ -196,7 +197,103 @@
                     document.getElementById('joinedDate').textContent = joinedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
                     // Show follow button if viewing another user's profile
-                    // TODO: implement follow functionality
+                    checkAndShowFollowButton();
+                }
+
+                async function checkAndShowFollowButton() {
+                    // Check if user is authenticated
+                    if (!FitPubAuth.isAuthenticated()) {
+                        return;
+                    }
+
+                    // Get current user's username
+                    const currentUsername = FitPubAuth.getUsername();
+
+                    // If viewing own profile, don't show follow button
+                    if (!currentUsername || currentUsername === targetUsername) {
+                        return;
+                    }
+
+                    // Show the follow button container
+                    document.getElementById('followButtonContainer').classList.remove('d-none');
+
+                    // Add click event listener to follow button
+                    const followBtn = document.getElementById('followBtn');
+                    followBtn.addEventListener('click', handleFollowToggle);
+
+                    // Check follow status
+                    await updateFollowButtonState();
+                }
+
+                async function updateFollowButtonState() {
+                    try {
+                        const response = await fetch(`/api/users/${targetUsername}/follow-status`, {
+                            headers: {
+                                'Authorization': 'Bearer ' + localStorage.getItem('token')
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            const isFollowing = data.isFollowing;
+
+                            const followBtn = document.getElementById('followBtn');
+                            const followBtnIcon = document.getElementById('followBtnIcon');
+                            const followBtnText = document.getElementById('followBtnText');
+
+                            if (isFollowing) {
+                                followBtn.className = 'btn btn-outline-danger';
+                                followBtnIcon.innerHTML = '<i class="bi bi-person-dash"></i>';
+                                followBtnText.textContent = 'Unfollow';
+                                followBtn.dataset.following = 'true';
+                            } else {
+                                followBtn.className = 'btn btn-primary';
+                                followBtnIcon.innerHTML = '<i class="bi bi-person-plus"></i>';
+                                followBtnText.textContent = 'Follow';
+                                followBtn.dataset.following = 'false';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error checking follow status:', error);
+                    }
+                }
+
+                async function handleFollowToggle() {
+                    const followBtn = document.getElementById('followBtn');
+                    const isFollowing = followBtn.dataset.following === 'true';
+
+                    // Disable button during request
+                    followBtn.disabled = true;
+
+                    try {
+                        const method = isFollowing ? 'DELETE' : 'POST';
+                        const response = await FitPubAuth.authenticatedFetch(`/api/users/${targetUsername}/follow`, {
+                            method: method
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+
+                            // Update follower count
+                            if (data.followersCount !== undefined) {
+                                document.getElementById('followersCount').textContent = data.followersCount;
+                            }
+
+                            // Update button state
+                            await updateFollowButtonState();
+
+                            // Show success message
+                            FitPub.showAlert(data.message, 'success');
+                        } else {
+                            const errorData = await response.json();
+                            FitPub.showAlert(errorData.error || 'Failed to update follow status', 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Error toggling follow:', error);
+                        FitPub.showAlert('An error occurred. Please try again.', 'danger');
+                    } finally {
+                        followBtn.disabled = false;
+                    }
                 }
 
                 let currentPage = 0;
