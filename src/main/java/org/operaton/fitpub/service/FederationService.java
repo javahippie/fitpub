@@ -120,6 +120,53 @@ public class FederationService {
     }
 
     /**
+     * Send a Follow activity to a remote actor.
+     *
+     * @param remoteActorUri the URI of the remote actor to follow
+     * @param localUser the local user initiating the follow
+     */
+    @Transactional
+    public void sendFollowActivity(String remoteActorUri, User localUser) {
+        try {
+            log.info("Sending Follow activity from {} to {}", localUser.getUsername(), remoteActorUri);
+
+            // 1. Fetch remote actor to get inbox URL and cache their info
+            RemoteActor remoteActor = fetchRemoteActor(remoteActorUri);
+
+            // 2. Create Follow activity
+            String followId = baseUrl + "/activities/follow/" + UUID.randomUUID();
+            String actorUri = baseUrl + "/users/" + localUser.getUsername();
+
+            Map<String, Object> followActivity = new HashMap<>();
+            followActivity.put("@context", "https://www.w3.org/ns/activitystreams");
+            followActivity.put("type", "Follow");
+            followActivity.put("id", followId);
+            followActivity.put("actor", actorUri);
+            followActivity.put("object", remoteActorUri);
+            followActivity.put("published", Instant.now().toString());
+
+            // 3. Send to remote actor's inbox (HTTP-signed)
+            sendActivity(remoteActor.getInboxUrl(), followActivity, localUser);
+
+            // 4. Create local follow record with PENDING status
+            // The status will be updated to ACCEPTED when we receive an Accept activity
+            Follow follow = Follow.builder()
+                .followerId(localUser.getId())
+                .followingActorUri(remoteActorUri)
+                .status(Follow.FollowStatus.PENDING)
+                .activityId(followId)
+                .build();
+            followRepository.save(follow);
+
+            log.info("Follow activity sent successfully: {} -> {}", localUser.getUsername(), remoteActorUri);
+
+        } catch (Exception e) {
+            log.error("Failed to send Follow activity from {} to {}", localUser.getUsername(), remoteActorUri, e);
+            throw new RuntimeException("Failed to send Follow activity", e);
+        }
+    }
+
+    /**
      * Send an Accept activity in response to a Follow.
      *
      * @param follow the follow relationship

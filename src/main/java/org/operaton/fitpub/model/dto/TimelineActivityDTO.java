@@ -5,8 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.operaton.fitpub.model.entity.Activity;
+import org.operaton.fitpub.model.entity.RemoteActivity;
+import org.operaton.fitpub.model.entity.RemoteActor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 /**
@@ -38,6 +41,10 @@ public class TimelineActivityDTO {
     private String avatarUrl;
     private boolean isLocal;
 
+    // Remote activity fields (only populated for federated activities)
+    private String activityUri;  // Full ActivityPub URI (for remote activities)
+    private String mapImageUrl;  // Map image URL (for remote activities)
+
     // Social interaction counts
     private Long likesCount;
     private Long commentsCount;
@@ -68,6 +75,45 @@ public class TimelineActivityDTO {
             .avatarUrl(avatarUrl)
             .isLocal(true)
             .metrics(activity.getMetrics() != null ? ActivityMetricsSummary.fromMetrics(activity.getMetrics()) : null)
+            .build();
+    }
+
+    /**
+     * Convert RemoteActivity entity to timeline DTO.
+     * Used for displaying federated activities from other FitPub instances.
+     */
+    public static TimelineActivityDTO fromRemoteActivity(RemoteActivity remote, RemoteActor actor) {
+        // Create metrics summary from remote activity fields
+        ActivityMetricsSummary metrics = ActivityMetricsSummary.builder()
+            .averageHeartRate(remote.getAverageHeartRate())
+            .averageSpeed(remote.getAverageSpeed())
+            .maxSpeed(remote.getMaxSpeed())
+            .averagePaceSeconds(remote.getAveragePaceSeconds())
+            .calories(remote.getCalories())
+            .build();
+
+        return TimelineActivityDTO.builder()
+            .id(remote.getId())
+            .activityType(remote.getActivityType() != null ? remote.getActivityType() : "UNKNOWN")
+            .title(remote.getTitle())
+            .description(remote.getDescription())
+            .startedAt(remote.getPublishedAt() != null
+                ? LocalDateTime.ofInstant(remote.getPublishedAt(), ZoneId.systemDefault())
+                : null)
+            .endedAt(null) // Not available for remote activities
+            .totalDistance(remote.getTotalDistance() != null ? remote.getTotalDistance().doubleValue() : null)
+            .totalDurationSeconds(remote.getTotalDurationSeconds())
+            .elevationGain(remote.getElevationGain() != null ? remote.getElevationGain().doubleValue() : null)
+            .elevationLoss(null) // Not available for remote activities
+            .visibility(remote.getVisibility() != null ? remote.getVisibility().name() : "PUBLIC")
+            .createdAt(remote.getCreatedAt())
+            .username(actor.getUsername())
+            .displayName(actor.getDisplayName() != null ? actor.getDisplayName() : actor.getUsername())
+            .avatarUrl(actor.getAvatarUrl())
+            .isLocal(false)
+            .activityUri(remote.getActivityUri())
+            .mapImageUrl(remote.getMapImageUrl())
+            .metrics(metrics)
             .build();
     }
 

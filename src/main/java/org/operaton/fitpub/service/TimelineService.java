@@ -5,21 +5,28 @@ import lombok.extern.slf4j.Slf4j;
 import org.operaton.fitpub.model.dto.TimelineActivityDTO;
 import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.Follow;
+import org.operaton.fitpub.model.entity.RemoteActivity;
+import org.operaton.fitpub.model.entity.RemoteActor;
 import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.FollowRepository;
+import org.operaton.fitpub.repository.RemoteActivityRepository;
+import org.operaton.fitpub.repository.RemoteActorRepository;
 import org.operaton.fitpub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Service for managing timelines.
@@ -33,6 +40,8 @@ public class TimelineService {
     private final ActivityRepository activityRepository;
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final RemoteActivityRepository remoteActivityRepository;
+    private final RemoteActorRepository remoteActorRepository;
     private final org.operaton.fitpub.repository.LikeRepository likeRepository;
     private final org.operaton.fitpub.repository.CommentRepository commentRepository;
 
@@ -43,7 +52,8 @@ public class TimelineService {
      * Get the federated timeline for a user.
      * Includes public activities from:
      * - The user's own activities
-     * - Activities from users they follow (local users only for now)
+     * - Activities from local users they follow
+     * - Activities from remote users they follow (federated)
      *
      * @param userId the authenticated user's ID
      * @param pageable pagination parameters
@@ -56,44 +66,57 @@ public class TimelineService {
         User currentUser = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        // Get list of user IDs that the current user follows
+        // 1. Get followed remote actor URIs
+        List<String> remoteActorUris = getFollowedRemoteActorUris(userId);
+
+        // 2. Get followed local user IDs
         List<UUID> followedUserIds = getFollowedLocalUserIds(userId);
+        followedUserIds.add(userId); // Include the current user's own activities
 
-        // Include the current user's own activities
-        followedUserIds.add(userId);
-
-        // Fetch public and followers-only activities from followed users
-        Page<Activity> activities = activityRepository.findByUserIdInAndVisibilityInOrderByStartedAtDesc(
+        // 3. Fetch local activities from followed users (fetch more to account for merging)
+        // We fetch double the page size to have enough items after merging
+        Pageable expandedPageable = PageRequest.of(0, pageable.getPageSize() * 2);
+        Page<Activity> localActivities = activityRepository.findByUserIdInAndVisibilityInOrderByStartedAtDesc(
             followedUserIds,
             List.of(Activity.Visibility.PUBLIC, Activity.Visibility.FOLLOWERS),
-            pageable
+            expandedPageable
         );
 
-        // Convert to DTOs
-        List<TimelineActivityDTO> timelineActivities = activities.getContent().stream()
-            .map(activity -> {
-                User activityUser = userRepository.findById(activity.getUserId()).orElse(null);
-                if (activityUser == null) {
-                    return null;
-                }
-                TimelineActivityDTO dto = TimelineActivityDTO.fromActivity(
-                    activity,
-                    activityUser.getUsername(),
-                    activityUser.getDisplayName() != null ? activityUser.getDisplayName() : activityUser.getUsername(),
-                    activityUser.getAvatarUrl()
-                );
+        // 4. Fetch remote activities from followed remote actors (if any)
+        List<RemoteActivity> remoteActivities = new ArrayList<>();
+        if (!remoteActorUris.isEmpty()) {
+            Page<RemoteActivity> remoteActivitiesPage = remoteActivityRepository.findByRemoteActorUriInAndVisibilityIn(
+                remoteActorUris,
+                List.of(RemoteActivity.Visibility.PUBLIC, RemoteActivity.Visibility.FOLLOWERS),
+                expandedPageable
+            );
+            remoteActivities = remoteActivitiesPage.getContent();
+        }
 
-                // Add social interaction counts
-                dto.setLikesCount(likeRepository.countByActivityId(activity.getId()));
-                dto.setCommentsCount(commentRepository.countByActivityIdAndNotDeleted(activity.getId()));
-                dto.setLikedByCurrentUser(likeRepository.existsByActivityIdAndUserId(activity.getId(), userId));
+        // 5. Merge local and remote activities
+        List<TimelineActivityDTO> mergedActivities = mergeActivities(
+            localActivities.getContent(),
+            remoteActivities,
+            userId
+        );
 
-                return dto;
-            })
-            .filter(dto -> dto != null)
-            .collect(Collectors.toList());
+        // 6. Sort chronologically (most recent first) and paginate
+        mergedActivities.sort((a, b) -> {
+            if (a.getStartedAt() == null && b.getStartedAt() == null) return 0;
+            if (a.getStartedAt() == null) return 1;
+            if (b.getStartedAt() == null) return -1;
+            return b.getStartedAt().compareTo(a.getStartedAt());
+        });
 
-        return new PageImpl<>(timelineActivities, pageable, activities.getTotalElements());
+        // Apply pagination to the merged list
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), mergedActivities.size());
+        List<TimelineActivityDTO> paginatedActivities = mergedActivities.subList(
+            Math.min(start, mergedActivities.size()),
+            end
+        );
+
+        return new PageImpl<>(paginatedActivities, pageable, mergedActivities.size());
     }
 
     /**
@@ -204,5 +227,85 @@ public class TimelineService {
         }
 
         return followedUserIds;
+    }
+
+    /**
+     * Get actor URIs of remote users that the given user follows.
+     *
+     * @param userId the user's ID
+     * @return list of followed remote actor URIs
+     */
+    private List<String> getFollowedRemoteActorUris(UUID userId) {
+        List<Follow> follows = followRepository.findAcceptedFollowingByUserId(userId);
+        List<String> remoteActorUris = new ArrayList<>();
+
+        for (Follow follow : follows) {
+            // Check if the followed actor is a remote user (not on this instance)
+            String actorUri = follow.getFollowingActorUri();
+            if (!actorUri.startsWith(baseUrl + "/users/")) {
+                remoteActorUris.add(actorUri);
+            }
+        }
+
+        return remoteActorUris;
+    }
+
+    /**
+     * Merge local and remote activities into a single list of timeline DTOs.
+     *
+     * @param localActivities list of local Activity entities
+     * @param remoteActivities list of remote RemoteActivity entities
+     * @param currentUserId the current user's ID (for like status)
+     * @return merged list of TimelineActivityDTOs
+     */
+    private List<TimelineActivityDTO> mergeActivities(
+        List<Activity> localActivities,
+        List<RemoteActivity> remoteActivities,
+        UUID currentUserId
+    ) {
+        List<TimelineActivityDTO> merged = new ArrayList<>();
+
+        // Convert local activities to DTOs
+        for (Activity activity : localActivities) {
+            User activityUser = userRepository.findById(activity.getUserId()).orElse(null);
+            if (activityUser == null) {
+                continue;
+            }
+
+            TimelineActivityDTO dto = TimelineActivityDTO.fromActivity(
+                activity,
+                activityUser.getUsername(),
+                activityUser.getDisplayName() != null ? activityUser.getDisplayName() : activityUser.getUsername(),
+                activityUser.getAvatarUrl()
+            );
+
+            // Add social interaction counts
+            dto.setLikesCount(likeRepository.countByActivityId(activity.getId()));
+            dto.setCommentsCount(commentRepository.countByActivityIdAndNotDeleted(activity.getId()));
+            dto.setLikedByCurrentUser(likeRepository.existsByActivityIdAndUserId(activity.getId(), currentUserId));
+
+            merged.add(dto);
+        }
+
+        // Convert remote activities to DTOs
+        for (RemoteActivity remoteActivity : remoteActivities) {
+            RemoteActor actor = remoteActorRepository.findByActorUri(remoteActivity.getRemoteActorUri()).orElse(null);
+            if (actor == null) {
+                log.warn("Remote actor not found for URI: {}", remoteActivity.getRemoteActorUri());
+                continue;
+            }
+
+            TimelineActivityDTO dto = TimelineActivityDTO.fromRemoteActivity(remoteActivity, actor);
+
+            // Remote activities don't have like/comment counts in this implementation
+            // (would require additional federation support)
+            dto.setLikesCount(0L);
+            dto.setCommentsCount(0L);
+            dto.setLikedByCurrentUser(false);
+
+            merged.add(dto);
+        }
+
+        return merged;
     }
 }

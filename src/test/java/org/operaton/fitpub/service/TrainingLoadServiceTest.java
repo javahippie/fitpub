@@ -280,19 +280,27 @@ class TrainingLoadServiceTest {
         // Given
         int days = 30;
         LocalDate startDate = LocalDate.now().minusDays(days - 1);
-        List<TrainingLoad> expectedLoad = List.of(
+        List<TrainingLoad> existingLoad = List.of(
                 createTrainingLoad(userId, testDate, BigDecimal.valueOf(100.0))
         );
 
         when(trainingLoadRepository.findByUserIdSinceDate(userId, startDate))
-                .thenReturn(expectedLoad);
+                .thenReturn(existingLoad);
 
         // When
         List<TrainingLoad> result = trainingLoadService.getRecentTrainingLoad(userId, days);
 
         // Then
-        assertEquals(expectedLoad, result);
+        // Should return 30 days of data (fills in missing days with rest day entries)
+        assertEquals(30, result.size());
         verify(trainingLoadRepository).findByUserIdSinceDate(userId, startDate);
+
+        // Verify that the existing load is included
+        assertTrue(result.stream().anyMatch(tl ->
+            tl.getDate().equals(testDate) &&
+            tl.getTrainingStressScore() != null &&
+            tl.getTrainingStressScore().compareTo(BigDecimal.valueOf(100.0)) == 0
+        ));
     }
 
     @Test

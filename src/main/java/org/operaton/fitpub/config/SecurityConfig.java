@@ -121,6 +121,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/users/id/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll() // User search
                 .requestMatchers(HttpMethod.GET, "/api/users/browse").permitAll() // Browse all users
+                .requestMatchers(HttpMethod.GET, "/api/users/discover-remote").authenticated() // Remote user discovery
                 .requestMatchers(HttpMethod.GET, "/api/users/*/followers").permitAll() // User followers list
                 .requestMatchers(HttpMethod.GET, "/api/users/*/following").permitAll() // User following list
                 .requestMatchers(HttpMethod.GET, "/api/users/*/follow-status").permitAll() // Follow status check

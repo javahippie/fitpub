@@ -156,6 +156,41 @@ public class NotificationService {
     }
 
     /**
+     * Create a notification when a remote user accepts your follow request.
+     *
+     * @param followerId the ID of the user who initiated the follow
+     * @param acceptedActorUri the URI of the remote actor who accepted
+     * @param activityId the ActivityPub activity ID
+     */
+    public void createFollowAcceptedNotification(UUID followerId, String acceptedActorUri, String activityId) {
+        // Get follower user
+        User follower = userRepository.findById(followerId).orElse(null);
+        if (follower == null) {
+            log.warn("Could not find follower user with ID: {}", followerId);
+            return;
+        }
+
+        // Get actor information
+        ActorInfo actorInfo = getActorInfo(acceptedActorUri);
+        if (actorInfo == null) {
+            log.warn("Could not find actor info for URI: {}", acceptedActorUri);
+            return;
+        }
+
+        Notification notification = Notification.builder()
+            .user(follower)
+            .type(Notification.NotificationType.FOLLOW_ACCEPTED)
+            .actorUri(acceptedActorUri)
+            .actorDisplayName(actorInfo.displayName)
+            .actorUsername(actorInfo.username)
+            .actorAvatarUrl(actorInfo.avatarUrl)
+            .build();
+
+        notificationRepository.save(notification);
+        log.debug("Created FOLLOW_ACCEPTED notification for user {} from {}", follower.getUsername(), actorInfo.username);
+    }
+
+    /**
      * Get all notifications for a user.
      *
      * @param userId the user ID

@@ -67,4 +67,14 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
      * @return the follow relationship if it exists
      */
     Optional<Follow> findByActivityId(String activityId);
+
+    /**
+     * Find a follow relationship by remote actor URI and following actor URI.
+     * Used to check if a remote user is following a local user.
+     *
+     * @param remoteActorUri the remote actor's URI (follower)
+     * @param followingActorUri the actor URI being followed
+     * @return the follow relationship if it exists
+     */
+    Optional<Follow> findByRemoteActorUriAndFollowingActorUri(String remoteActorUri, String followingActorUri);
 }

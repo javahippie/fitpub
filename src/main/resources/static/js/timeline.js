@@ -123,7 +123,7 @@ const FitPubTimeline = {
                                     <a href="/users/${activity.username}" class="text-decoration-none text-muted">
                                         @${this.escapeHtml(activity.username)}
                                     </a>
-                                    ${!activity.isLocal ? ' <i class="bi bi-globe2" title="Federated user"></i>' : ''}
+                                    ${!activity.isLocal ? ' <span class="badge bg-info ms-1" title="Federated Activity"><i class="bi bi-globe2"></i> Remote</span>' : ''}
                                     • ${this.formatTimeAgo(activity.startedAt)}
                                 </div>
                             </div>
@@ -136,9 +136,15 @@ const FitPubTimeline = {
 
                         <!-- Activity Title and Description -->
                         <h5 class="card-title">
-                            <a href="/activities/${activity.id}" class="text-decoration-none text-dark">
-                                ${this.escapeHtml(activity.title || 'Untitled Activity')}
-                            </a>
+                            ${activity.isLocal
+                                ? `<a href="/activities/${activity.id}" class="text-decoration-none text-dark">
+                                    ${this.escapeHtml(activity.title || 'Untitled Activity')}
+                                   </a>`
+                                : `<a href="${activity.activityUri || '#'}" target="_blank" class="text-decoration-none text-dark">
+                                    ${this.escapeHtml(activity.title || 'Untitled Activity')}
+                                    <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+                                   </a>`
+                            }
                         </h5>
 
                         ${activity.description
@@ -171,9 +177,14 @@ const FitPubTimeline = {
                                 <i class="bi bi-heart${activity.likedByCurrentUser ? '-fill' : ''}"></i>
                                 <span class="like-count">${activity.likesCount || 0}</span>
                             </button>
-                            <a href="/activities/${activity.id}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i> View Details
-                            </a>
+                            ${activity.isLocal
+                                ? `<a href="/activities/${activity.id}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View Details
+                                   </a>`
+                                : `<a href="${activity.activityUri || '#'}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-box-arrow-up-right"></i> View on Origin Server
+                                   </a>`
+                            }
                             <span class="ms-auto text-muted small d-flex align-items-center gap-2">
                                 ${activity.commentsCount > 0 ? `<span><i class="bi bi-chat-left-text"></i> ${activity.commentsCount}</span>` : ''}
                                 <span>
@@ -284,6 +295,30 @@ const FitPubTimeline = {
             return;
         }
 
+        // Handle remote activities differently - show static map image
+        if (!activity.isLocal) {
+            if (activity.mapImageUrl) {
+                mapElement.innerHTML = `
+                    <div class="position-relative w-100 h-100">
+                        <img src="${this.escapeHtml(activity.mapImageUrl)}"
+                             alt="Activity Map"
+                             class="img-fluid w-100 h-100"
+                             style="object-fit: cover; border-radius: 8px;"
+                             onerror="this.parentElement.innerHTML='<div class=\\'d-flex align-items-center justify-content-center h-100 bg-light\\'><p class=\\'text-muted\\'>Map not available</p></div>'">
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-globe2"></i> Remote Map
+                            </span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                mapElement.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 bg-light"><p class="text-muted">No map available for this remote activity</p></div>';
+            }
+            return;
+        }
+
+        // Handle local activities - render interactive Leaflet map
         try {
             // Fetch track data
             const response = await fetch(`/api/activities/${activity.id}/track`);

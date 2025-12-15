@@ -17,7 +17,69 @@
                     <h2 class="mb-1">
                         <i class="bi bi-people"></i> Discover Users
                     </h2>
-                    <p class="text-muted">Find and connect with athletes on FitPub</p>
+                    <p class="text-muted">Find and connect with athletes on FitPub and across the Fediverse</p>
+                </div>
+            </div>
+
+            <!-- Remote User Discovery -->
+            <div class="row mb-4">
+                <div class="col-12 col-md-8 col-lg-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">
+                                <i class="bi bi-globe"></i> Follow Remote Users
+                            </h5>
+                            <p class="text-muted small mb-3">
+                                Connect with users from other FitPub instances or ActivityPub-compatible platforms like Mastodon
+                            </p>
+                            <form id="remoteUserSearchForm">
+                                <div class="input-group">
+                                    <span class="input-group-text">@</span>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="remoteUserHandle"
+                                           placeholder="username@domain.com"
+                                           pattern="[a-zA-Z0-9_]+@[a-zA-Z0-9.-]+"
+                                           autocomplete="off"
+                                           required>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Enter a handle like: alice@fitpub.example or bob@mastodon.social
+                                </div>
+                            </form>
+
+                            <!-- Remote User Result -->
+                            <div id="remoteUserResult" class="mt-3 d-none">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+
+                            <!-- Remote User Error -->
+                            <div id="remoteUserError" class="alert alert-danger mt-3 d-none" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span id="remoteUserErrorText"></span>
+                            </div>
+
+                            <!-- Remote User Loading -->
+                            <div id="remoteUserLoading" class="text-center mt-3 d-none">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Searching...</span>
+                                </div>
+                                <span class="ms-2 text-muted">Discovering remote user...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Local User Search -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <h5 class="mb-3">
+                        <i class="bi bi-house-door"></i> Local Users
+                    </h5>
                 </div>
             </div>
 
@@ -104,6 +166,13 @@
             const pageSize = 12;
 
             document.addEventListener('DOMContentLoaded', function() {
+                // Remote user search form handler
+                const remoteUserSearchForm = document.getElementById('remoteUserSearchForm');
+                remoteUserSearchForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await searchRemoteUser();
+                });
+
                 // Load initial users (browse mode)
                 loadUsers();
 
@@ -156,6 +225,140 @@
 
             function hideSearchInfo() {
                 document.getElementById('searchInfo').classList.add('d-none');
+            }
+
+            async function searchRemoteUser() {
+                const handle = document.getElementById('remoteUserHandle').value.trim();
+
+                if (!handle) {
+                    return;
+                }
+
+                // Show loading, hide result and error
+                document.getElementById('remoteUserLoading').classList.remove('d-none');
+                document.getElementById('remoteUserResult').classList.add('d-none');
+                document.getElementById('remoteUserError').classList.add('d-none');
+
+                try {
+                    const response = await FitPubAuth.authenticatedFetch(
+                        `/api/users/discover-remote?handle=${encodeURIComponent(handle)}`
+                    );
+
+                    if (!response.ok) {
+                        if (response.status === 400) {
+                            throw new Error('Invalid handle format. Please use format: username@domain.com');
+                        } else if (response.status === 404) {
+                            throw new Error('User not found. Please check the handle and try again.');
+                        } else {
+                            throw new Error('Failed to discover remote user. Please try again.');
+                        }
+                    }
+
+                    const actor = await response.json();
+
+                    // Hide loading
+                    document.getElementById('remoteUserLoading').classList.add('d-none');
+
+                    // Display remote user
+                    displayRemoteUser(actor);
+
+                } catch (error) {
+                    console.error('Error discovering remote user:', error);
+
+                    // Hide loading
+                    document.getElementById('remoteUserLoading').classList.add('d-none');
+
+                    // Show error
+                    document.getElementById('remoteUserErrorText').textContent = error.message;
+                    document.getElementById('remoteUserError').classList.remove('d-none');
+                }
+            }
+
+            function displayRemoteUser(actor) {
+                const resultDiv = document.getElementById('remoteUserResult');
+
+                const avatarHtml = actor.avatarUrl
+                    ? `<img src="${escapeHtml(actor.avatarUrl)}"
+                            alt="${escapeHtml(actor.username)}"
+                            class="rounded-circle"
+                            width="60"
+                            height="60"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                    : '';
+
+                const avatarPlaceholder = `
+                    <div class="avatar-placeholder ${actor.avatarUrl ? 'd-none' : ''}"
+                         style="width: 60px; height: 60px;">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                `;
+
+                resultDiv.innerHTML = `
+                    <div class="card border-primary">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    ${avatarHtml}
+                                    ${avatarPlaceholder}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">${escapeHtml(actor.displayName || actor.username)}</h6>
+                                    <p class="text-muted small mb-0">
+                                        @${escapeHtml(actor.handle)}
+                                        <span class="badge bg-info ms-2">Remote</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            ${actor.bio
+                                ? `<p class="card-text small mb-3">${escapeHtml(actor.bio)}</p>`
+                                : '<p class="card-text small text-muted mb-3 fst-italic">No bio</p>'
+                            }
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" onclick="followRemoteUser('${escapeHtml(actor.handle)}')">
+                                    <i class="bi bi-person-plus"></i> Follow
+                                </button>
+                                ${actor.actorUri
+                                    ? `<a href="${escapeHtml(actor.actorUri)}"
+                                          target="_blank"
+                                          class="btn btn-outline-secondary">
+                                        <i class="bi bi-box-arrow-up-right"></i> View Profile
+                                    </a>`
+                                    : ''
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                resultDiv.classList.remove('d-none');
+            }
+
+            async function followRemoteUser(handle) {
+                try {
+                    const response = await FitPubAuth.authenticatedFetch(
+                        `/api/users/${encodeURIComponent(handle)}/follow`,
+                        { method: 'POST' }
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to follow user');
+                    }
+
+                    const result = await response.json();
+
+                    // Show success message
+                    FitPub.showAlert('success', result.message || `Follow request sent to ${handle}`);
+
+                    // Clear the search form
+                    document.getElementById('remoteUserHandle').value = '';
+                    document.getElementById('remoteUserResult').classList.add('d-none');
+
+                } catch (error) {
+                    console.error('Error following remote user:', error);
+                    FitPub.showAlert('error', 'Failed to follow user. Please try again.');
+                }
             }
 
             async function loadUsers() {

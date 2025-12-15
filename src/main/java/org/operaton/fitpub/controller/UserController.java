@@ -39,6 +39,8 @@ public class UserController {
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
     private final RemoteActorRepository remoteActorRepository;
+    private final org.operaton.fitpub.service.WebFingerClient webFingerClient;
+    private final org.operaton.fitpub.service.FederationService federationService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -199,6 +201,44 @@ public class UserController {
     }
 
     /**
+     * Discover a remote user via WebFinger.
+     * Takes a handle in the format @username@domain or username@domain,
+     * performs WebFinger discovery, fetches the remote actor, and returns actor information.
+     *
+     * @param handle the handle of the remote user (@username@domain)
+     * @param userDetails the authenticated user making the request
+     * @return ActorDTO containing remote user information
+     */
+    @GetMapping("/discover-remote")
+    public ResponseEntity<ActorDTO> discoverRemoteUser(
+        @RequestParam String handle,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.info("User {} discovering remote user: {}", userDetails.getUsername(), handle);
+
+        try {
+            // 1. WebFinger lookup to discover actor URI
+            String actorUri = webFingerClient.discoverActor(handle);
+            log.debug("Discovered actor URI: {}", actorUri);
+
+            // 2. Fetch remote actor information
+            RemoteActor remoteActor = federationService.fetchRemoteActor(actorUri);
+            log.debug("Fetched remote actor: {}", remoteActor.getUsername());
+
+            // 3. Convert to DTO and return (no follow relationship yet, so followedAt is null)
+            ActorDTO dto = ActorDTO.fromRemoteActor(remoteActor, null);
+            return ResponseEntity.ok(dto);
+
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid handle format: {}", handle, e);
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("Error discovering remote user: {}", handle, e);
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    /**
      * Get list of followers for a user.
      *
      * @param username the username
@@ -275,9 +315,9 @@ public class UserController {
     }
 
     /**
-     * Follow a user.
+     * Follow a user (local or remote).
      *
-     * @param username the username to follow
+     * @param username the username to follow (local username or @username@domain format)
      * @param userDetails the authenticated user
      * @return success response
      */
@@ -292,6 +332,22 @@ public class UserController {
         User currentUser = userRepository.findByUsername(userDetails.getUsername())
             .orElseThrow(() -> new UsernameNotFoundException("Current user not found"));
 
+        // Check if this is a remote user (contains @ and position > 0)
+        boolean isRemoteUser = username.contains("@") && username.indexOf("@") > 0;
+
+        if (isRemoteUser) {
+            // Remote user follow
+            return followRemoteUser(username, currentUser);
+        } else {
+            // Local user follow
+            return followLocalUser(username, currentUser);
+        }
+    }
+
+    /**
+     * Follow a local user (auto-accepted).
+     */
+    private ResponseEntity<Map<String, Object>> followLocalUser(String username, User currentUser) {
         // Get the user to follow
         User userToFollow = userRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
@@ -340,6 +396,56 @@ public class UserController {
             "message", "Successfully followed " + username,
             "followersCount", followersCount
         ));
+    }
+
+    /**
+     * Follow a remote user via ActivityPub (requires Accept from remote).
+     */
+    private ResponseEntity<Map<String, Object>> followRemoteUser(String handle, User currentUser) {
+        try {
+            log.info("Following remote user: {}", handle);
+
+            // 1. Discover remote actor using WebFinger
+            String remoteActorUri = webFingerClient.discoverActor(handle);
+            log.debug("Discovered remote actor URI: {}", remoteActorUri);
+
+            // 2. Check if already following
+            Optional<Follow> existingFollow = followRepository.findByFollowerIdAndFollowingActorUri(
+                currentUser.getId(), remoteActorUri
+            );
+
+            if (existingFollow.isPresent()) {
+                Follow follow = existingFollow.get();
+                if (follow.getStatus() == Follow.FollowStatus.ACCEPTED) {
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Already following this user"));
+                } else {
+                    return ResponseEntity.ok(Map.of(
+                        "message", "Follow request already pending for " + handle,
+                        "status", "PENDING"
+                    ));
+                }
+            }
+
+            // 3. Send Follow activity to remote actor
+            // This will also create a PENDING follow record
+            federationService.sendFollowActivity(remoteActorUri, currentUser);
+
+            return ResponseEntity.ok(Map.of(
+                "message", "Follow request sent to " + handle,
+                "status", "PENDING",
+                "note", "Waiting for acceptance from remote user"
+            ));
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid handle format: {}", handle, e);
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Invalid handle format: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to follow remote user: {}", handle, e);
+            return ResponseEntity.status(500)
+                .body(Map.of("error", "Failed to follow remote user: " + e.getMessage()));
+        }
     }
 
     /**
