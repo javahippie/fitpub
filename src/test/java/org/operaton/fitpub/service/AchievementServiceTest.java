@@ -277,10 +277,10 @@ class AchievementServiceTest {
     @Test
     @DisplayName("Should award speed demon achievement")
     void testCheckAndAwardAchievements_SpeedDemon() {
-        // Given - Activity with 50+ km/h speed (13.89+ m/s)
+        // Given - Activity with 40+ km/h speed (maxSpeed is stored in km/h)
         Activity activity = createActivity(Activity.ActivityType.RIDE, 20000L, BigDecimal.ZERO);
         ActivityMetrics metrics = new ActivityMetrics();
-        metrics.setMaxSpeed(BigDecimal.valueOf(15.0)); // 54 km/h
+        metrics.setMaxSpeed(BigDecimal.valueOf(45.0)); // 45 km/h (realistic for cycling)
         activity.setMetrics(metrics);
 
         when(activityRepository.countByUserId(userId)).thenReturn(10L);

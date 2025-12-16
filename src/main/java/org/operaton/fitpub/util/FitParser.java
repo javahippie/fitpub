@@ -42,6 +42,12 @@ public class FitParser {
     // Lazy-loaded timezone engine (expensive to initialize)
     private static TimeZoneEngine timezoneEngine = null;
 
+    private final SpeedSmoother speedSmoother;
+
+    public FitParser(SpeedSmoother speedSmoother) {
+        this.speedSmoother = speedSmoother;
+    }
+
     /**
      * Parses a FIT file and returns the extracted data.
      *
@@ -103,6 +109,9 @@ public class FitParser {
 
             // Determine timezone from first GPS coordinate
             determineTimezone(parsedData);
+
+            // Apply speed smoothing and recalculate max speed
+            smoothSpeedData(parsedData);
 
             log.info("Successfully parsed FIT file: {} track points, activity type: {}, timezone: {}",
                 parsedData.getTrackPoints().size(), parsedData.getActivityType(), parsedData.getTimezone());
@@ -285,6 +294,33 @@ public class FitParser {
 
         if (activity.getTotalTimerTime() != null) {
             log.debug("Activity total timer time: {}", activity.getTotalTimerTime());
+        }
+    }
+
+    /**
+     * Applies speed smoothing to track points and updates max speed in metrics.
+     * Removes unrealistic GPS speed spikes and recalculates max speed.
+     */
+    private void smoothSpeedData(ParsedFitData parsedData) {
+        if (parsedData.getTrackPoints().isEmpty() || parsedData.getMetrics() == null) {
+            return;
+        }
+
+        // Smooth speed data and get recalculated max speed
+        BigDecimal smoothedMaxSpeed = speedSmoother.smoothAndCalculateMaxSpeed(
+            parsedData.getTrackPoints(),
+            parsedData.getActivityType()
+        );
+
+        // Update max speed in metrics if we got a valid smoothed value
+        if (smoothedMaxSpeed != null) {
+            BigDecimal originalMaxSpeed = parsedData.getMetrics().getMaxSpeed();
+            parsedData.getMetrics().setMaxSpeed(smoothedMaxSpeed);
+
+            if (originalMaxSpeed != null && smoothedMaxSpeed.compareTo(originalMaxSpeed) < 0) {
+                log.info("Smoothed max speed from {} km/h to {} km/h (removed GPS artifacts)",
+                    originalMaxSpeed, smoothedMaxSpeed);
+            }
         }
     }
 

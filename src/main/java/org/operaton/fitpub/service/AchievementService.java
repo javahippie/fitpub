@@ -362,15 +362,15 @@ public class AchievementService {
         List<Achievement> achievements = new ArrayList<>();
 
         if (activity.getMetrics() != null && activity.getMetrics().getMaxSpeed() != null) {
-            // Convert m/s to km/h
-            double maxSpeedKmh = activity.getMetrics().getMaxSpeed().doubleValue() * 3.6;
+            // maxSpeed is already in km/h from FitParser
+            double maxSpeedKmh = activity.getMetrics().getMaxSpeed().doubleValue();
 
-            if (maxSpeedKmh >= 50 && !hasAchievement(userId, Achievement.AchievementType.SPEED_DEMON)) {
+            if (maxSpeedKmh >= 40 && !hasAchievement(userId, Achievement.AchievementType.SPEED_DEMON)) {
                 achievements.add(awardAchievement(
                         userId,
                         Achievement.AchievementType.SPEED_DEMON,
                         "Speed Demon",
-                        "Reached 50+ km/h!",
+                        "Reached 40+ km/h!",
                         "⚡",
                         "#ffd700",
                         activity.getId(),

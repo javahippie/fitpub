@@ -143,14 +143,17 @@ public class ActivitySummaryService {
                 .map(a -> a.getElevationGain() != null ? a.getElevationGain() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate max speed
-        BigDecimal maxSpeed = activities.stream()
+        // Calculate max speed (convert from km/h to m/s for storage)
+        BigDecimal maxSpeedKmh = activities.stream()
                 .filter(a -> a.getMetrics() != null && a.getMetrics().getMaxSpeed() != null)
                 .map(a -> a.getMetrics().getMaxSpeed())
                 .max(BigDecimal::compareTo)
                 .orElse(null);
+        BigDecimal maxSpeed = maxSpeedKmh != null
+                ? maxSpeedKmh.divide(BigDecimal.valueOf(3.6), 2, RoundingMode.HALF_UP)
+                : null;
 
-        // Calculate average speed
+        // Calculate average speed (in m/s)
         BigDecimal avgSpeed = null;
         if (totalDuration > 0 && totalDistance.compareTo(BigDecimal.ZERO) > 0) {
             avgSpeed = totalDistance.divide(BigDecimal.valueOf(totalDuration), 2, RoundingMode.HALF_UP);

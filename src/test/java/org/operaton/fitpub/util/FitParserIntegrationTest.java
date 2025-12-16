@@ -19,10 +19,12 @@ class FitParserIntegrationTest {
 
     private FitParser parser;
     private FitFileValidator validator;
+    private SpeedSmoother speedSmoother;
 
     @BeforeEach
     void setUp() {
-        parser = new FitParser();
+        speedSmoother = new SpeedSmoother();
+        parser = new FitParser(speedSmoother);
         validator = new FitFileValidator();
     }
 
