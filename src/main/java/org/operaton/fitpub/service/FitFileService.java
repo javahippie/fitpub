@@ -50,6 +50,7 @@ public class FitFileService {
     private final TrainingLoadService trainingLoadService;
     private final ActivitySummaryService activitySummaryService;
     private final WeatherService weatherService;
+    private final HeatmapGridService heatmapGridService;
 
     /**
      * Processes an uploaded FIT file and creates an activity.
@@ -112,6 +113,9 @@ public class FitFileService {
             // Check for personal records and achievements
             personalRecordService.checkAndUpdatePersonalRecords(savedActivity);
             achievementService.checkAndAwardAchievements(savedActivity);
+
+            // Update heatmap grid
+            heatmapGridService.updateHeatmapForActivity(savedActivity);
 
             // Update training load and summaries (async)
             trainingLoadService.updateTrainingLoad(savedActivity);
@@ -214,6 +218,9 @@ public class FitFileService {
         achievementService.checkAndAwardAchievements(savedActivity);
         trainingLoadService.updateTrainingLoad(savedActivity);
         activitySummaryService.updateSummariesForActivity(savedActivity);
+
+        // Update heatmap grid
+        heatmapGridService.updateHeatmapForActivity(savedActivity);
 
         return savedActivity;
     }

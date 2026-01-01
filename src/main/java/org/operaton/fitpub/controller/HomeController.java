@@ -13,4 +13,9 @@ public class HomeController {
     public String home() {
         return "redirect:/timeline";
     }
+
+    @GetMapping("/heatmap")
+    public String heatmap() {
+        return "heatmap";
+    }
 }

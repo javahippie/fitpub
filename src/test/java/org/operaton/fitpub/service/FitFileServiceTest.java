@@ -70,6 +70,9 @@ class FitFileServiceTest {
     @Mock
     private WeatherService weatherService;
 
+    @Mock
+    private HeatmapGridService heatmapGridService;
+
     @Spy
     private ObjectMapper objectMapper;
 

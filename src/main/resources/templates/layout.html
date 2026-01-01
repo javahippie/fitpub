@@ -75,6 +75,11 @@
                             <i class="bi bi-graph-up"></i> Analytics
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/heatmap}" id="heatmapLink" style="display: none;">
+                            <i class="bi bi-map"></i> Heatmap
+                        </a>
+                    </li>
                 </ul>
 
                 <!-- Right side navigation -->
@@ -217,6 +222,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin="anonymous"></script>
+
+    <!-- Leaflet.heat Plugin -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>

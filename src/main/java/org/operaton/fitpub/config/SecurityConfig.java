@@ -61,6 +61,7 @@ public class SecurityConfig {
                 .requestMatchers("/discover").permitAll() // User discovery page
                 .requestMatchers("/notifications").permitAll() // Auth checked client-side
                 .requestMatchers("/analytics", "/analytics/**").permitAll() // Auth checked client-side
+                .requestMatchers("/heatmap").permitAll() // Auth checked client-side
 
                 // Public endpoints - ActivityPub federation
                 .requestMatchers("/.well-known/**").permitAll()
@@ -104,6 +105,10 @@ public class SecurityConfig {
 
                 // Protected endpoints - Analytics API
                 .requestMatchers("/api/analytics/**").authenticated()
+
+                // Protected endpoints - Heatmap API
+                .requestMatchers("/api/heatmap/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/heatmap/user/*").permitAll()
 
                 // Protected endpoints - Activities API (upload, edit, delete)
                 .requestMatchers(HttpMethod.POST, "/api/activities/upload").authenticated()

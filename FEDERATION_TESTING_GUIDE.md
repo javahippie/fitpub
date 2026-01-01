@@ -2,7 +2,187 @@
 
 This guide explains how to test the instance-to-instance federation functionality by running two FitPub instances locally.
 
-## Prerequisites
+## Docker Compose Setup (Recommended)
+
+The easiest way to test federation is using Docker Compose, which automatically sets up two complete FitPub instances with separate databases and proper networking.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Docker Network (fitpub-federation)        │
+│                                                              │
+│  ┌──────────────────────┐       ┌──────────────────────┐  │
+│  │  Instance 1          │       │  Instance 2          │  │
+│  │  (instance1.local)   │◄─────►│  (instance2.local)   │  │
+│  │  Port: 8080          │       │  Port: 8081          │  │
+│  └──────────────────────┘       └──────────────────────┘  │
+│           │                               │                 │
+│           ▼                               ▼                 │
+│  ┌──────────────────┐           ┌──────────────────┐      │
+│  │  PostgreSQL 1    │           │  PostgreSQL 2    │      │
+│  │  (postgres1)     │           │  (postgres2)     │      │
+│  │  Port: 5432      │           │  Port: 5433      │      │
+│  └──────────────────┘           └──────────────────┘      │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+         ▲                                 ▲
+         │                                 │
+    localhost:8080                   localhost:8081
+```
+
+### Quick Start
+
+1. **Start both instances**:
+   ```bash
+   docker-compose -f docker-compose.federation-test.yml up -d
+   ```
+
+2. **Check status**:
+   ```bash
+   docker-compose -f docker-compose.federation-test.yml ps
+   ```
+
+3. **Access the instances**:
+   - Instance 1: http://localhost:8080
+   - Instance 2: http://localhost:8081
+
+4. **Follow the [Test Scenarios](#test-scenarios) below** to verify federation functionality
+
+5. **View logs** (in separate terminals):
+   ```bash
+   # Instance 1 logs
+   docker-compose -f docker-compose.federation-test.yml logs -f fitpub1
+
+   # Instance 2 logs
+   docker-compose -f docker-compose.federation-test.yml logs -f fitpub2
+   ```
+
+6. **Stop and clean up**:
+   ```bash
+   # Stop containers
+   docker-compose -f docker-compose.federation-test.yml down
+
+   # Stop and remove volumes (complete cleanup)
+   docker-compose -f docker-compose.federation-test.yml down -v
+   ```
+
+### Service Overview
+
+The Docker Compose setup includes:
+
+- **postgres1**: PostgreSQL 16 with PostGIS 3.4 for Instance 1
+  - Database: `fitpub1`
+  - Port: 5432 (internal), 5434 (on host)
+
+- **postgres2**: PostgreSQL 16 with PostGIS 3.4 for Instance 2
+  - Database: `fitpub2`
+  - Port: 5432 (internal), 5433 (on host)
+
+- **fitpub1**: FitPub Instance 1
+  - Domain: `instance1.local:8080`
+  - Port: 8080
+  - Network alias: `instance1.local`
+
+- **fitpub2**: FitPub Instance 2
+  - Domain: `instance2.local:8081`
+  - Port: 8081
+  - Network alias: `instance2.local`
+
+### Docker-Specific Commands
+
+**Access database directly**:
+```bash
+# Instance 1 database
+docker exec -it fitpub-postgres1 psql -U fitpub -d fitpub1
+
+# Instance 2 database
+docker exec -it fitpub-postgres2 psql -U fitpub -d fitpub2
+```
+
+**Inspect network**:
+```bash
+docker network inspect fitpub-federation
+```
+
+**View container details**:
+```bash
+docker inspect fitpub-instance1
+docker inspect fitpub-instance2
+```
+
+**Restart a single service**:
+```bash
+docker-compose -f docker-compose.federation-test.yml restart fitpub1
+docker-compose -f docker-compose.federation-test.yml restart fitpub2
+```
+
+**Rebuild images** (after code changes):
+```bash
+docker-compose -f docker-compose.federation-test.yml build
+docker-compose -f docker-compose.federation-test.yml up -d
+```
+
+### Docker Troubleshooting
+
+**Container won't start**:
+```bash
+# Check logs for errors
+docker-compose -f docker-compose.federation-test.yml logs fitpub1
+docker-compose -f docker-compose.federation-test.yml logs fitpub2
+
+# Check health status
+docker ps -a | grep fitpub
+```
+
+**Database connection issues**:
+```bash
+# Verify database is healthy
+docker-compose -f docker-compose.federation-test.yml ps postgres1
+docker-compose -f docker-compose.federation-test.yml ps postgres2
+
+# Check database logs
+docker-compose -f docker-compose.federation-test.yml logs postgres1
+```
+
+**Network connectivity issues**:
+```bash
+# Test DNS resolution from inside container
+docker exec -it fitpub-instance1 ping instance2.local
+docker exec -it fitpub-instance2 ping instance1.local
+
+# Test HTTP connectivity
+docker exec -it fitpub-instance1 curl http://instance2.local:8081/.well-known/webfinger
+```
+
+**Port already in use**:
+```bash
+# Find process using port 8080
+lsof -ti:8080 | xargs kill -9
+
+# Or use different external ports in docker-compose.yml
+```
+
+**Volume permission issues**:
+```bash
+# Remove all volumes and start fresh
+docker-compose -f docker-compose.federation-test.yml down -v
+docker-compose -f docker-compose.federation-test.yml up -d
+```
+
+**Platform warning on Apple Silicon (M1/M2/M3 Macs)**:
+```
+The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)
+```
+This is expected and safe to ignore. Docker will use emulation (Rosetta 2) to run the amd64 images. Performance may be slightly slower than native ARM images, but fully functional for testing.
+
+---
+
+## Manual Setup (Alternative)
+
+If you prefer to run the instances directly without Docker, follow these instructions:
+
+### Prerequisites
 
 - Java 17+
 - Maven 3.8+

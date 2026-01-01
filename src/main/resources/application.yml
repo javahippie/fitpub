@@ -55,6 +55,10 @@ fitpub:
     enabled: true
     max-federation-retries: 3
     request-timeout-seconds: 30
+    # Allow connections to private IPs (for local testing only - disable in production!)
+    allow-private-ips: ${FITPUB_ALLOW_PRIVATE_IPS:false}
+    # Federation protocol (http or https) - use http for local testing, https for production
+    federation-protocol: ${FITPUB_FEDERATION_PROTOCOL:https}
 
   # Security settings
   security:

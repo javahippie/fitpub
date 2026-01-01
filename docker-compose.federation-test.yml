@@ -1,0 +1,193 @@
+# Docker Compose for Federation Testing
+# Starts two FitPub instances with separate databases for testing federation between instances
+#
+# Usage:
+#   Start:   docker-compose -f docker-compose.federation-test.yml up -d
+#   Logs:    docker-compose -f docker-compose.federation-test.yml logs -f
+#   Stop:    docker-compose -f docker-compose.federation-test.yml down
+#   Cleanup: docker-compose -f docker-compose.federation-test.yml down -v
+#
+# Access:
+#   Instance 1: http://localhost:8080
+#   Instance 2: http://localhost:8081
+
+services:
+  # PostgreSQL Database for Instance 1
+  postgres1:
+    image: postgis/postgis:16-3.4
+    container_name: fitpub-postgres1
+    platform: linux/amd64  # Explicit platform for consistency
+    environment:
+      POSTGRES_DB: fitpub1
+      POSTGRES_USER: fitpub
+      POSTGRES_PASSWORD: fitpub_test_password
+    ports:
+      - "5434:5432"  # External port 5434 to avoid conflict with existing postgres
+    volumes:
+      - postgres1_data:/var/lib/postgresql/data
+    networks:
+      - fitpub-federation
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitpub -d fitpub1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # PostgreSQL Database for Instance 2
+  postgres2:
+    image: postgis/postgis:16-3.4
+    container_name: fitpub-postgres2
+    platform: linux/amd64  # Explicit platform for consistency
+    environment:
+      POSTGRES_DB: fitpub2
+      POSTGRES_USER: fitpub
+      POSTGRES_PASSWORD: fitpub_test_password
+    ports:
+      - "5433:5432"  # External port 5433 for debugging
+    volumes:
+      - postgres2_data:/var/lib/postgresql/data
+    networks:
+      - fitpub-federation
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitpub -d fitpub2"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # FitPub Instance 1
+  fitpub1:
+    build: .
+    container_name: fitpub-instance1
+    depends_on:
+      postgres1:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: dev
+
+      # Federation Configuration
+      FITPUB_DOMAIN: instance1.local:8080
+      FITPUB_BASE_URL: http://instance1.local:8080
+
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres1:5432/fitpub1
+      SPRING_DATASOURCE_USERNAME: fitpub
+      SPRING_DATASOURCE_PASSWORD: fitpub_test_password
+
+      # Security
+      JWT_SECRET: test_jwt_secret_minimum_32_characters_required_instance1
+
+      # Feature Flags
+      REGISTRATION_ENABLED: "true"
+      ACTIVITYPUB_ENABLED: "true"
+      WEATHER_ENABLED: "false"
+      OSM_TILES_ENABLED: "true"
+
+      # Federation Testing (ONLY for local testing - DO NOT use in production!)
+      FITPUB_ALLOW_PRIVATE_IPS: "true"
+      FITPUB_FEDERATION_PROTOCOL: "http"
+
+      # File Upload
+      FILE_UPLOAD_MAX_SIZE: 50MB
+      FILE_UPLOAD_DIR: /app/uploads
+
+      # Logging
+      LOGGING_LEVEL_ORG_OPERATON_FITPUB: DEBUG
+    volumes:
+      - instance1_uploads:/app/uploads
+      - instance1_logs:/var/log/fitpub
+    networks:
+      fitpub-federation:
+        aliases:
+          - instance1.local
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # FitPub Instance 2
+  fitpub2:
+    build: .
+    container_name: fitpub-instance2
+    depends_on:
+      postgres2:
+        condition: service_healthy
+    ports:
+      - "8081:8080"  # External port 8081, internal 8080
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: dev
+
+      # Federation Configuration
+      FITPUB_DOMAIN: instance2.local:8081
+      FITPUB_BASE_URL: http://instance2.local:8081
+
+      # Database Configuration
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres2:5432/fitpub2
+      SPRING_DATASOURCE_USERNAME: fitpub
+      SPRING_DATASOURCE_PASSWORD: fitpub_test_password
+
+      # Security
+      JWT_SECRET: test_jwt_secret_minimum_32_characters_required_instance2
+
+      # Feature Flags
+      REGISTRATION_ENABLED: "true"
+      ACTIVITYPUB_ENABLED: "true"
+      WEATHER_ENABLED: "false"
+      OSM_TILES_ENABLED: "true"
+
+      # Federation Testing (ONLY for local testing - DO NOT use in production!)
+      FITPUB_ALLOW_PRIVATE_IPS: "true"
+      FITPUB_FEDERATION_PROTOCOL: "http"
+
+      # File Upload
+      FILE_UPLOAD_MAX_SIZE: 50MB
+      FILE_UPLOAD_DIR: /app/uploads
+
+      # Logging
+      LOGGING_LEVEL_ORG_OPERATON_FITPUB: DEBUG
+    volumes:
+      - instance2_uploads:/app/uploads
+      - instance2_logs:/var/log/fitpub
+    networks:
+      fitpub-federation:
+        aliases:
+          - instance2.local
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+# Custom network for federation testing
+networks:
+  fitpub-federation:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: fitpub-fed
+
+# Persistent volumes
+volumes:
+  postgres1_data:
+    name: fitpub_postgres1_data
+  postgres2_data:
+    name: fitpub_postgres2_data
+  instance1_uploads:
+    name: fitpub_instance1_uploads
+  instance1_logs:
+    name: fitpub_instance1_logs
+  instance2_uploads:
+    name: fitpub_instance2_uploads
+  instance2_logs:
+    name: fitpub_instance2_logs
