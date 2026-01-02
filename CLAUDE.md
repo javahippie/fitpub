@@ -7,7 +7,7 @@ FitPub is a decentralized fitness tracking application that integrates with the 
 ## Core Concept
 
 The platform bridges the gap between fitness tracking and social networking by leveraging the open ActivityPub standard. Users can:
-- Upload FIT files from GPS-enabled fitness devices (Garmin, Wahoo, etc.)
+- Upload FIT files from GPS-enabled fitness devices (Garmin, Wahoo, etc.) or GPX files from apps (Strava, Komoot, etc.)
 - View their tracks rendered on interactive maps
 - Share activities with followers on Mastodon, Pleroma, and other Fediverse platforms
 - Follow other athletes and see their public workouts
@@ -508,14 +508,17 @@ For ActivityPub federated posts and thumbnails:
 
 ### Phase 1: MVP (Minimum Viable Product)
 
-**System Component 1: FIT File Processing Module** ✅
+**System Component 1: Activity File Processing Module** ✅
 - [x] FIT file upload and parsing (FitParser)
 - [x] FIT file validation (FitFileValidator)
+- [x] GPX file upload and parsing (GpxParser)
+- [x] GPX file validation (GpxFileValidator)
+- [x] Unified ActivityFileService with automatic format detection
 - [x] Activity entity with JSONB track points and simplified LineString
-- [x] Activity metrics extraction and storage
+- [x] Activity metrics extraction and storage (calculated from track points for GPX)
 - [x] Track simplification using Douglas-Peucker algorithm
-- [x] FIT file service with comprehensive tests
-- [x] Integration test with real FIT file
+- [x] File service with comprehensive tests
+- [x] Integration tests with real FIT and GPX files
 
 **User Management & Security** ✅
 - [x] User entity with ActivityPub keys
@@ -538,7 +541,7 @@ For ActivityPub federated posts and thumbnails:
 - [x] Profile-specific configs (application-dev.yml, application-prod.yml)
 
 **Activity REST API** ✅
-- [x] POST /api/activities/upload - Upload FIT file
+- [x] POST /api/activities/upload - Upload FIT or GPX file (automatic format detection)
 - [x] GET /api/activities/{id} - Get activity details
 - [x] GET /api/activities - List user's activities (paginated)
 - [x] PUT /api/activities/{id} - Update activity metadata
@@ -636,7 +639,7 @@ For ActivityPub federated posts and thumbnails:
 - [x] Authenticated API fetch helper (authenticatedFetch in auth.js)
 
 **Activity Upload & Management UI** ✅
-- [x] FIT file upload form with drag-and-drop
+- [x] Activity file upload form with drag-and-drop (FIT and GPX)
 - [x] Upload progress indicator
 - [x] Activity metadata form (title, description, visibility)
 - [x] Activity list view (user's own activities)
@@ -750,7 +753,7 @@ For ActivityPub federated posts and thumbnails:
 ## Phase 1 (MVP) - ✅ COMPLETE!
 
 **All core features implemented and working:**
-- ✅ FIT file upload and processing
+- ✅ FIT and GPX file upload and processing (automatic format detection)
 - ✅ GPS track visualization with Leaflet maps
 - ✅ Activity management (CRUD operations)
 - ✅ User authentication and profiles
@@ -849,11 +852,12 @@ For ActivityPub federated posts and thumbnails:
 - [x] Cross-platform activity sync
 
 ### Phase 5: Mobile & Integrations
+- [x] GPX file support (completed - import from Strava, Komoot, etc. via GPX export)
 - [ ] Progressive Web App (PWA)
 - [ ] Native mobile apps (optional)
 - [ ] Direct device sync (Garmin Connect API)
 - [ ] Webhook integrations
-- [ ] Import from Strava, Garmin, etc.
+- [ ] TCX file support
 - [ ] Avatar file upload (currently URL-based)
 
 ### Phase 6: Testing & Documentation

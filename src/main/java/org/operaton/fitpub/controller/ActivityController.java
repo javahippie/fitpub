@@ -9,6 +9,7 @@ import org.operaton.fitpub.model.dto.ActivityUploadRequest;
 import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.UserRepository;
+import org.operaton.fitpub.service.ActivityFileService;
 import org.operaton.fitpub.service.ActivityImageService;
 import org.operaton.fitpub.service.FederationService;
 import org.operaton.fitpub.service.FitFileService;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
 
 /**
  * REST controller for activity management.
- * Handles FIT file uploads, activity retrieval, updates, and deletion.
+ * Handles activity file uploads (FIT, GPX), activity retrieval, updates, and deletion.
  */
 @RestController
 @RequestMapping("/api/activities")
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ActivityController {
 
+    private final ActivityFileService activityFileService;
     private final FitFileService fitFileService;
     private final UserRepository userRepository;
     private final FederationService federationService;
@@ -62,9 +64,9 @@ public class ActivityController {
     }
 
     /**
-     * Uploads a FIT file and creates a new activity.
+     * Uploads an activity file (FIT or GPX) and creates a new activity.
      *
-     * @param file the FIT file
+     * @param file the activity file (FIT or GPX)
      * @param request the upload request with metadata
      * @param userDetails the authenticated user
      * @return the created activity
@@ -75,12 +77,12 @@ public class ActivityController {
         @Valid @ModelAttribute ActivityUploadRequest request,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
-        log.info("User {} uploading FIT file: {}", userDetails.getUsername(), file.getOriginalFilename());
+        log.info("User {} uploading activity file: {}", userDetails.getUsername(), file.getOriginalFilename());
 
         User user = userRepository.findByUsername(userDetails.getUsername())
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        Activity activity = fitFileService.processFitFile(
+        Activity activity = activityFileService.processActivityFile(
             file,
             user.getId(),
             request.getTitle(),

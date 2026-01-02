@@ -10,6 +10,7 @@ import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.util.FitParser;
+import org.operaton.fitpub.util.ParsedActivityData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -67,7 +68,7 @@ class ActivityImageServiceTest {
         assertTrue(fitFileData.length > 0, "FIT file should not be empty");
 
         // Parse FIT file
-        FitParser.ParsedFitData parsedData = fitParser.parse(fitFileData);
+        ParsedActivityData parsedData = fitParser.parse(fitFileData);
         assertNotNull(parsedData);
         assertNotNull(parsedData.getStartTime());
         assertNotNull(parsedData.getEndTime());
@@ -182,7 +183,7 @@ class ActivityImageServiceTest {
     /**
      * Helper method to convert parsed track points to JSON format.
      */
-    private String convertTrackPointsToJson(FitParser.ParsedFitData parsedData) throws IOException {
+    private String convertTrackPointsToJson(ParsedActivityData parsedData) throws IOException {
         com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
 

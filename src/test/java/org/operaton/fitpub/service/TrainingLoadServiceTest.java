@@ -280,8 +280,9 @@ class TrainingLoadServiceTest {
         // Given
         int days = 30;
         LocalDate startDate = LocalDate.now().minusDays(days - 1);
+        LocalDate recentDate = LocalDate.now().minusDays(5); // Use a date within the last 30 days
         List<TrainingLoad> existingLoad = List.of(
-                createTrainingLoad(userId, testDate, BigDecimal.valueOf(100.0))
+                createTrainingLoad(userId, recentDate, BigDecimal.valueOf(100.0))
         );
 
         when(trainingLoadRepository.findByUserIdSinceDate(userId, startDate))
@@ -297,7 +298,7 @@ class TrainingLoadServiceTest {
 
         // Verify that the existing load is included
         assertTrue(result.stream().anyMatch(tl ->
-            tl.getDate().equals(testDate) &&
+            tl.getDate().equals(recentDate) &&
             tl.getTrainingStressScore() != null &&
             tl.getTrainingStressScore().compareTo(BigDecimal.valueOf(100.0)) == 0
         ));

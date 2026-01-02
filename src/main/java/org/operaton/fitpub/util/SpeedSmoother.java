@@ -43,7 +43,7 @@ public class SpeedSmoother {
      * @return smoothed maximum speed in km/h, or null if no valid speeds
      */
     public BigDecimal smoothAndCalculateMaxSpeed(
-        List<FitParser.TrackPointData> trackPoints,
+        List<ParsedActivityData.TrackPointData> trackPoints,
         Activity.ActivityType activityType
     ) {
         if (trackPoints == null || trackPoints.isEmpty()) {
@@ -110,10 +110,10 @@ public class SpeedSmoother {
      * Applies speed threshold to remove obvious outliers.
      * Replaces speeds exceeding threshold with null.
      */
-    private void applySpeedThreshold(List<FitParser.TrackPointData> trackPoints, double maxSpeedMps) {
+    private void applySpeedThreshold(List<ParsedActivityData.TrackPointData> trackPoints, double maxSpeedMps) {
         int outlierCount = 0;
 
-        for (FitParser.TrackPointData point : trackPoints) {
+        for (ParsedActivityData.TrackPointData point : trackPoints) {
             if (point.getSpeed() != null) {
                 // Convert km/h to m/s for comparison
                 double speedMps = point.getSpeed().doubleValue() / 3.6;
@@ -136,14 +136,14 @@ public class SpeedSmoother {
      * Removes points with unrealistic acceleration changes.
      */
     private void applyAccelerationFilter(
-        List<FitParser.TrackPointData> trackPoints,
+        List<ParsedActivityData.TrackPointData> trackPoints,
         double maxAcceleration
     ) {
         int outlierCount = 0;
 
         for (int i = 1; i < trackPoints.size(); i++) {
-            FitParser.TrackPointData prev = trackPoints.get(i - 1);
-            FitParser.TrackPointData curr = trackPoints.get(i);
+            ParsedActivityData.TrackPointData prev = trackPoints.get(i - 1);
+            ParsedActivityData.TrackPointData curr = trackPoints.get(i);
 
             if (prev.getSpeed() == null || curr.getSpeed() == null ||
                 prev.getTimestamp() == null || curr.getTimestamp() == null) {
@@ -180,7 +180,7 @@ public class SpeedSmoother {
      * Applies moving median filter to smooth speed data.
      * Fills in nulls with interpolated values where possible.
      */
-    private void applyMedianFilter(List<FitParser.TrackPointData> trackPoints) {
+    private void applyMedianFilter(List<ParsedActivityData.TrackPointData> trackPoints) {
         int windowSize = Math.min(MEDIAN_WINDOW_SIZE, trackPoints.size());
         if (windowSize < 3) {
             return; // Not enough points for meaningful smoothing
@@ -230,9 +230,9 @@ public class SpeedSmoother {
     /**
      * Calculates maximum speed from smoothed track points.
      */
-    private BigDecimal calculateMaxSpeed(List<FitParser.TrackPointData> trackPoints) {
+    private BigDecimal calculateMaxSpeed(List<ParsedActivityData.TrackPointData> trackPoints) {
         return trackPoints.stream()
-            .map(FitParser.TrackPointData::getSpeed)
+            .map(ParsedActivityData.TrackPointData::getSpeed)
             .filter(speed -> speed != null)
             .max(BigDecimal::compareTo)
             .orElse(null);

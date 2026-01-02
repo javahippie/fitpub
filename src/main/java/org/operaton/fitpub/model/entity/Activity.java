@@ -94,12 +94,18 @@ public class Activity {
     private BigDecimal elevationLoss;
 
     /**
-     * Original FIT file for re-processing if needed.
+     * Original activity file (FIT or GPX) for re-processing if needed.
      * Allows us to re-parse with updated algorithms.
      */
     @Lob
-    @Column(name = "raw_fit_file")
-    private byte[] rawFitFile;
+    @Column(name = "raw_activity_file")
+    private byte[] rawActivityFile;
+
+    /**
+     * Source file format: "FIT" (Garmin/Wahoo devices) or "GPX" (GPS Exchange Format).
+     */
+    @Column(name = "source_file_format", nullable = false, length = 10)
+    private String sourceFileFormat;
 
     @OneToOne(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)
     private ActivityMetrics metrics;

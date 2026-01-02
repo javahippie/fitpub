@@ -19,6 +19,7 @@ import org.operaton.fitpub.repository.ActivityMetricsRepository;
 import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.util.FitFileValidator;
 import org.operaton.fitpub.util.FitParser;
+import org.operaton.fitpub.util.ParsedActivityData;
 import org.operaton.fitpub.util.TrackSimplifier;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -81,7 +82,7 @@ class FitFileServiceTest {
 
     private UUID testUserId;
     private MockMultipartFile testFile;
-    private FitParser.ParsedFitData testParsedData;
+    private ParsedActivityData testParsedData;
 
     @BeforeEach
     void setUp() {
@@ -512,8 +513,8 @@ class FitFileServiceTest {
     /**
      * Creates test parsed FIT data with realistic values.
      */
-    private FitParser.ParsedFitData createTestParsedData() {
-        FitParser.ParsedFitData data = new FitParser.ParsedFitData();
+    private ParsedActivityData createTestParsedData() {
+        ParsedActivityData data = new ParsedActivityData();
 
         LocalDateTime startTime = LocalDateTime.of(2024, 1, 15, 8, 0, 0);
         data.setStartTime(startTime);
@@ -525,10 +526,10 @@ class FitFileServiceTest {
         data.setElevationLoss(BigDecimal.valueOf(95.0));
 
         // Add test track points
-        List<FitParser.TrackPointData> trackPoints = new ArrayList<>();
+        List<ParsedActivityData.TrackPointData> trackPoints = new ArrayList<>();
 
         for (int i = 0; i < 10; i++) {
-            FitParser.TrackPointData tp = new FitParser.TrackPointData();
+            ParsedActivityData.TrackPointData tp = new ParsedActivityData.TrackPointData();
             tp.setTimestamp(startTime.plusMinutes(i * 3));
             tp.setLatitude(47.0 + i * 0.001);
             tp.setLongitude(8.0 + i * 0.001);
@@ -541,7 +542,7 @@ class FitFileServiceTest {
         data.setTrackPoints(trackPoints);
 
         // Add test metrics
-        FitParser.ActivityMetricsData metrics = new FitParser.ActivityMetricsData();
+        ParsedActivityData.ActivityMetricsData metrics = new ParsedActivityData.ActivityMetricsData();
         metrics.setAverageSpeed(BigDecimal.valueOf(10.0));
         metrics.setMaxSpeed(BigDecimal.valueOf(15.0));
         metrics.setAverageHeartRate(150);

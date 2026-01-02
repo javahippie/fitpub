@@ -16,6 +16,7 @@ import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.util.ActivityFormatter;
 import org.operaton.fitpub.util.FitFileValidator;
 import org.operaton.fitpub.util.FitParser;
+import org.operaton.fitpub.util.ParsedActivityData;
 import org.operaton.fitpub.util.TrackSimplifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,7 +79,7 @@ public class FitFileService {
 
             // Parse FIT file
             byte[] fileData = file.getBytes();
-            FitParser.ParsedFitData parsedData = parser.parse(fileData);
+            ParsedActivityData parsedData = parser.parse(fileData);
 
             // Create activity entity
             Activity activity = createActivity(parsedData, userId, title, description, visibility, fileData);
@@ -146,7 +147,7 @@ public class FitFileService {
     @Transactional
     public Activity processFitFile(byte[] fileData, UUID userId, Activity.Visibility visibility) {
         validator.validate(fileData);
-        FitParser.ParsedFitData parsedData = parser.parse(fileData);
+        ParsedActivityData parsedData = parser.parse(fileData);
         return createActivityFromParsedData(parsedData, userId, null, null, visibility, fileData);
     }
 
@@ -154,7 +155,7 @@ public class FitFileService {
      * Creates an activity entity from parsed FIT data.
      */
     private Activity createActivity(
-        FitParser.ParsedFitData parsedData,
+        ParsedActivityData parsedData,
         UUID userId,
         String title,
         String description,
@@ -181,7 +182,8 @@ public class FitFileService {
             .totalDurationSeconds(parsedData.getTotalDuration() != null ? parsedData.getTotalDuration().getSeconds() : null)
             .elevationGain(parsedData.getElevationGain())
             .elevationLoss(parsedData.getElevationLoss())
-            .rawFitFile(rawFile)
+            .rawActivityFile(rawFile)
+            .sourceFileFormat("FIT")
             .build();
     }
 
@@ -189,7 +191,7 @@ public class FitFileService {
      * Creates an activity from parsed data (internal method).
      */
     private Activity createActivityFromParsedData(
-        FitParser.ParsedFitData parsedData,
+        ParsedActivityData parsedData,
         UUID userId,
         String title,
         String description,
@@ -228,7 +230,7 @@ public class FitFileService {
     /**
      * Converts track points to JSON string for JSONB storage.
      */
-    private String convertTrackPointsToJson(List<FitParser.TrackPointData> trackPoints) {
+    private String convertTrackPointsToJson(List<ParsedActivityData.TrackPointData> trackPoints) {
         try {
             return objectMapper.writeValueAsString(trackPoints);
         } catch (JsonProcessingException e) {
@@ -239,7 +241,7 @@ public class FitFileService {
     /**
      * Creates a PostGIS LineString from track points.
      */
-    private LineString createLineStringFromTrackPoints(List<FitParser.TrackPointData> trackPoints) {
+    private LineString createLineStringFromTrackPoints(List<ParsedActivityData.TrackPointData> trackPoints) {
         Coordinate[] coordinates = trackPoints.stream()
             .map(tp -> new Coordinate(tp.getLongitude(), tp.getLatitude()))
             .toArray(Coordinate[]::new);
@@ -251,7 +253,7 @@ public class FitFileService {
      * Generates a default title for an activity based on time of day.
      * Examples: "Morning Run", "Evening Ride", "Night Walk"
      */
-    private String generateTitle(FitParser.ParsedFitData parsedData) {
+    private String generateTitle(ParsedActivityData parsedData) {
         return ActivityFormatter.generateActivityTitle(
             parsedData.getStartTime(),
             parsedData.getActivityType()
@@ -263,7 +265,7 @@ public class FitFileService {
      */
     private void calculateAdditionalMetrics(
         ActivityMetrics metrics,
-        List<FitParser.TrackPointData> trackPoints
+        List<ParsedActivityData.TrackPointData> trackPoints
     ) {
         if (trackPoints.isEmpty()) {
             return;
@@ -273,7 +275,7 @@ public class FitFileService {
         BigDecimal minElevation = null;
         BigDecimal maxElevation = null;
 
-        for (FitParser.TrackPointData tp : trackPoints) {
+        for (ParsedActivityData.TrackPointData tp : trackPoints) {
             if (tp.getElevation() != null) {
                 if (minElevation == null || tp.getElevation().compareTo(minElevation) < 0) {
                     minElevation = tp.getElevation();
@@ -291,7 +293,7 @@ public class FitFileService {
         BigDecimal tempSum = BigDecimal.ZERO;
         int tempCount = 0;
 
-        for (FitParser.TrackPointData tp : trackPoints) {
+        for (ParsedActivityData.TrackPointData tp : trackPoints) {
             if (tp.getTemperature() != null) {
                 tempSum = tempSum.add(tp.getTemperature());
                 tempCount++;

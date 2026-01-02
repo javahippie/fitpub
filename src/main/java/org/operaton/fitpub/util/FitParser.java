@@ -10,6 +10,8 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.operaton.fitpub.exception.FitFileProcessingException;
 import org.operaton.fitpub.model.entity.Activity;
 import org.operaton.fitpub.model.entity.ActivityMetrics;
+import org.operaton.fitpub.util.ParsedActivityData.ActivityMetricsData;
+import org.operaton.fitpub.util.ParsedActivityData.TrackPointData;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
@@ -52,10 +54,10 @@ public class FitParser {
      * Parses a FIT file and returns the extracted data.
      *
      * @param fileData the FIT file data
-     * @return ParsedFitData containing activity information
+     * @return ParsedActivityData containing activity information
      * @throws FitFileProcessingException if parsing fails
      */
-    public ParsedFitData parse(byte[] fileData) {
+    public ParsedActivityData parse(byte[] fileData) {
         try (InputStream inputStream = new ByteArrayInputStream(fileData)) {
             return parse(inputStream);
         } catch (Exception e) {
@@ -67,11 +69,11 @@ public class FitParser {
      * Parses a FIT file from an input stream.
      *
      * @param inputStream the input stream
-     * @return ParsedFitData containing activity information
+     * @return ParsedActivityData containing activity information
      * @throws FitFileProcessingException if parsing fails
      */
-    public ParsedFitData parse(InputStream inputStream) {
-        ParsedFitData parsedData = new ParsedFitData();
+    public ParsedActivityData parse(InputStream inputStream) {
+        ParsedActivityData parsedData = new ParsedActivityData();
         Decode decode = new Decode();
         MesgBroadcaster broadcaster = new MesgBroadcaster(decode);
 
@@ -189,7 +191,7 @@ public class FitParser {
     /**
      * Extracts session data from a session message.
      */
-    private void extractSessionData(SessionMesg session, ParsedFitData parsedData) {
+    private void extractSessionData(SessionMesg session, ParsedActivityData parsedData) {
         if (session.getStartTime() != null) {
             parsedData.setStartTime(convertDateTime(session.getStartTime()));
         }
@@ -287,7 +289,7 @@ public class FitParser {
     /**
      * Extracts activity data from an activity message.
      */
-    private void extractActivityData(ActivityMesg activity, ParsedFitData parsedData) {
+    private void extractActivityData(ActivityMesg activity, ParsedActivityData parsedData) {
         if (activity.getTimestamp() != null) {
             parsedData.setActivityTimestamp(convertDateTime(activity.getTimestamp()));
         }
@@ -301,7 +303,7 @@ public class FitParser {
      * Applies speed smoothing to track points and updates max speed in metrics.
      * Removes unrealistic GPS speed spikes and recalculates max speed.
      */
-    private void smoothSpeedData(ParsedFitData parsedData) {
+    private void smoothSpeedData(ParsedActivityData parsedData) {
         if (parsedData.getTrackPoints().isEmpty() || parsedData.getMetrics() == null) {
             return;
         }
@@ -328,7 +330,7 @@ public class FitParser {
      * Determines the timezone based on the first GPS coordinate.
      * Uses TimeZoneEngine library for accurate timezone lookup from coordinates.
      */
-    private void determineTimezone(ParsedFitData parsedData) {
+    private void determineTimezone(ParsedActivityData parsedData) {
         if (parsedData.getTrackPoints().isEmpty()) {
             parsedData.setTimezone("UTC");
             return;
@@ -395,95 +397,5 @@ public class FitParser {
         } else {
             return Activity.ActivityType.OTHER;
         }
-    }
-
-    /**
-     * Data class for track point information.
-     */
-    @lombok.Data
-    public static class TrackPointData {
-        private LocalDateTime timestamp;
-        private double latitude;
-        private double longitude;
-        private BigDecimal elevation;
-        private Integer heartRate;
-        private Integer cadence;
-        private Integer power;
-        private BigDecimal speed;
-        private BigDecimal temperature;
-        private BigDecimal distance;
-
-        public Point toGeometry() {
-            return GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude));
-        }
-    }
-
-    /**
-     * Data class for activity metrics.
-     */
-    @lombok.Data
-    public static class ActivityMetricsData {
-        private BigDecimal averageSpeed;
-        private BigDecimal maxSpeed;
-        private Duration averagePace;
-        private Integer averageHeartRate;
-        private Integer maxHeartRate;
-        private Integer averageCadence;
-        private Integer maxCadence;
-        private Integer averagePower;
-        private Integer maxPower;
-        private Integer normalizedPower;
-        private Integer calories;
-        private BigDecimal averageTemperature;
-        private BigDecimal maxElevation;
-        private BigDecimal minElevation;
-        private BigDecimal totalAscent;
-        private BigDecimal totalDescent;
-        private Duration movingTime;
-        private Duration stoppedTime;
-        private Integer totalSteps;
-
-        public ActivityMetrics toEntity(Activity activity) {
-            return ActivityMetrics.builder()
-                .activity(activity)
-                .averageSpeed(averageSpeed)
-                .maxSpeed(maxSpeed)
-                .averagePaceSeconds(averagePace != null ? averagePace.getSeconds() : null)
-                .averageHeartRate(averageHeartRate)
-                .maxHeartRate(maxHeartRate)
-                .averageCadence(averageCadence)
-                .maxCadence(maxCadence)
-                .averagePower(averagePower)
-                .maxPower(maxPower)
-                .normalizedPower(normalizedPower)
-                .calories(calories)
-                .averageTemperature(averageTemperature)
-                .maxElevation(maxElevation)
-                .minElevation(minElevation)
-                .totalAscent(totalAscent)
-                .totalDescent(totalDescent)
-                .movingTimeSeconds(movingTime != null ? movingTime.getSeconds() : null)
-                .stoppedTimeSeconds(stoppedTime != null ? stoppedTime.getSeconds() : null)
-                .totalSteps(totalSteps)
-                .build();
-        }
-    }
-
-    /**
-     * Data class holding all parsed FIT file data.
-     */
-    @lombok.Data
-    public static class ParsedFitData {
-        private List<TrackPointData> trackPoints = new ArrayList<>();
-        private LocalDateTime startTime;
-        private LocalDateTime endTime;
-        private LocalDateTime activityTimestamp;
-        private String timezone; // IANA timezone ID (e.g., "Europe/Berlin")
-        private BigDecimal totalDistance;
-        private Duration totalDuration;
-        private BigDecimal elevationGain;
-        private BigDecimal elevationLoss;
-        private Activity.ActivityType activityType = Activity.ActivityType.OTHER;
-        private ActivityMetricsData metrics;
     }
 }

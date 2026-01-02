@@ -37,27 +37,27 @@
                             <!-- File Upload Area -->
                             <div class="mb-4">
                                 <label class="form-label fw-bold">
-                                    FIT File <span class="text-danger">*</span>
+                                    Activity File <span class="text-danger">*</span>
                                 </label>
                                 <div class="file-upload-area" id="fileUploadArea">
                                     <input type="file"
                                            id="fitFile"
                                            name="file"
-                                           accept=".fit"
+                                           accept=".fit,.gpx"
                                            class="d-none"
                                            required>
                                     <div class="file-upload-icon">
                                         <i class="bi bi-cloud-arrow-up"></i>
                                     </div>
-                                    <p class="mb-2"><strong>Drop your FIT file here</strong></p>
+                                    <p class="mb-2"><strong>Drop your FIT or GPX file here</strong></p>
                                     <p class="text-muted mb-2">or click to browse</p>
                                     <p class="file-upload-label text-primary fw-bold" id="fileLabel">
                                         No file selected
                                     </p>
-                                    <small class="text-muted">Supported: .fit files from Garmin, Wahoo, etc. (Max 50MB)</small>
+                                    <small class="text-muted">Supported: .fit, .gpx files (Max 50MB)</small>
                                 </div>
                                 <div class="invalid-feedback">
-                                    Please select a FIT file to upload.
+                                    Please select a FIT or GPX file to upload.
                                 </div>
                             </div>
 
@@ -164,7 +164,8 @@
                     <div class="card-body">
                         <h6><i class="bi bi-lightbulb text-warning"></i> Upload Tips</h6>
                         <ul class="mb-0 small">
-                            <li>FIT files can be exported from Garmin Connect, Strava, Wahoo, and most GPS devices</li>
+                            <li>FIT files from Garmin, Wahoo, and most GPS devices</li>
+                            <li>GPX files exported from Strava, Komoot, or other apps</li>
                             <li>The activity will be processed to extract GPS tracks, metrics, and statistics</li>
                             <li>You can add a title and description after uploading</li>
                             <li>Public activities will appear in your followers' timelines on the Fediverse</li>

@@ -46,7 +46,7 @@ class FitParserIntegrationTest {
             "Real FIT file should pass validation");
 
         // Parse the file
-        FitParser.ParsedFitData parsedData = assertDoesNotThrow(
+        ParsedActivityData parsedData = assertDoesNotThrow(
             () -> parser.parse(fileData),
             "Real FIT file should parse without errors"
         );
@@ -93,7 +93,7 @@ class FitParserIntegrationTest {
         assertTrue(parsedData.getTrackPoints().size() > 0, "Should have at least one track point");
 
         // Verify track point data quality
-        FitParser.TrackPointData firstPoint = parsedData.getTrackPoints().get(0);
+        ParsedActivityData.TrackPointData firstPoint = parsedData.getTrackPoints().get(0);
         assertNotNull(firstPoint, "First track point should not be null");
         assertNotEquals(0.0, firstPoint.getLatitude(), "Latitude should be set");
         assertNotEquals(0.0, firstPoint.getLongitude(), "Longitude should be set");
@@ -116,7 +116,7 @@ class FitParserIntegrationTest {
 
         // Verify metrics if present
         if (parsedData.getMetrics() != null) {
-            FitParser.ActivityMetricsData metrics = parsedData.getMetrics();
+            ParsedActivityData.ActivityMetricsData metrics = parsedData.getMetrics();
             log.info("Metrics:");
 
             if (metrics.getAverageSpeed() != null) {
@@ -159,7 +159,7 @@ class FitParserIntegrationTest {
         inputStream.close();
 
         // Parse the file
-        FitParser.ParsedFitData parsedData = parser.parse(fileData);
+        ParsedActivityData parsedData = parser.parse(fileData);
 
         // Test converting to entity structures
         Activity.ActivityType activityType = parsedData.getActivityType();
@@ -167,7 +167,7 @@ class FitParserIntegrationTest {
 
         // Verify we can convert track points to entities
         if (!parsedData.getTrackPoints().isEmpty()) {
-            FitParser.TrackPointData trackPointData = parsedData.getTrackPoints().get(0);
+            ParsedActivityData.TrackPointData trackPointData = parsedData.getTrackPoints().get(0);
 
             // Test geometry creation
             assertDoesNotThrow(() -> trackPointData.toGeometry(),
@@ -209,13 +209,13 @@ class FitParserIntegrationTest {
         byte[] fileData = inputStream.readAllBytes();
         inputStream.close();
 
-        FitParser.ParsedFitData parsedData = parser.parse(fileData);
+        ParsedActivityData parsedData = parser.parse(fileData);
 
         // Verify track points are in chronological order
         if (parsedData.getTrackPoints().size() > 1) {
             for (int i = 0; i < parsedData.getTrackPoints().size() - 1; i++) {
-                FitParser.TrackPointData current = parsedData.getTrackPoints().get(i);
-                FitParser.TrackPointData next = parsedData.getTrackPoints().get(i + 1);
+                ParsedActivityData.TrackPointData current = parsedData.getTrackPoints().get(i);
+                ParsedActivityData.TrackPointData next = parsedData.getTrackPoints().get(i + 1);
 
                 if (current.getTimestamp() != null && next.getTimestamp() != null) {
                     assertTrue(
