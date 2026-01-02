@@ -304,6 +304,7 @@ class ActivityControllerIntegrationTest {
                 .totalDistance(BigDecimal.valueOf(5000))
                 .totalDurationSeconds(1800L)
                 .elevationGain(BigDecimal.valueOf(100))
+                .sourceFileFormat("FIT")
                 .build();
     }
 }
