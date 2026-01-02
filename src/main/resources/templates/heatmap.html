@@ -52,8 +52,8 @@
 
                 <!-- Stats Card -->
                 <div class="heatmap-stats mb-4" id="statsCard" style="display: none;">
-                    <div class="row">
-                        <div class="col-md-4 mb-3 mb-md-0">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 mb-3 mb-md-0">
                             <div class="stat-item">
                                 <i class="bi bi-grid-3x3"></i>
                                 <div>
@@ -62,7 +62,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="col-md-3 mb-3 mb-md-0">
                             <div class="stat-item">
                                 <i class="bi bi-fire"></i>
                                 <div>
@@ -71,7 +71,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3 mb-3 mb-md-0">
                             <div class="stat-item">
                                 <i class="bi bi-clock-history"></i>
                                 <div>
@@ -79,6 +79,12 @@
                                     <strong id="lastUpdated">Just now</strong>
                                 </div>
                             </div>
+                        </div>
+                        <div class="col-md-3 text-md-end">
+                            <button id="rebuildBtn" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Rebuild Heatmap
+                            </button>
                         </div>
                     </div>
                 </div>

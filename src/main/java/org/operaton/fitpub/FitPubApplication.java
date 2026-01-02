@@ -10,7 +10,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -20,7 +19,6 @@ import org.springframework.web.client.RestTemplate;
  */
 @SpringBootApplication
 @EnableAsync
-@EnableScheduling
 @Slf4j
 public class FitPubApplication {
 

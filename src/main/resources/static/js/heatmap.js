@@ -17,6 +17,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     await loadHeatmap();
+
+    // Attach rebuild button handler
+    const rebuildBtn = document.getElementById('rebuildBtn');
+    if (rebuildBtn) {
+        rebuildBtn.addEventListener('click', rebuildHeatmap);
+    }
 });
 
 /**
@@ -174,4 +180,47 @@ function fitMapToBounds(features) {
     ];
 
     heatmapMap.fitBounds(bounds);
+}
+
+/**
+ * Rebuild the heatmap by triggering a full recalculation
+ */
+async function rebuildHeatmap() {
+    const rebuildBtn = document.getElementById('rebuildBtn');
+    const originalContent = rebuildBtn.innerHTML;
+    const errorAlert = document.getElementById('errorAlert');
+    const errorMessage = document.getElementById('errorMessage');
+
+    // Disable button and show loading state
+    rebuildBtn.disabled = true;
+    rebuildBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Rebuilding...';
+    errorAlert.classList.add('d-none');
+
+    try {
+        // Call rebuild endpoint
+        const response = await FitPubAuth.authenticatedFetch('/api/heatmap/me/rebuild', {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to rebuild heatmap');
+        }
+
+        const result = await response.json();
+
+        // Show success message
+        FitPub.showAlert('success', result.message || 'Heatmap rebuilt successfully!');
+
+        // Reload the heatmap
+        await loadHeatmap();
+
+    } catch (error) {
+        console.error('Error rebuilding heatmap:', error);
+        errorAlert.classList.remove('d-none');
+        errorMessage.textContent = 'Failed to rebuild heatmap. Please try again later.';
+    } finally {
+        // Restore button state
+        rebuildBtn.disabled = false;
+        rebuildBtn.innerHTML = originalContent;
+    }
 }

@@ -98,4 +98,34 @@ public class HeatmapController {
 
         return ResponseEntity.ok(heatmapData);
     }
+
+    /**
+     * Rebuild heatmap for the authenticated user.
+     * This triggers a full recalculation of the user's heatmap grid from all their activities.
+     *
+     * @param userDetails authenticated user
+     * @return success message
+     */
+    @PostMapping("/me/rebuild")
+    public ResponseEntity<?> rebuildMyHeatmap(@AuthenticationPrincipal UserDetails userDetails) {
+        log.info("User {} requested heatmap rebuild", userDetails.getUsername());
+
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        try {
+            heatmapGridService.recalculateUserHeatmap(user);
+            log.info("Heatmap rebuild completed successfully for user {}", userDetails.getUsername());
+            return ResponseEntity.ok().body(new RebuildResponse("Heatmap rebuilt successfully"));
+        } catch (Exception e) {
+            log.error("Failed to rebuild heatmap for user {}", userDetails.getUsername(), e);
+            return ResponseEntity.internalServerError()
+                    .body(new RebuildResponse("Failed to rebuild heatmap: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Simple response DTO for rebuild endpoint
+     */
+    private record RebuildResponse(String message) {}
 }

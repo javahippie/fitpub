@@ -108,6 +108,7 @@ public class SecurityConfig {
 
                 // Protected endpoints - Heatmap API
                 .requestMatchers("/api/heatmap/me").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/heatmap/me/rebuild").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/heatmap/user/*").permitAll()
 
                 // Protected endpoints - Activities API (upload, edit, delete)
