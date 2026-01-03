@@ -2,6 +2,7 @@ package org.operaton.fitpub.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
@@ -23,13 +24,29 @@ import java.util.*;
  * Aggregates GPS track points into spatial grid cells for efficient heatmap rendering.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class HeatmapGridService {
 
     private final UserHeatmapGridRepository heatmapGridRepository;
     private final ActivityRepository activityRepository;
     private final ObjectMapper objectMapper;
+    private final EntityManager entityManager;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    // Constructor
+    public HeatmapGridService(
+        UserHeatmapGridRepository heatmapGridRepository,
+        ActivityRepository activityRepository,
+        ObjectMapper objectMapper,
+        EntityManager entityManager,
+        org.springframework.jdbc.core.JdbcTemplate jdbcTemplate
+    ) {
+        this.heatmapGridRepository = heatmapGridRepository;
+        this.activityRepository = activityRepository;
+        this.objectMapper = objectMapper;
+        this.entityManager = entityManager;
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     /**
      * Grid resolution in degrees (~100m at equator).
@@ -96,8 +113,17 @@ public class HeatmapGridService {
     public void recalculateUserHeatmap(User user) {
         log.info("Recalculating heatmap for user {}", user.getUsername());
 
-        // Delete existing grid
-        heatmapGridRepository.deleteByUserId(user.getId());
+        // Delete existing grid using direct JDBC to ensure immediate execution
+        log.debug("Deleting existing heatmap data for user {} using direct JDBC", user.getId());
+        int deletedRows = jdbcTemplate.update(
+            "DELETE FROM user_heatmap_grid WHERE user_id = ?",
+            user.getId()
+        );
+        log.info("Deleted {} existing heatmap grid cells for user {}", deletedRows, user.getUsername());
+
+        // Flush and clear to ensure Hibernate sees the changes
+        entityManager.flush();
+        entityManager.clear();
 
         // Get all activities for user
         List<Activity> activities = activityRepository.findByUserIdOrderByStartedAtDesc(user.getId());
@@ -107,27 +133,36 @@ public class HeatmapGridService {
         }
 
         // Aggregate all grid cells across all activities
-        Map<String, Integer> allCellCounts = new HashMap<>();
+        // Use WKT (Well-Known Text) as key to ensure exact geometry matching
+        Map<String, GridCellData> allCellCounts = new HashMap<>();
 
         for (Activity activity : activities) {
             List<Point> gridCells = extractGridCellsFromActivity(activity);
             for (Point cell : gridCells) {
-                String key = cellKey(cell);
-                allCellCounts.put(key, allCellCounts.getOrDefault(key, 0) + 1);
+                // Use WKT as the key for exact geometry matching
+                String wktKey = cell.toText();
+                GridCellData cellData = allCellCounts.get(wktKey);
+                if (cellData == null) {
+                    cellData = new GridCellData(cell, 0);
+                    allCellCounts.put(wktKey, cellData);
+                }
+                cellData.incrementCount();
             }
         }
 
         // Bulk insert grid cells
         List<UserHeatmapGrid> gridEntities = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : allCellCounts.entrySet()) {
-            Point cell = parseCell(entry.getKey());
+        for (GridCellData cellData : allCellCounts.values()) {
             UserHeatmapGrid grid = UserHeatmapGrid.builder()
                     .userId(user.getId())
-                    .gridCell(cell)
-                    .pointCount(entry.getValue())
+                    .gridCell(cellData.getPoint())
+                    .pointCount(cellData.getCount())
                     .build();
             gridEntities.add(grid);
         }
+
+        log.info("Aggregated {} unique grid cells from {} activities",
+                allCellCounts.size(), activities.size());
 
         heatmapGridRepository.saveAll(gridEntities);
         log.info("Recalculated {} grid cells for user {} from {} activities",
@@ -273,5 +308,31 @@ public class HeatmapGridService {
         double lat = Double.parseDouble(parts[0]);
         double lon = Double.parseDouble(parts[1]);
         return geometryFactory.createPoint(new Coordinate(lon, lat));
+    }
+
+    /**
+     * Helper class to store grid cell Point and its count.
+     * Used during aggregation to avoid recreating Point objects.
+     */
+    private static class GridCellData {
+        private final Point point;
+        private int count;
+
+        public GridCellData(Point point, int initialCount) {
+            this.point = point;
+            this.count = initialCount;
+        }
+
+        public void incrementCount() {
+            this.count++;
+        }
+
+        public Point getPoint() {
+            return point;
+        }
+
+        public int getCount() {
+            return count;
+        }
     }
 }

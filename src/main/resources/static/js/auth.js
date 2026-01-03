@@ -216,6 +216,7 @@ const FitPubAuth = {
         const usernameDisplay = document.getElementById('usernameDisplay');
         const myActivitiesLink = document.getElementById('myActivitiesLink');
         const uploadLink = document.getElementById('uploadLink');
+        const batchUploadLink = document.getElementById('batchUploadLink');
         const analyticsLink = document.getElementById('analyticsLink');
         const heatmapLink = document.getElementById('heatmapLink');
         const notificationsBell = document.getElementById('notificationsBell');
@@ -237,6 +238,10 @@ const FitPubAuth = {
             if (uploadLink) {
                 uploadLink.style.display = '';
                 uploadLink.parentElement.style.display = '';
+            }
+            if (batchUploadLink) {
+                batchUploadLink.style.display = '';
+                batchUploadLink.parentElement.style.display = '';
             }
             if (analyticsLink) {
                 analyticsLink.style.display = '';
@@ -280,6 +285,10 @@ const FitPubAuth = {
             if (uploadLink) {
                 uploadLink.style.display = 'none';
                 uploadLink.parentElement.style.display = 'none';
+            }
+            if (batchUploadLink) {
+                batchUploadLink.style.display = 'none';
+                batchUploadLink.parentElement.style.display = 'none';
             }
             if (analyticsLink) {
                 analyticsLink.style.display = 'none';

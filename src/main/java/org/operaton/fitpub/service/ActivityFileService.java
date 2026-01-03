@@ -38,6 +38,59 @@ public class ActivityFileService {
     private static final GeometryFactory GEOMETRY_FACTORY =
         new GeometryFactory(new PrecisionModel(), WGS84_SRID);
 
+    /**
+     * Processing options to control which side effects are executed after activity creation.
+     * Used to skip expensive operations during batch imports and re-execute them later as a batch.
+     */
+    @lombok.Getter
+    @lombok.Builder
+    public static class ProcessingOptions {
+        @lombok.Builder.Default
+        private final boolean skipPersonalRecords = false;
+
+        @lombok.Builder.Default
+        private final boolean skipAchievements = false;
+
+        @lombok.Builder.Default
+        private final boolean skipHeatmap = false;
+
+        @lombok.Builder.Default
+        private final boolean skipTrainingLoad = false;
+
+        @lombok.Builder.Default
+        private final boolean skipSummaries = false;
+
+        @lombok.Builder.Default
+        private final boolean skipWeather = false;
+
+        /**
+         * Creates options for batch import mode - skips all side effects.
+         * Analytics and social features are recalculated in a batch after import completes.
+         *
+         * @return processing options with all side effects skipped
+         */
+        public static ProcessingOptions batchImportMode() {
+            return ProcessingOptions.builder()
+                .skipPersonalRecords(true)
+                .skipAchievements(true)
+                .skipHeatmap(true)
+                .skipTrainingLoad(true)
+                .skipSummaries(true)
+                .skipWeather(true)
+                .build();
+        }
+
+        /**
+         * Creates options for normal mode - executes all side effects.
+         * This is the default behavior for single activity uploads.
+         *
+         * @return processing options with no side effects skipped
+         */
+        public static ProcessingOptions normalMode() {
+            return ProcessingOptions.builder().build();
+        }
+    }
+
     private final FitFileValidator fitValidator;
     private final GpxFileValidator gpxValidator;
     private final FitParser fitParser;
@@ -54,6 +107,7 @@ public class ActivityFileService {
 
     /**
      * Processes an uploaded activity file (FIT or GPX) and creates an activity.
+     * Uses normal processing mode with all side effects enabled.
      *
      * @param file the uploaded file
      * @param userId the user ID
@@ -72,6 +126,33 @@ public class ActivityFileService {
         String title,
         String description,
         Activity.Visibility visibility
+    ) {
+        return processActivityFile(file, userId, title, description, visibility, ProcessingOptions.normalMode());
+    }
+
+    /**
+     * Processes an uploaded activity file (FIT or GPX) and creates an activity with custom processing options.
+     * Allows selective skipping of side effects for batch import scenarios.
+     *
+     * @param file the uploaded file
+     * @param userId the user ID
+     * @param title optional custom title (will be auto-generated if null)
+     * @param description optional description
+     * @param visibility visibility level
+     * @param options processing options to control side effects
+     * @return the created activity
+     * @throws FitFileProcessingException if FIT processing fails
+     * @throws GpxFileProcessingException if GPX processing fails
+     * @throws UnsupportedFileFormatException if file format is unknown
+     */
+    @Transactional
+    public Activity processActivityFile(
+        MultipartFile file,
+        UUID userId,
+        String title,
+        String description,
+        Activity.Visibility visibility,
+        ProcessingOptions options
     ) {
         try {
             byte[] fileData = file.getBytes();
@@ -98,7 +179,7 @@ public class ActivityFileService {
             }
 
             // Common processing (same for both formats)
-            return createActivityFromParsedData(parsedData, userId, title, description, visibility, fileData);
+            return createActivityFromParsedData(parsedData, userId, title, description, visibility, fileData, options);
         } catch (IOException e) {
             throw new RuntimeException("Failed to read activity file", e);
         }
@@ -142,6 +223,8 @@ public class ActivityFileService {
     /**
      * Creates an activity from parsed data (internal method).
      * This method contains all the common logic for creating activities from any format.
+     *
+     * @param options processing options to control which side effects are executed
      */
     private Activity createActivityFromParsedData(
         ParsedActivityData parsedData,
@@ -149,7 +232,8 @@ public class ActivityFileService {
         String title,
         String description,
         Activity.Visibility visibility,
-        byte[] rawFile
+        byte[] rawFile,
+        ProcessingOptions options
     ) {
         // Generate title if not provided
         String activityTitle = title != null && !title.isBlank()
@@ -204,23 +288,55 @@ public class ActivityFileService {
             parsedData.getTrackPoints().size(),
             simplifiedTrack.getNumPoints());
 
-        // Check for personal records and achievements
-        personalRecordService.checkAndUpdatePersonalRecords(savedActivity);
-        achievementService.checkAndAwardAchievements(savedActivity);
+        // Execute side effects based on processing options
+        // In batch import mode, these are skipped and executed later as a batch
 
-        // Update heatmap grid
-        heatmapGridService.updateHeatmapForActivity(savedActivity);
+        if (!options.isSkipPersonalRecords()) {
+            log.debug("Checking personal records for activity {}", savedActivity.getId());
+            personalRecordService.checkAndUpdatePersonalRecords(savedActivity);
+        } else {
+            log.debug("Skipping personal records check for activity {} (batch mode)", savedActivity.getId());
+        }
 
-        // Update training load and summaries (async)
-        trainingLoadService.updateTrainingLoad(savedActivity);
-        activitySummaryService.updateSummariesForActivity(savedActivity);
+        if (!options.isSkipAchievements()) {
+            log.debug("Checking achievements for activity {}", savedActivity.getId());
+            achievementService.checkAndAwardAchievements(savedActivity);
+        } else {
+            log.debug("Skipping achievements check for activity {} (batch mode)", savedActivity.getId());
+        }
 
-        // Fetch weather data (async, non-blocking)
-        try {
-            weatherService.fetchWeatherForActivity(savedActivity);
-        } catch (Exception e) {
-            log.warn("Failed to fetch weather data for activity {}: {}", savedActivity.getId(), e.getMessage());
-            // Don't fail the activity creation if weather fetching fails
+        if (!options.isSkipHeatmap()) {
+            log.debug("Updating heatmap for activity {}", savedActivity.getId());
+            heatmapGridService.updateHeatmapForActivity(savedActivity);
+        } else {
+            log.debug("Skipping heatmap update for activity {} (batch mode)", savedActivity.getId());
+        }
+
+        if (!options.isSkipTrainingLoad()) {
+            log.debug("Updating training load for activity {}", savedActivity.getId());
+            trainingLoadService.updateTrainingLoad(savedActivity);
+        } else {
+            log.debug("Skipping training load update for activity {} (batch mode)", savedActivity.getId());
+        }
+
+        if (!options.isSkipSummaries()) {
+            log.debug("Updating summaries for activity {}", savedActivity.getId());
+            activitySummaryService.updateSummariesForActivity(savedActivity);
+        } else {
+            log.debug("Skipping summaries update for activity {} (batch mode)", savedActivity.getId());
+        }
+
+        if (!options.isSkipWeather()) {
+            // Fetch weather data (async, non-blocking)
+            try {
+                log.debug("Fetching weather for activity {}", savedActivity.getId());
+                weatherService.fetchWeatherForActivity(savedActivity);
+            } catch (Exception e) {
+                log.warn("Failed to fetch weather data for activity {}: {}", savedActivity.getId(), e.getMessage());
+                // Don't fail the activity creation if weather fetching fails
+            }
+        } else {
+            log.debug("Skipping weather fetch for activity {} (batch mode)", savedActivity.getId());
         }
 
         return savedActivity;

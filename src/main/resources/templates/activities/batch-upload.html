@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" layout:decorate="~{layout}">
+<head>
+    <title>Batch Import - FitPub</title>
+    <style>
+        .batch-upload-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .upload-zone {
+            border: 3px dashed var(--bs-border-color);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            background: var(--bs-secondary-bg);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: var(--bs-primary);
+            background: var(--bs-primary-bg-subtle);
+        }
+
+        .upload-zone i {
+            font-size: 3rem;
+            color: var(--bs-primary);
+            margin-bottom: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: var(--bs-secondary-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid var(--bs-border-color);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--bs-secondary-color);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .progress-section {
+            display: none;
+            margin: 2rem 0;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .file-results-table {
+            margin-top: 2rem;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .status-SUCCESS {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-FAILED {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-PENDING, .status-PROCESSING {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .recent-jobs-section {
+            margin-top: 3rem;
+        }
+
+        .job-card {
+            border: 1px solid var(--bs-border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: var(--bs-body-bg);
+        }
+
+        .job-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .file-input-label {
+            display: block;
+            margin-top: 1rem;
+        }
+
+        #zipFileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="content" class="batch-upload-container">
+    <h1><i class="bi bi-file-earmark-zip"></i> Batch Import Activities</h1>
+    <p class="text-muted">Upload a ZIP file containing multiple FIT or GPX files for batch processing.</p>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone">
+        <i class="bi bi-cloud-upload"></i>
+        <h3>Drop ZIP file here or click to browse</h3>
+        <p class="text-muted">Maximum file size: 500 MB | Maximum 1000 files per ZIP</p>
+        <p class="text-muted">Supported formats: .fit, .gpx</p>
+        <label for="zipFileInput" class="file-input-label">
+            <button type="button" class="btn btn-primary btn-lg" onclick="document.getElementById('zipFileInput').click()">
+                <i class="bi bi-folder-plus"></i> Select ZIP File
+            </button>
+        </label>
+        <input type="file" id="zipFileInput" accept=".zip" />
+    </div>
+
+    <!-- Selected File Info -->
+    <div id="selectedFileInfo" style="display: none; margin-top: 1rem;">
+        <div class="alert alert-info d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-file-earmark-zip"></i>
+                <strong id="selectedFileName"></strong>
+                <span id="selectedFileSize" class="text-muted ms-2"></span>
+            </div>
+            <button type="button" class="btn btn-primary" id="uploadButton">
+                <i class="bi bi-upload"></i> Start Upload
+            </button>
+        </div>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="progress-section" id="progressSection">
+        <h3><i class="bi bi-hourglass-split"></i> Processing...</h3>
+        <div class="progress" style="height: 30px; margin-bottom: 1rem;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                 id="progressBar"
+                 role="progressbar"
+                 style="width: 0%;"
+                 aria-valuenow="0"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+                <span id="progressText">0%</span>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-label">Total Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-primary" id="statProcessed">0</div>
+                <div class="stat-label">Processed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-success" id="statSuccess">0</div>
+                <div class="stat-label">Success</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-danger" id="statFailed">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+        </div>
+
+        <p class="text-center text-muted" id="statusMessage">Uploading ZIP file...</p>
+    </div>
+
+    <!-- File Results Table -->
+    <div class="file-results-table" id="fileResultsSection" style="display: none;">
+        <h3><i class="bi bi-list-check"></i> Import Results</h3>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Status</th>
+                    <th>Activity</th>
+                    <th>Error</th>
+                </tr>
+                </thead>
+                <tbody id="fileResultsBody">
+                <!-- Results will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div class="recent-jobs-section">
+        <h3><i class="bi bi-clock-history"></i> Recent Batch Imports</h3>
+        <div id="recentJobsList">
+            <p class="text-muted">Loading recent imports...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Include batch import JavaScript -->
+<script th:src="@{/js/batch-import.js}" layout:fragment="scripts"></script>
+</body>
+</html>

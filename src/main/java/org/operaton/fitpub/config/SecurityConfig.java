@@ -62,6 +62,7 @@ public class SecurityConfig {
                 .requestMatchers("/notifications").permitAll() // Auth checked client-side
                 .requestMatchers("/analytics", "/analytics/**").permitAll() // Auth checked client-side
                 .requestMatchers("/heatmap").permitAll() // Auth checked client-side
+                .requestMatchers("/batch-upload").permitAll() // Batch import page (Auth checked client-side)
 
                 // Public endpoints - ActivityPub federation
                 .requestMatchers("/.well-known/**").permitAll()
@@ -110,6 +111,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/heatmap/me").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/heatmap/me/rebuild").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/heatmap/user/*").permitAll()
+
+                // Protected endpoints - Batch Import API
+                .requestMatchers("/api/batch-import/**").authenticated()
 
                 // Protected endpoints - Activities API (upload, edit, delete)
                 .requestMatchers(HttpMethod.POST, "/api/activities/upload").authenticated()

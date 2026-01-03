@@ -9,6 +9,7 @@ import org.operaton.fitpub.service.TimelineService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -63,7 +64,8 @@ public class TimelineController {
         UUID userId = getUserId(userDetails);
         log.debug("Federated timeline request from user: {}", userId);
 
-        Pageable pageable = PageRequest.of(page, size);
+        // Sort by activity start date descending (latest first)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt"));
         Page<TimelineActivityDTO> timeline = timelineService.getFederatedTimeline(userId, pageable);
 
         return ResponseEntity.ok(timeline);
@@ -95,7 +97,8 @@ public class TimelineController {
             log.debug("Public timeline request (unauthenticated)");
         }
 
-        Pageable pageable = PageRequest.of(page, size);
+        // Sort by activity start date descending (latest first)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt"));
         Page<TimelineActivityDTO> timeline = timelineService.getPublicTimeline(userId, pageable);
 
         return ResponseEntity.ok(timeline);
@@ -121,7 +124,8 @@ public class TimelineController {
         UUID userId = getUserId(userDetails);
         log.debug("User timeline request from user: {}", userId);
 
-        Pageable pageable = PageRequest.of(page, size);
+        // Sort by activity start date descending (latest first)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt"));
         Page<TimelineActivityDTO> timeline = timelineService.getUserTimeline(userId, pageable);
 
         return ResponseEntity.ok(timeline);

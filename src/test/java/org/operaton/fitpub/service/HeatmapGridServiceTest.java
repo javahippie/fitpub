@@ -35,6 +35,12 @@ class HeatmapGridServiceTest {
     @Mock
     private ActivityRepository activityRepository;
 
+    @Mock
+    private jakarta.persistence.EntityManager entityManager;
+
+    @Mock
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private HeatmapGridService heatmapGridService;
     private ObjectMapper objectMapper;
     private GeometryFactory geometryFactory;
@@ -45,7 +51,9 @@ class HeatmapGridServiceTest {
         heatmapGridService = new HeatmapGridService(
                 heatmapGridRepository,
                 activityRepository,
-                objectMapper
+                objectMapper,
+                entityManager,
+                jdbcTemplate
         );
         geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
     }
@@ -160,12 +168,14 @@ class HeatmapGridServiceTest {
                 .thenReturn(activities);
         when(heatmapGridRepository.saveAll(anyList()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(jdbcTemplate.update(anyString(), any(UUID.class)))
+                .thenReturn(10);  // Simulate deleting 10 rows
 
         // Execute
         heatmapGridService.recalculateUserHeatmap(user);
 
         // Verify
-        verify(heatmapGridRepository).deleteByUserId(userId);
+        verify(jdbcTemplate).update(anyString(), eq(userId));
         verify(activityRepository).findByUserIdOrderByStartedAtDesc(userId);
         verify(heatmapGridRepository, atLeastOnce()).saveAll(anyList());
     }

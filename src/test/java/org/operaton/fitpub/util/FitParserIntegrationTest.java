@@ -64,10 +64,23 @@ class FitParserIntegrationTest {
 
         if (parsedData.getStartTime() != null) {
             log.info("   Start time: {}", parsedData.getStartTime());
+            // Verify timestamp is reasonable (within 5 years of current time)
+            long currentUnixTime = System.currentTimeMillis() / 1000;
+            long activityUnixTime = parsedData.getStartTime()
+                .atZone(java.time.ZoneId.systemDefault()).toEpochSecond();
+            long diffDays = Math.abs(currentUnixTime - activityUnixTime) / (24 * 60 * 60);
+            assertTrue(diffDays < 5 * 365,
+                String.format("Start time should be within 5 years of now. Got %s (diff: %d days)",
+                    parsedData.getStartTime(), diffDays));
         }
 
         if (parsedData.getEndTime() != null) {
             log.info("   End time: {}", parsedData.getEndTime());
+            // End time should be after start time
+            if (parsedData.getStartTime() != null) {
+                assertTrue(!parsedData.getEndTime().isBefore(parsedData.getStartTime()),
+                    "End time should be after or equal to start time");
+            }
         }
 
         if (parsedData.getTotalDistance() != null) {

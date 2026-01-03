@@ -69,10 +69,23 @@ class GpxParserIntegrationTest {
 
         if (parsedData.getStartTime() != null) {
             log.info("   Start time: {}", parsedData.getStartTime());
+            // Verify timestamp is reasonable (within 10 years of current time for GPX files)
+            long currentUnixTime = System.currentTimeMillis() / 1000;
+            long activityUnixTime = parsedData.getStartTime()
+                .atZone(java.time.ZoneId.systemDefault()).toEpochSecond();
+            long diffDays = Math.abs(currentUnixTime - activityUnixTime) / (24 * 60 * 60);
+            assertTrue(diffDays < 10 * 365,
+                String.format("Start time should be within 10 years of now. Got %s (diff: %d days)",
+                    parsedData.getStartTime(), diffDays));
         }
 
         if (parsedData.getEndTime() != null) {
             log.info("   End time: {}", parsedData.getEndTime());
+            // End time should be after start time
+            if (parsedData.getStartTime() != null) {
+                assertTrue(!parsedData.getEndTime().isBefore(parsedData.getStartTime()),
+                    "End time should be after or equal to start time");
+            }
         }
 
         if (parsedData.getTotalDistance() != null) {

@@ -126,19 +126,22 @@ function renderHeatmap(data) {
         heatmapMap.removeLayer(heatLayer);
     }
 
-    // Create heat layer
+    // Create heat layer with red color scheme
     heatLayer = L.heatLayer(heatData, {
-        radius: 25,
-        blur: 15,
+        radius: 30,          // Increased from 25 for better visibility
+        blur: 20,            // Increased from 15 for smoother appearance
         maxZoom: 17,
-        max: 1.0,
+        max: 0.8,            // Reduced from 1.0 to make colors more intense
+        minOpacity: 0.3,     // Minimum opacity for better visibility
         gradient: {
-            0.0: 'blue',
-            0.4: 'cyan',
-            0.6: 'lime',
-            0.7: 'yellow',
-            0.9: 'orange',
-            1.0: 'red'
+            0.0: 'rgba(0, 0, 0, 0)',        // Transparent for low values
+            0.2: 'rgba(139, 0, 0, 0.5)',     // Dark red with transparency
+            0.4: 'rgba(178, 34, 34, 0.7)',   // Firebrick red
+            0.6: 'rgb(220, 20, 60)',         // Crimson
+            0.75: 'rgb(255, 69, 0)',         // Red-orange
+            0.85: 'rgb(255, 140, 0)',        // Dark orange
+            0.95: 'rgb(255, 215, 0)',        // Gold
+            1.0: 'rgb(255, 255, 0)'          // Yellow (highest intensity)
         }
     }).addTo(heatmapMap);
 

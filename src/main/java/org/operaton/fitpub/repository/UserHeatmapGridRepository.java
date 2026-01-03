@@ -61,11 +61,12 @@ public interface UserHeatmapGridRepository extends JpaRepository<UserHeatmapGrid
     /**
      * Delete all grid cells for a user.
      * Used when recalculating the entire heatmap.
+     * Uses native SQL to ensure PostGIS geometry types are handled correctly.
      *
      * @param userId the user ID
      */
-    @Modifying
-    @Query("DELETE FROM UserHeatmapGrid g WHERE g.userId = :userId")
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "DELETE FROM user_heatmap_grid WHERE user_id = :userId", nativeQuery = true)
     void deleteByUserId(@Param("userId") UUID userId);
 
     /**
