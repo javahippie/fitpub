@@ -34,6 +34,7 @@ public class ActivityPubController {
     private final ActivityRepository activityRepository;
     private final ActivityImageService activityImageService;
     private final org.operaton.fitpub.service.InboxProcessor inboxProcessor;
+    private final org.operaton.fitpub.repository.FollowRepository followRepository;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -145,10 +146,19 @@ public class ActivityPubController {
             return ResponseEntity.notFound().build();
         }
 
+        User user = userOpt.get();
         String followersUrl = baseUrl + "/users/" + username + "/followers";
+        String actorUri = user.getActorUri(baseUrl);
 
-        // TODO: Fetch actual followers from database
-        OrderedCollection collection = OrderedCollection.empty(followersUrl);
+        // Get actual follower count from database
+        long followerCount = followRepository.countAcceptedFollowersByActorUri(actorUri);
+
+        OrderedCollection collection = OrderedCollection.builder()
+            .context("https://www.w3.org/ns/activitystreams")
+            .type("OrderedCollection")
+            .id(followersUrl)
+            .totalItems((int) followerCount)
+            .build();
 
         return ResponseEntity.ok(collection);
     }
@@ -172,10 +182,18 @@ public class ActivityPubController {
             return ResponseEntity.notFound().build();
         }
 
+        User user = userOpt.get();
         String followingUrl = baseUrl + "/users/" + username + "/following";
 
-        // TODO: Fetch actual following from database
-        OrderedCollection collection = OrderedCollection.empty(followingUrl);
+        // Get actual following count from database
+        long followingCount = followRepository.countAcceptedFollowingByUserId(user.getId());
+
+        OrderedCollection collection = OrderedCollection.builder()
+            .context("https://www.w3.org/ns/activitystreams")
+            .type("OrderedCollection")
+            .id(followingUrl)
+            .totalItems((int) followingCount)
+            .build();
 
         return ResponseEntity.ok(collection);
     }

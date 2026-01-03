@@ -61,6 +61,15 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
     List<Follow> findAcceptedFollowingByUserId(@Param("followerId") UUID followerId);
 
     /**
+     * Count accepted following relationships for a user.
+     *
+     * @param followerId the follower's user ID
+     * @return count of accepted following relationships
+     */
+    @Query("SELECT COUNT(f) FROM Follow f WHERE f.followerId = :followerId AND f.status = 'ACCEPTED'")
+    long countAcceptedFollowingByUserId(@Param("followerId") UUID followerId);
+
+    /**
      * Find a follow by its Activity ID.
      *
      * @param activityId the ActivityPub Follow activity ID
