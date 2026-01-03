@@ -37,6 +37,20 @@
                 <i class="bi bi-activity"></i> FitPub
             </a>
 
+            <!-- Notifications bell - always visible on mobile, next to hamburger -->
+            <ul class="navbar-nav d-flex flex-row order-lg-1 ms-auto">
+                <li class="nav-item d-none me-2" id="notificationsBellMobile">
+                    <a class="nav-link position-relative" th:href="@{/notifications}" title="Notifications">
+                        <i class="bi bi-bell"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                              id="navNotificationCountMobile"
+                              style="display: none; font-size: 0.6rem;">
+                            0
+                        </span>
+                    </a>
+                </li>
+            </ul>
+
             <button class="navbar-toggler"
                     type="button"
                     data-bs-toggle="collapse"
@@ -56,7 +70,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" th:href="@{/discover}">
+                        <a class="nav-link" th:href="@{/discover}" id="discoverLink" style="display: none;">
                             <i class="bi bi-people"></i> Discover
                         </a>
                     </li>
@@ -65,32 +79,52 @@
                             <i class="bi bi-list-task"></i> My Activities
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/activities/upload}" id="uploadLink" style="display: none;">
+
+                    <!-- Upload dropdown menu -->
+                    <li class="nav-item dropdown d-none" id="uploadDropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-cloud-upload"></i> Upload
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" th:href="@{/activities/upload}">
+                                    <i class="bi bi-file-earmark-arrow-up"></i> Single Activity
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" th:href="@{/batch-upload}">
+                                    <i class="bi bi-file-earmark-zip"></i> Batch Import
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/batch-upload}" id="batchUploadLink" style="display: none;">
-                            <i class="bi bi-file-earmark-zip"></i> Batch Import
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/analytics}" id="analyticsLink" style="display: none;">
+
+                    <!-- Analytics dropdown menu -->
+                    <li class="nav-item dropdown d-none" id="analyticsDropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-graph-up"></i> Analytics
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" th:href="@{/heatmap}" id="heatmapLink" style="display: none;">
-                            <i class="bi bi-map"></i> Heatmap
-                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" th:href="@{/analytics}">
+                                    <i class="bi bi-bar-chart"></i> Dashboard
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" th:href="@{/heatmap}">
+                                    <i class="bi bi-map"></i> Heatmap
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
 
                 <!-- Right side navigation -->
                 <ul class="navbar-nav">
-                    <!-- Notifications bell (hidden by default, shown by JS if JWT exists) -->
-                    <li class="nav-item d-none" id="notificationsBell">
+                    <!-- Notifications bell (hidden on mobile, shown on desktop) -->
+                    <li class="nav-item d-none d-lg-block" id="notificationsBell">
                         <a class="nav-link position-relative" th:href="@{/notifications}" title="Notifications">
                             <i class="bi bi-bell"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"

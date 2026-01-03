@@ -51,40 +51,61 @@ public class WeatherService {
      */
     @Transactional
     public Optional<WeatherData> fetchWeatherForActivity(Activity activity) {
-        if (!weatherEnabled || apiKey == null || apiKey.isBlank()) {
-            log.debug("Weather fetching is disabled or API key is not configured");
+        log.info("=== Weather fetch requested for activity {} ===", activity.getId());
+        log.info("Weather enabled: {}, API key configured: {}", weatherEnabled, (apiKey != null && !apiKey.isBlank()));
+
+        if (!weatherEnabled) {
+            log.warn("Weather fetching is DISABLED in configuration (fitpub.weather.enabled=false)");
             return Optional.empty();
         }
 
+        if (apiKey == null || apiKey.isBlank()) {
+            log.error("Weather API key is NOT CONFIGURED (fitpub.weather.api-key is empty)");
+            return Optional.empty();
+        }
+
+        log.debug("Weather API key present (length: {} chars, starts with: {}...)",
+                  apiKey.length(), apiKey.length() > 4 ? apiKey.substring(0, 4) : "???");
+
         // Check if weather data already exists
         if (weatherDataRepository.existsByActivityId(activity.getId())) {
-            log.debug("Weather data already exists for activity {}", activity.getId());
+            log.info("Weather data already exists for activity {}, returning cached data", activity.getId());
             return weatherDataRepository.findByActivityId(activity.getId());
         }
 
         // Extract start location from track
         if (activity.getTrackPointsJson() == null || activity.getTrackPointsJson().isEmpty()) {
-            log.debug("No track points available for activity {}", activity.getId());
+            log.warn("No track points available for activity {} - cannot fetch weather", activity.getId());
             return Optional.empty();
         }
+
+        log.debug("Track points JSON length: {} chars", activity.getTrackPointsJson().length());
 
         try {
             // Get first track point for location
             JsonNode trackPoints = objectMapper.readTree(activity.getTrackPointsJson());
+            log.debug("Parsed track points, is array: {}, size: {}",
+                      trackPoints.isArray(), trackPoints.isArray() ? trackPoints.size() : "N/A");
+
             if (!trackPoints.isArray() || trackPoints.isEmpty()) {
+                log.warn("Track points is not an array or is empty for activity {}", activity.getId());
                 return Optional.empty();
             }
 
             JsonNode firstPoint = trackPoints.get(0);
+            log.debug("First track point fields: {}", firstPoint.fieldNames().hasNext() ?
+                      String.join(", ", () -> firstPoint.fieldNames()) : "none");
 
             // Check if lat/lon fields exist
             if (!firstPoint.has("lat") || !firstPoint.has("lon")) {
-                log.debug("First track point missing lat/lon for activity {}", activity.getId());
+                log.error("First track point missing lat/lon fields for activity {}. Available fields: {}",
+                          activity.getId(), String.join(", ", () -> firstPoint.fieldNames()));
                 return Optional.empty();
             }
 
             double lat = firstPoint.get("lat").asDouble();
             double lon = firstPoint.get("lon").asDouble();
+            log.info("Extracted location: lat={}, lon={}", lat, lon);
 
             // Check if activity is recent (within 5 days) - use current weather API
             // Otherwise use historical data API (requires paid plan)
@@ -92,22 +113,29 @@ public class WeatherService {
             long currentTimestamp = Instant.now().getEpochSecond();
             long daysDifference = (currentTimestamp - activityTimestamp) / 86400;
 
+            log.info("Activity started at: {}, days ago: {}", activity.getStartedAt(), daysDifference);
+
             WeatherData weatherData;
             if (daysDifference <= 5) {
+                log.info("Activity is recent (within 5 days), fetching current weather");
                 weatherData = fetchCurrentWeather(lat, lon, activity.getId());
             } else {
-                log.debug("Activity is older than 5 days, historical weather data requires paid API plan");
-                // For historical data, we would use the Time Machine API
-                // weatherData = fetchHistoricalWeather(lat, lon, activityTimestamp, activity.getId());
+                log.warn("Activity is {} days old (>5 days), historical weather data requires paid API plan. Skipping.", daysDifference);
                 return Optional.empty();
             }
 
             if (weatherData != null) {
-                return Optional.of(weatherDataRepository.save(weatherData));
+                log.info("Successfully fetched and parsed weather data, saving to database");
+                WeatherData saved = weatherDataRepository.save(weatherData);
+                log.info("Weather data saved with ID: {}", saved.getId());
+                return Optional.of(saved);
+            } else {
+                log.error("Weather data fetch returned null");
             }
 
         } catch (Exception e) {
-            log.error("Error fetching weather data for activity {}: {}", activity.getId(), e.getMessage());
+            log.error("EXCEPTION while fetching weather data for activity {}: {}",
+                      activity.getId(), e.getMessage(), e);
         }
 
         return Optional.empty();
@@ -121,17 +149,50 @@ public class WeatherService {
             String url = String.format("%s?lat=%f&lon=%f&appid=%s&units=metric",
                     OPENWEATHERMAP_API_URL, lat, lon, apiKey);
 
-            log.debug("Fetching current weather from: {}", url.replace(apiKey, "***"));
+            String maskedUrl = url.replace(apiKey, "***API_KEY***");
+            log.info("Making API request to OpenWeatherMap: {}", maskedUrl);
+            log.debug("API URL: {}", OPENWEATHERMAP_API_URL);
+            log.debug("Coordinates: lat={}, lon={}", lat, lon);
 
+            long startTime = System.currentTimeMillis();
             String response = restTemplate.getForObject(URI.create(url), String.class);
+            long duration = System.currentTimeMillis() - startTime;
+
+            log.info("API request completed in {}ms", duration);
+
             if (response == null) {
+                log.error("API response is NULL - no data returned from OpenWeatherMap");
                 return null;
             }
 
-            return parseWeatherResponse(response, activityId);
+            log.debug("API response length: {} chars", response.length());
+            log.debug("API response preview: {}", response.length() > 200 ? response.substring(0, 200) + "..." : response);
 
+            WeatherData weatherData = parseWeatherResponse(response, activityId);
+
+            if (weatherData == null) {
+                log.error("Failed to parse weather response");
+            } else {
+                log.info("Successfully parsed weather data: temp={}°C, condition={}",
+                         weatherData.getTemperatureCelsius(), weatherData.getWeatherCondition());
+            }
+
+            return weatherData;
+
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("HTTP CLIENT ERROR from OpenWeatherMap API: Status={}, Body={}",
+                      e.getStatusCode(), e.getResponseBodyAsString(), e);
+            return null;
+        } catch (org.springframework.web.client.HttpServerErrorException e) {
+            log.error("HTTP SERVER ERROR from OpenWeatherMap API: Status={}, Body={}",
+                      e.getStatusCode(), e.getResponseBodyAsString(), e);
+            return null;
+        } catch (org.springframework.web.client.RestClientException e) {
+            log.error("REST CLIENT EXCEPTION calling OpenWeatherMap API: {}", e.getMessage(), e);
+            return null;
         } catch (Exception e) {
-            log.error("Error fetching current weather: {}", e.getMessage());
+            log.error("UNEXPECTED EXCEPTION fetching current weather: {} - {}",
+                      e.getClass().getSimpleName(), e.getMessage(), e);
             return null;
         }
     }

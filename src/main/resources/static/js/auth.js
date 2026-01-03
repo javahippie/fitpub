@@ -6,25 +6,30 @@
 const FitPubAuth = {
     /**
      * Get the stored JWT token
-     * @returns {string|null} JWT token or null if not found
+     * Note: With httpOnly cookies, the token is not accessible via JavaScript
+     * This method is kept for backward compatibility but returns null
+     * @returns {null} Always returns null (token is in httpOnly cookie)
      */
     getToken: function() {
-        return localStorage.getItem('jwtToken');
+        // Token is now in httpOnly cookie, not accessible to JavaScript
+        return null;
     },
 
     /**
      * Store JWT token
-     * @param {string} token - JWT token to store
+     * Note: Not used anymore - token is stored in httpOnly cookie by server
+     * @param {string} token - JWT token (ignored, kept for compatibility)
      */
     setToken: function(token) {
-        localStorage.setItem('jwtToken', token);
+        // Token is automatically stored in httpOnly cookie by server
+        // No action needed
     },
 
     /**
-     * Remove stored JWT token
+     * Remove stored JWT token and username
      */
     removeToken: function() {
-        localStorage.removeItem('jwtToken');
+        // Cookie is cleared by server on logout
         localStorage.removeItem('username');
     },
 
@@ -46,31 +51,15 @@ const FitPubAuth = {
 
     /**
      * Check if user is authenticated
+     * With httpOnly cookies, we check if username is stored (set on login)
+     * The actual authentication is verified server-side on each request
      * @returns {boolean} True if authenticated, false otherwise
      */
     isAuthenticated: function() {
-        const token = this.getToken();
-        if (!token) {
-            return false;
-        }
-
-        // Check if token is expired
-        try {
-            const payload = this.parseJwt(token);
-            const now = Math.floor(Date.now() / 1000);
-
-            if (payload.exp && payload.exp < now) {
-                // Token expired, remove it
-                this.removeToken();
-                return false;
-            }
-
-            return true;
-        } catch (e) {
-            console.error('Error parsing JWT:', e);
-            this.removeToken();
-            return false;
-        }
+        // With httpOnly cookies, we can't access the token
+        // We check if username exists in localStorage (set on successful login)
+        const username = this.getUsername();
+        return username != null && username !== '';
     },
 
     /**
@@ -121,28 +110,36 @@ const FitPubAuth = {
     /**
      * Logout user
      */
-    logout: function() {
+    logout: async function() {
+        try {
+            // Call server logout endpoint to clear the httpOnly cookie
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include' // Important: send cookies
+            });
+        } catch (error) {
+            console.error('Logout request failed:', error);
+            // Continue with logout even if server request fails
+        }
+
+        // Clear client-side storage
         this.removeToken();
+
+        // Redirect to login page
         window.location.href = '/login';
     },
 
     /**
      * Make an authenticated API request
+     * With httpOnly cookies, authentication is automatic via cookies
      * @param {string} url - API endpoint URL
      * @param {object} options - Fetch options
      * @returns {Promise<Response>} Fetch response
      */
     authenticatedFetch: async function(url, options = {}) {
-        const token = this.getToken();
-
-        if (!token) {
-            throw new Error('No authentication token found');
-        }
-
-        // Add Authorization header
+        // Prepare headers
         const headers = {
-            ...options.headers,
-            'Authorization': `Bearer ${token}`,
+            ...options.headers
         };
 
         // If body is an object, set Content-Type to JSON
@@ -151,13 +148,15 @@ const FitPubAuth = {
             options.body = JSON.stringify(options.body);
         }
 
+        // Make request with credentials to send httpOnly cookie
         const response = await fetch(url, {
             ...options,
-            headers
+            headers,
+            credentials: 'include' // Important: send cookies
         });
 
-        // If unauthorized, redirect to login
-        if (response.status === 401) {
+        // If unauthorized, clear local state and redirect to login
+        if (response.status === 401 || response.status === 403) {
             this.removeToken();
             window.location.href = '/login';
             throw new Error('Authentication failed');
@@ -214,12 +213,12 @@ const FitPubAuth = {
         const authUserMenu = document.getElementById('authUserMenu');
         const guestMenu = document.getElementById('guestMenu');
         const usernameDisplay = document.getElementById('usernameDisplay');
+        const discoverLink = document.getElementById('discoverLink');
         const myActivitiesLink = document.getElementById('myActivitiesLink');
-        const uploadLink = document.getElementById('uploadLink');
-        const batchUploadLink = document.getElementById('batchUploadLink');
-        const analyticsLink = document.getElementById('analyticsLink');
-        const heatmapLink = document.getElementById('heatmapLink');
+        const uploadDropdown = document.getElementById('uploadDropdown');
+        const analyticsDropdown = document.getElementById('analyticsDropdown');
         const notificationsBell = document.getElementById('notificationsBell');
+        const notificationsBellMobile = document.getElementById('notificationsBellMobile');
 
         if (this.isAuthenticated()) {
             // Show authenticated menu, hide guest menu
@@ -231,30 +230,31 @@ const FitPubAuth = {
             }
 
             // Show authenticated navigation links
+            if (discoverLink) {
+                discoverLink.style.display = '';
+                discoverLink.parentElement.style.display = '';
+            }
             if (myActivitiesLink) {
                 myActivitiesLink.style.display = '';
                 myActivitiesLink.parentElement.style.display = '';
             }
-            if (uploadLink) {
-                uploadLink.style.display = '';
-                uploadLink.parentElement.style.display = '';
+
+            // Show dropdown menus
+            if (uploadDropdown) {
+                uploadDropdown.classList.remove('d-none');
             }
-            if (batchUploadLink) {
-                batchUploadLink.style.display = '';
-                batchUploadLink.parentElement.style.display = '';
-            }
-            if (analyticsLink) {
-                analyticsLink.style.display = '';
-                analyticsLink.parentElement.style.display = '';
-            }
-            if (heatmapLink) {
-                heatmapLink.style.display = '';
-                heatmapLink.parentElement.style.display = '';
+            if (analyticsDropdown) {
+                analyticsDropdown.classList.remove('d-none');
             }
 
-            // Show notifications bell
+            // Show notifications bell (desktop: visible on lg+, mobile: visible below lg)
             if (notificationsBell) {
                 notificationsBell.classList.remove('d-none');
+                notificationsBell.classList.add('d-lg-block'); // Visible on lg+, hidden below
+            }
+            if (notificationsBellMobile) {
+                notificationsBellMobile.classList.remove('d-none', 'd-lg-none');
+                notificationsBellMobile.classList.add('d-block', 'd-lg-none'); // Visible below lg, hidden on lg+
             }
 
             // Display username
@@ -270,33 +270,37 @@ const FitPubAuth = {
             if (authUserMenu) {
                 authUserMenu.classList.add('d-none');
             }
+
+            // Hide notification bells completely
             if (notificationsBell) {
+                notificationsBell.classList.remove('d-lg-block', 'd-block');
                 notificationsBell.classList.add('d-none');
             }
+            if (notificationsBellMobile) {
+                notificationsBellMobile.classList.remove('d-block', 'd-lg-none');
+                notificationsBellMobile.classList.add('d-none');
+            }
+
             if (guestMenu) {
                 guestMenu.style.display = '';
             }
 
             // Hide authenticated navigation links
+            if (discoverLink) {
+                discoverLink.style.display = 'none';
+                discoverLink.parentElement.style.display = 'none';
+            }
             if (myActivitiesLink) {
                 myActivitiesLink.style.display = 'none';
                 myActivitiesLink.parentElement.style.display = 'none';
             }
-            if (uploadLink) {
-                uploadLink.style.display = 'none';
-                uploadLink.parentElement.style.display = 'none';
+
+            // Hide dropdown menus
+            if (uploadDropdown) {
+                uploadDropdown.classList.add('d-none');
             }
-            if (batchUploadLink) {
-                batchUploadLink.style.display = 'none';
-                batchUploadLink.parentElement.style.display = 'none';
-            }
-            if (analyticsLink) {
-                analyticsLink.style.display = 'none';
-                analyticsLink.parentElement.style.display = 'none';
-            }
-            if (heatmapLink) {
-                heatmapLink.style.display = 'none';
-                heatmapLink.parentElement.style.display = 'none';
+            if (analyticsDropdown) {
+                analyticsDropdown.classList.add('d-none');
             }
         }
     },
@@ -400,14 +404,22 @@ const FitPubAuth = {
             const response = await this.authenticatedFetch('/api/notifications/unread/count');
             if (response.ok) {
                 const data = await response.json();
-                const badge = document.getElementById('navNotificationCount');
-                if (badge) {
-                    if (data.count > 0) {
-                        badge.textContent = data.count > 99 ? '99+' : data.count;
-                        badge.style.display = 'inline-block';
-                    } else {
-                        badge.style.display = 'none';
-                    }
+                const badgeDesktop = document.getElementById('navNotificationCount');
+                const badgeMobile = document.getElementById('navNotificationCountMobile');
+
+                const displayText = data.count > 99 ? '99+' : data.count;
+                const shouldDisplay = data.count > 0;
+
+                // Update desktop badge
+                if (badgeDesktop) {
+                    badgeDesktop.textContent = displayText;
+                    badgeDesktop.style.display = shouldDisplay ? 'inline-block' : 'none';
+                }
+
+                // Update mobile badge
+                if (badgeMobile) {
+                    badgeMobile.textContent = displayText;
+                    badgeMobile.style.display = shouldDisplay ? 'inline-block' : 'none';
                 }
             }
         } catch (error) {

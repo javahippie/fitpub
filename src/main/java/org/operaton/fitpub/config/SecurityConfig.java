@@ -36,6 +36,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService;
+    private final org.operaton.fitpub.security.CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     /**
      * Configures the security filter chain.
@@ -48,6 +49,9 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(customAuthenticationEntryPoint)
+            )
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints - Static resources
                 .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico").permitAll()
@@ -56,13 +60,19 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
 
                 // Public endpoints - Web UI pages
-                .requestMatchers("/", "/login", "/register", "/timeline", "/timeline/**", "/activities", "/activities/**").permitAll()
-                .requestMatchers("/profile", "/profile/**", "/settings").permitAll() // Auth checked client-side
+                .requestMatchers("/", "/login", "/register", "/timeline", "/timeline/**").permitAll()
                 .requestMatchers("/discover").permitAll() // User discovery page
-                .requestMatchers("/notifications").permitAll() // Auth checked client-side
-                .requestMatchers("/analytics", "/analytics/**").permitAll() // Auth checked client-side
-                .requestMatchers("/heatmap").permitAll() // Auth checked client-side
-                .requestMatchers("/batch-upload").permitAll() // Batch import page (Auth checked client-side)
+
+                // Protected view pages - require authentication
+                .requestMatchers("/activities", "/activities/upload").authenticated()
+                .requestMatchers("/profile", "/profile/**", "/settings").authenticated()
+                .requestMatchers("/notifications").authenticated()
+                .requestMatchers("/analytics", "/analytics/**").authenticated()
+                .requestMatchers("/heatmap").authenticated()
+                .requestMatchers("/batch-upload").authenticated()
+
+                // Public - Individual activity view pages (for public activities)
+                .requestMatchers("/activities/*").permitAll()
 
                 // Public endpoints - ActivityPub federation
                 .requestMatchers("/.well-known/**").permitAll()

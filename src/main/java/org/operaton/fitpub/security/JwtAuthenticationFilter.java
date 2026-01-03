@@ -2,6 +2,7 @@ package org.operaton.fitpub.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * JWT authentication filter that validates JWT tokens on each request.
@@ -61,13 +63,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extracts the JWT token from the Authorization header.
+     * Extracts the JWT token from cookies or Authorization header.
+     * Priority: 1) Cookie, 2) Authorization header
      *
      * @param request the HTTP request
      * @return the JWT token or null if not found
      */
     private String getJwtFromRequest(HttpServletRequest request) {
+        // First, try to get JWT from cookie
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            String tokenFromCookie = Arrays.stream(cookies)
+                    .filter(cookie -> "JWT_TOKEN".equals(cookie.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .orElse(null);
+
+            if (tokenFromCookie != null && !tokenFromCookie.isEmpty()) {
+                log.debug("JWT token found in cookie");
+                return tokenFromCookie;
+            }
+        }
+
+        // Fallback to Authorization header (for API clients)
         String bearerToken = request.getHeader("Authorization");
-        return tokenProvider.resolveToken(bearerToken);
+        String tokenFromHeader = tokenProvider.resolveToken(bearerToken);
+        if (tokenFromHeader != null) {
+            log.debug("JWT token found in Authorization header");
+        }
+        return tokenFromHeader;
     }
 }
