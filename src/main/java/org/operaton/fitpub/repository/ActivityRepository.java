@@ -89,6 +89,15 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
     long countByUserId(UUID userId);
 
     /**
+     * Count activities for a user by visibility.
+     *
+     * @param userId the user ID
+     * @param visibility the visibility level
+     * @return count of activities
+     */
+    long countByUserIdAndVisibility(UUID userId, Activity.Visibility visibility);
+
+    /**
      * Find an activity by ID and user ID.
      *
      * @param id the activity ID

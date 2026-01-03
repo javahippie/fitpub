@@ -119,10 +119,22 @@ public class ActivityPubController {
             return ResponseEntity.notFound().build();
         }
 
+        User user = userOpt.get();
         String outboxUrl = baseUrl + "/users/" + username + "/outbox";
 
-        // TODO: Fetch actual activities from database
-        OrderedCollection collection = OrderedCollection.empty(outboxUrl);
+        // Count public activities for this user
+        // Mastodon and other ActivityPub servers primarily use the totalItems count
+        long activityCount = activityRepository.countByUserIdAndVisibility(
+            user.getId(),
+            Activity.Visibility.PUBLIC
+        );
+
+        OrderedCollection collection = OrderedCollection.builder()
+            .context("https://www.w3.org/ns/activitystreams")
+            .type("OrderedCollection")
+            .id(outboxUrl)
+            .totalItems((int) activityCount)
+            .build();
 
         return ResponseEntity.ok(collection);
     }
