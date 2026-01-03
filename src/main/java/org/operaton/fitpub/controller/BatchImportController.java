@@ -198,6 +198,47 @@ public class BatchImportController {
     }
 
     /**
+     * Undoes a batch import by deleting all successfully imported activities.
+     * This operation cannot be reversed and runs asynchronously.
+     *
+     * DELETE /api/batch-import/jobs/{jobId}
+     *
+     * @param jobId          the batch import job ID
+     * @param authentication the authenticated user
+     * @return 202 Accepted - deletion is processing asynchronously
+     */
+    @DeleteMapping("/jobs/{jobId}")
+    public ResponseEntity<?> undoBatchImport(
+            @PathVariable UUID jobId,
+            Authentication authentication
+    ) {
+        try {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+            log.info("User {} requesting to undo batch import job {}", username, jobId);
+
+            // Initiate async undo (validates job and starts background deletion)
+            batchImportService.undoBatchImport(jobId, user.getId());
+
+            log.info("Batch import job {} undo initiated for user {}", jobId, username);
+
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(new UndoResponse(
+                    "Batch import undo initiated. Activities are being deleted in the background."
+            ));
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid undo request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to initiate undo batch import", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Failed to initiate undo: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Maps BatchImportJob entity to DTO.
      */
     private BatchImportJobStatusDTO mapJobToStatusDTO(BatchImportJob job) {
@@ -273,5 +314,11 @@ public class BatchImportController {
      * DTO for error responses.
      */
     public record ErrorResponse(String error) {
+    }
+
+    /**
+     * DTO for undo response.
+     */
+    public record UndoResponse(String message) {
     }
 }

@@ -430,13 +430,27 @@
             `;
             card.appendChild(stats);
 
-            // View details button for completed jobs
+            // Buttons for completed jobs
             if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+                const buttonGroup = document.createElement('div');
+                buttonGroup.className = 'mt-2';
+
                 const viewButton = document.createElement('button');
-                viewButton.className = 'btn btn-sm btn-outline-primary mt-2';
+                viewButton.className = 'btn btn-sm btn-outline-primary me-2';
                 viewButton.textContent = 'View Details';
                 viewButton.onclick = () => viewJobDetails(job.id);
-                card.appendChild(viewButton);
+                buttonGroup.appendChild(viewButton);
+
+                // Undo button for completed jobs with successful imports
+                if (job.status === 'COMPLETED' && job.successCount > 0) {
+                    const undoButton = document.createElement('button');
+                    undoButton.className = 'btn btn-sm btn-outline-danger';
+                    undoButton.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Undo Import';
+                    undoButton.onclick = () => undoBatchImport(job.id, job.filename, job.successCount);
+                    buttonGroup.appendChild(undoButton);
+                }
+
+                card.appendChild(buttonGroup);
             }
 
             container.appendChild(card);
@@ -453,6 +467,65 @@
             document.getElementById('progressSection').classList.add('active');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
+    }
+
+    /**
+     * Undo a batch import by deleting all successfully imported activities.
+     * Shows confirmation dialog before proceeding.
+     * Deletion happens asynchronously in the background.
+     */
+    async function undoBatchImport(jobId, filename, successCount) {
+        // Show confirmation dialog
+        const confirmed = confirm(
+            `Are you sure you want to undo this batch import?\n\n` +
+            `File: ${filename}\n` +
+            `This will delete ${successCount} successfully imported ${successCount === 1 ? 'activity' : 'activities'}.\n\n` +
+            `This operation cannot be reversed!`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const response = await authenticatedFetch(`/api/batch-import/jobs/${jobId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                let errorMessage = 'Failed to undo batch import';
+                try {
+                    const error = await response.json();
+                    errorMessage = error.error || error.message || `Server returned ${response.status}`;
+                } catch (e) {
+                    errorMessage = `Server returned ${response.status}: ${response.statusText}`;
+                }
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+
+            FitPub.showAlert(
+                result.message || 'Batch import undo initiated. Activities are being deleted in the background.',
+                'info'
+            );
+
+            // Refresh the recent jobs list after a short delay to allow async deletion to start
+            setTimeout(() => {
+                loadRecentJobs();
+            }, 2000);
+
+            // Clear progress section if this was the current job
+            if (currentJobId === jobId) {
+                document.getElementById('progressSection').classList.remove('active');
+                document.getElementById('fileResultsSection').style.display = 'none';
+                currentJobId = null;
+            }
+
+        } catch (error) {
+            console.error('Failed to undo batch import:', error);
+            FitPub.showAlert('Failed to undo batch import: ' + error.message, 'danger');
+        }
     }
 
     /**

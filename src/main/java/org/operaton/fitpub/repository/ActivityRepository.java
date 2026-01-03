@@ -4,6 +4,7 @@ import org.operaton.fitpub.model.entity.Activity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -184,4 +185,15 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
            "WHERE a.userId = :userId " +
            "AND FUNCTION('DATE', a.startedAt) = :date")
     boolean existsByUserIdAndDate(@Param("userId") UUID userId, @Param("date") java.time.LocalDate date);
+
+    /**
+     * Batch delete activities by IDs.
+     * More efficient than deleting one by one.
+     *
+     * @param ids the list of activity IDs to delete
+     * @return number of deleted activities
+     */
+    @Modifying
+    @Query("DELETE FROM Activity a WHERE a.id IN :ids")
+    int deleteByIdIn(@Param("ids") List<UUID> ids);
 }

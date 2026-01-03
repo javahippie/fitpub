@@ -447,6 +447,137 @@ public class BatchImportService {
     }
 
     /**
+     * Initiates an async undo of a batch import.
+     * Validates the job and starts background deletion.
+     *
+     * @param jobId  the batch import job ID
+     * @param userId the user ID (for authorization check)
+     * @throws IllegalArgumentException if job not found or access denied
+     */
+    @Transactional
+    public void undoBatchImport(UUID jobId, UUID userId) {
+        log.info("Initiating undo for batch import job {} by user {}", jobId, userId);
+
+        // Get job and verify ownership
+        BatchImportJob job = batchImportJobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Batch import job not found: " + jobId));
+
+        if (!job.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Access denied: Job does not belong to user");
+        }
+
+        // Get all successfully imported activities
+        List<BatchImportFileResult> successfulResults = batchImportFileResultRepository
+                .findByJobIdAndStatus(jobId, BatchImportFileResult.FileStatus.SUCCESS);
+
+        List<UUID> activityIds = successfulResults.stream()
+                .map(BatchImportFileResult::getActivityId)
+                .filter(id -> id != null)
+                .toList();
+
+        if (activityIds.isEmpty()) {
+            log.info("No activities to delete for batch import job {}", jobId);
+            // Delete the job anyway since there's nothing to undo
+            batchImportJobRepository.delete(job);
+            return;
+        }
+
+        log.info("Scheduling async deletion of {} activities for batch import job {}", activityIds.size(), jobId);
+
+        // Start async deletion
+        self.undoBatchImportAsync(jobId, userId, activityIds);
+    }
+
+    /**
+     * Asynchronously deletes all activities from a batch import and recalculates analytics.
+     * Phase 1: Delete activities in batches (efficient bulk delete)
+     * Phase 2: Recalculate analytics
+     *
+     * @param jobId       the batch import job ID
+     * @param userId      the user ID
+     * @param activityIds the list of activity IDs to delete
+     */
+    @Async("batchImportExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void undoBatchImportAsync(UUID jobId, UUID userId, List<UUID> activityIds) {
+        log.info("Starting async undo for batch import job {} ({} activities)", jobId, activityIds.size());
+
+        try {
+            // Phase 1: Delete all activities in batches
+            // PostgreSQL supports large IN clauses, but we chunk for safety and better logging
+            final int BATCH_SIZE = 500;
+            int totalDeleted = 0;
+
+            for (int i = 0; i < activityIds.size(); i += BATCH_SIZE) {
+                int end = Math.min(i + BATCH_SIZE, activityIds.size());
+                List<UUID> batch = activityIds.subList(i, end);
+
+                log.debug("Deleting batch {}-{} of {} activities", i + 1, end, activityIds.size());
+                int deletedInBatch = activityRepository.deleteByIdIn(batch);
+                totalDeleted += deletedInBatch;
+                log.debug("Deleted {} activities in batch", deletedInBatch);
+            }
+
+            log.info("Deleted {} activities for batch import job {}", totalDeleted, jobId);
+
+            // Delete the batch import job and its file results (cascade will handle file results)
+            batchImportJobRepository.deleteById(jobId);
+            log.info("Deleted batch import job {}", jobId);
+
+            // Phase 2: Recalculate analytics (in a separate transaction to prevent rollback)
+            try {
+                recalculateAnalyticsAfterUndo(userId);
+            } catch (Exception e) {
+                log.error("Failed to recalculate analytics after undo (this won't rollback the deletion)", e);
+                // Don't rethrow - analytics can be recalculated manually
+            }
+
+            log.info("Batch import job {} undone successfully. Deleted {} activities.", jobId, totalDeleted);
+
+        } catch (Exception e) {
+            log.error("Failed to undo batch import job {}", jobId, e);
+            // If deletion fails, the job will remain in the database for retry
+        }
+    }
+
+    /**
+     * Recalculates analytics after undo operation.
+     * Runs in a separate transaction to prevent rollback of activity deletion.
+     * Optimized to rebuild analytics once instead of per-activity.
+     *
+     * @param userId the user ID
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected void recalculateAnalyticsAfterUndo(UUID userId) {
+        log.info("Recalculating analytics after undo for user {}", userId);
+
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalStateException("User not found: " + userId));
+
+            // Rebuild heatmap once (analyzes all activities)
+            log.debug("Rebuilding user heatmap...");
+            heatmapGridService.recalculateUserHeatmap(user);
+
+            // Get remaining activities count for logging
+            long remainingCount = activityRepository.countByUserId(userId);
+            log.info("Recalculating analytics for {} remaining activities", remainingCount);
+
+            // Note: Personal records, achievements, training load, and summaries
+            // are typically calculated on-the-fly or cached. After bulk deletion,
+            // they will be recalculated when activities are accessed.
+            // A full rebuild would require iterating through all activities again,
+            // which we avoid for performance.
+
+            log.info("Analytics recalculation completed after undo (heatmap rebuilt)");
+
+        } catch (Exception e) {
+            log.error("Failed to recalculate analytics after undo", e);
+            // Don't rethrow - analytics can be recalculated manually or on-demand
+        }
+    }
+
+    /**
      * Cleans up old batch import jobs older than the specified retention period.
      *
      * @param retentionDays number of days to keep jobs

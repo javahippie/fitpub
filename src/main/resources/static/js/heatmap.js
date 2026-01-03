@@ -128,8 +128,8 @@ function renderHeatmap(data) {
 
     // Create heat layer with red color scheme
     heatLayer = L.heatLayer(heatData, {
-        radius: 30,          // Increased from 25 for better visibility
-        blur: 20,            // Increased from 15 for smoother appearance
+        radius: 10,          // Reduced for more detail
+        blur: 5,            // Reduced for sharper appearance
         maxZoom: 17,
         max: 0.8,            // Reduced from 1.0 to make colors more intense
         minOpacity: 0.3,     // Minimum opacity for better visibility
