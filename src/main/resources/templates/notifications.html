@@ -85,6 +85,68 @@
             border-bottom: 1px solid #dee2e6;
             margin-bottom: 1rem;
         }
+
+        /* Dark mode overrides */
+        @media (prefers-color-scheme: dark) {
+            .notification-item {
+                border-bottom-color: #3d2060;
+            }
+
+            .notification-item:hover {
+                background-color: #301550;
+            }
+
+            .notification-item.unread {
+                background-color: rgba(0, 255, 255, 0.15);
+            }
+
+            .notification-item.unread:hover {
+                background-color: rgba(0, 255, 255, 0.25);
+            }
+
+            .notification-actor {
+                color: #e8e8f0;
+            }
+
+            .notification-time {
+                color: #a8a8c0;
+            }
+
+            .notification-icon.like {
+                background-color: rgba(220, 53, 69, 0.25);
+                color: #ff6b7a;
+            }
+
+            .notification-icon.comment {
+                background-color: rgba(0, 212, 255, 0.25);
+                color: #00d4ff;
+            }
+
+            .notification-icon.follow {
+                background-color: rgba(57, 255, 20, 0.25);
+                color: #39ff14;
+            }
+
+            .filter-tabs {
+                border-bottom-color: #3d2060;
+            }
+
+            /* Fix active tab text contrast */
+            .nav-tabs .nav-link.active {
+                background-color: #301550;
+                border-color: #3d2060 #3d2060 #301550;
+                color: #e8e8f0;
+            }
+
+            .nav-tabs .nav-link {
+                color: #a8a8c0;
+            }
+
+            .nav-tabs .nav-link:hover {
+                color: #00ffff;
+                border-color: #3d2060 #3d2060 transparent;
+            }
+        }
     </style>
 </head>
 <body>
