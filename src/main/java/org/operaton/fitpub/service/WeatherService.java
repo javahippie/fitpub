@@ -93,13 +93,13 @@ public class WeatherService {
             }
 
             JsonNode firstPoint = trackPoints.get(0);
-            log.debug("First track point fields: {}", firstPoint.fieldNames().hasNext() ?
-                      String.join(", ", () -> firstPoint.fieldNames()) : "none");
+
+            log.debug("First track point missing lat/lon for activity {}", activity.getId());
 
             // Check if lat/lon fields exist
             if (!firstPoint.has("lat") || !firstPoint.has("lon")) {
-                log.error("First track point missing lat/lon fields for activity {}. Available fields: {}",
-                          activity.getId(), String.join(", ", () -> firstPoint.fieldNames()));
+                log.error("First track point missing lat/lon fields for activity {}",
+                          activity.getId());
                 return Optional.empty();
             }
 
