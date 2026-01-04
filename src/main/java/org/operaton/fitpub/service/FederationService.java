@@ -435,6 +435,49 @@ public class FederationService {
         }
     }
 
+    /**
+     * Send a Delete activity for actor (account) deletion.
+     * Notifies all followers that this account has been permanently deleted.
+     * The actor URI is both the actor and the object being deleted.
+     *
+     * @param user the user account being deleted
+     */
+    @Transactional
+    public void sendActorDeleteActivity(User user) {
+        try {
+            String deleteId = baseUrl + "/activities/delete/" + UUID.randomUUID();
+            String actorUri = baseUrl + "/users/" + user.getUsername();
+
+            Map<String, Object> deleteActivity = new HashMap<>();
+            deleteActivity.put("@context", "https://www.w3.org/ns/activitystreams");
+            deleteActivity.put("type", "Delete");
+            deleteActivity.put("id", deleteId);
+            deleteActivity.put("actor", actorUri);
+            deleteActivity.put("object", actorUri); // Actor is the object being deleted
+            deleteActivity.put("published", Instant.now().toString());
+            deleteActivity.put("to", List.of("https://www.w3.org/ns/activitystreams#Public"));
+            deleteActivity.put("cc", List.of(actorUri + "/followers"));
+
+            // Send to all follower inboxes
+            List<String> inboxes = getFollowerInboxes(user.getId());
+            for (String inbox : inboxes) {
+                try {
+                    sendActivity(inbox, deleteActivity, user);
+                } catch (Exception e) {
+                    log.error("Failed to send Delete(Actor) to inbox: {}", inbox, e);
+                    // Continue with other inboxes even if one fails
+                }
+            }
+
+            log.info("Sent Delete(Actor) for: {} to {} inboxes", actorUri, inboxes.size());
+
+        } catch (Exception e) {
+            log.error("Failed to send Delete(Actor) for user: {}", user.getUsername(), e);
+            // Re-throw to allow caller to handle
+            throw new RuntimeException("Failed to send Delete(Actor) activity", e);
+        }
+    }
+
     // Helper methods
 
     private String extractUsername(String actorUri, Map<String, Object> actorData) {

@@ -69,6 +69,9 @@ public class InboxProcessor {
             case "Like":
                 processLike(username, activity);
                 break;
+            case "Delete":
+                processDelete(username, activity);
+                break;
             default:
                 log.warn("Unhandled activity type: {}", type);
         }
@@ -430,6 +433,117 @@ public class InboxProcessor {
 
         } catch (Exception e) {
             log.error("Error processing Like activity", e);
+        }
+    }
+
+    /**
+     * Process a Delete activity.
+     * Handles both actor deletions (account removal) and object deletions (activity/comment removal).
+     */
+    private void processDelete(String username, Map<String, Object> activity) {
+        try {
+            String actor = (String) activity.get("actor");
+            Object object = activity.get("object");
+
+            // Determine object URI (can be a string or an embedded object)
+            String objectUri;
+            if (object instanceof Map) {
+                objectUri = (String) ((Map<?, ?>) object).get("id");
+            } else {
+                objectUri = (String) object;
+            }
+
+            if (objectUri == null) {
+                log.warn("Delete activity has no object URI");
+                return;
+            }
+
+            log.info("Processing Delete from {} for object {}", actor, objectUri);
+
+            // Check if this is an actor deletion (object URI equals actor URI)
+            if (objectUri.equals(actor)) {
+                processActorDelete(actor);
+            } else {
+                processObjectDelete(objectUri);
+            }
+
+        } catch (Exception e) {
+            log.error("Error processing Delete activity", e);
+        }
+    }
+
+    /**
+     * Process actor (account) deletion.
+     * Removes all data associated with the deleted remote actor.
+     */
+    private void processActorDelete(String actorUri) {
+        try {
+            log.info("Processing actor deletion: {}", actorUri);
+
+            // Delete follow relationships where this actor is the follower
+            followRepository.deleteByRemoteActorUri(actorUri);
+            log.debug("Deleted follows where actor {} was the follower", actorUri);
+
+            // Delete follow relationships where this actor is being followed
+            followRepository.deleteByFollowingActorUri(actorUri);
+            log.debug("Deleted follows where actor {} was being followed", actorUri);
+
+            // Delete all likes from this actor
+            likeRepository.deleteByRemoteActorUri(actorUri);
+            log.debug("Deleted likes from actor {}", actorUri);
+
+            // Soft-delete comments from this actor (preserve for context)
+            java.util.List<Comment> comments = commentRepository.findByRemoteActorUri(actorUri);
+            for (Comment comment : comments) {
+                comment.setDeleted(true);
+                comment.setContent("[deleted]");
+            }
+            if (!comments.isEmpty()) {
+                commentRepository.saveAll(comments);
+                log.debug("Soft-deleted {} comments from actor {}", comments.size(), actorUri);
+            }
+
+            // Delete all remote activities from this actor
+            remoteActivityRepository.deleteByRemoteActorUri(actorUri);
+            log.debug("Deleted remote activities from actor {}", actorUri);
+
+            // Delete the remote actor record itself
+            remoteActorRepository.findByActorUri(actorUri).ifPresent(remoteActor -> {
+                remoteActorRepository.delete(remoteActor);
+                log.debug("Deleted remote actor record for {}", actorUri);
+            });
+
+            log.info("Completed actor deletion for: {}", actorUri);
+
+        } catch (Exception e) {
+            log.error("Error processing actor deletion for: {}", actorUri, e);
+        }
+    }
+
+    /**
+     * Process object deletion (activity or comment).
+     * Removes the specific object that was deleted.
+     */
+    private void processObjectDelete(String objectUri) {
+        try {
+            log.info("Processing object deletion: {}", objectUri);
+
+            // Try to delete as a remote activity
+            remoteActivityRepository.findByActivityUri(objectUri).ifPresent(remoteActivity -> {
+                remoteActivityRepository.delete(remoteActivity);
+                log.info("Deleted remote activity: {}", objectUri);
+            });
+
+            // Try to soft-delete as a comment
+            commentRepository.findByActivityPubId(objectUri).ifPresent(comment -> {
+                comment.setDeleted(true);
+                comment.setContent("[deleted]");
+                commentRepository.save(comment);
+                log.info("Soft-deleted comment: {}", objectUri);
+            });
+
+        } catch (Exception e) {
+            log.error("Error processing object deletion for: {}", objectUri, e);
         }
     }
 

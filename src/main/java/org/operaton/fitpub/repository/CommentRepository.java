@@ -52,4 +52,13 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
      * @return list of comments
      */
     List<Comment> findByUserIdOrderByCreatedAtDesc(UUID userId);
+
+    /**
+     * Find all comments by a remote actor.
+     * Used when processing remote actor deletion.
+     *
+     * @param remoteActorUri the remote actor's URI
+     * @return list of comments
+     */
+    List<Comment> findByRemoteActorUri(String remoteActorUri);
 }

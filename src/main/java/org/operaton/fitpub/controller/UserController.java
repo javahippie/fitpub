@@ -3,6 +3,7 @@ package org.operaton.fitpub.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.operaton.fitpub.model.dto.AccountDeletionRequest;
 import org.operaton.fitpub.model.dto.ActorDTO;
 import org.operaton.fitpub.model.dto.UserDTO;
 import org.operaton.fitpub.model.dto.UserUpdateRequest;
@@ -12,10 +13,12 @@ import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.FollowRepository;
 import org.operaton.fitpub.repository.RemoteActorRepository;
 import org.operaton.fitpub.repository.UserRepository;
+import org.operaton.fitpub.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -41,6 +44,7 @@ public class UserController {
     private final RemoteActorRepository remoteActorRepository;
     private final org.operaton.fitpub.service.WebFingerClient webFingerClient;
     private final org.operaton.fitpub.service.FederationService federationService;
+    private final UserService userService;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -114,6 +118,47 @@ public class UserController {
         populateSocialCounts(dto, updated);
 
         return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * Delete current user's account.
+     * Requires password confirmation for security.
+     * Sends ActivityPub Delete activity to notify followers.
+     * Permanently deletes all user data.
+     *
+     * @param request the deletion request with password
+     * @param userDetails the authenticated user
+     * @return success or error response
+     */
+    @DeleteMapping("/me")
+    public ResponseEntity<Map<String, String>> deleteCurrentUser(
+        @Valid @RequestBody AccountDeletionRequest request,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.info("User {} requesting account deletion", userDetails.getUsername());
+
+        User user = userRepository.findByUsername(userDetails.getUsername())
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        try {
+            userService.deleteUserAccount(user.getId(), request.getPassword());
+
+            log.info("Account deletion successful: {}", user.getUsername());
+            return ResponseEntity.ok(Map.of(
+                "message", "Account deleted successfully",
+                "username", user.getUsername()
+            ));
+
+        } catch (BadCredentialsException e) {
+            log.warn("Invalid password for account deletion: {}", user.getUsername());
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid password"));
+
+        } catch (Exception e) {
+            log.error("Account deletion failed for {}", user.getUsername(), e);
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Failed to delete account: " + e.getMessage()
+            ));
+        }
     }
 
     /**

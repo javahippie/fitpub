@@ -2,9 +2,11 @@ package org.operaton.fitpub.repository;
 
 import org.operaton.fitpub.model.entity.Like;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -91,4 +93,13 @@ public interface LikeRepository extends JpaRepository<Like, UUID> {
      * @param remoteActorUri the remote actor URI
      */
     void deleteByActivityIdAndRemoteActorUri(UUID activityId, String remoteActorUri);
+
+    /**
+     * Delete all likes from a remote actor (when remote account is deleted).
+     *
+     * @param remoteActorUri the remote actor's URI
+     */
+    @Modifying
+    @Transactional
+    void deleteByRemoteActorUri(String remoteActorUri);
 }

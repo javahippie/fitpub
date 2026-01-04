@@ -137,6 +137,7 @@ public class SecurityConfig {
                 // User API endpoints
                 .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/users/{username}").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/id/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/search").permitAll() // User search

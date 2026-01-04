@@ -2,9 +2,11 @@ package org.operaton.fitpub.repository;
 
 import org.operaton.fitpub.model.entity.Follow;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -86,4 +88,28 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
      * @return the follow relationship if it exists
      */
     Optional<Follow> findByRemoteActorUriAndFollowingActorUri(String remoteActorUri, String followingActorUri);
+
+    /**
+     * Delete all follow records where the given actor URI is being followed.
+     * This is used when a user account is deleted to clean up records where
+     * the user was being followed (since following_actor_uri is a string, not FK).
+     *
+     * @param followingActorUri the actor URI being followed
+     * @return number of deleted records
+     */
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Follow f WHERE f.followingActorUri = :followingActorUri")
+    int deleteByFollowingActorUri(@Param("followingActorUri") String followingActorUri);
+
+    /**
+     * Delete all follow records for a remote actor (when remote account is deleted).
+     * This cleans up follows where the remote actor was the follower.
+     *
+     * @param remoteActorUri the remote actor's URI
+     */
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Follow f WHERE f.remoteActorUri = :remoteActorUri")
+    void deleteByRemoteActorUri(@Param("remoteActorUri") String remoteActorUri);
 }

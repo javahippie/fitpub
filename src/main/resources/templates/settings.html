@@ -72,6 +72,79 @@
                                 <p class="mb-1 text-muted">Download your activities and data</p>
                             </div>
                         </div>
+
+                        <!-- Danger Zone: Delete Account -->
+                        <div class="mt-5">
+                            <h5 class="text-danger">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Danger Zone
+                            </h5>
+                            <hr class="text-danger">
+                            <div class="card border-danger">
+                                <div class="card-body">
+                                    <h6 class="card-title">Delete Account</h6>
+                                    <p class="card-text text-muted">
+                                        Permanently delete your account and all data. This <strong>cannot be undone</strong>.
+                                    </p>
+                                    <ul class="text-muted small">
+                                        <li>All activities and fitness data permanently deleted</li>
+                                        <li>Followers notified of account deletion</li>
+                                        <li>Profile removed from federation servers</li>
+                                        <li>This action is immediate and irreversible</li>
+                                    </ul>
+                                    <button type="button" class="btn btn-danger" id="deleteAccountBtn">
+                                        <i class="bi bi-trash"></i> Delete My Account
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delete Account Modal -->
+                <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-danger">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    Confirm Account Deletion
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="alert alert-warning">
+                                    <strong>Warning:</strong> This is permanent and cannot be undone!
+                                </div>
+                                <p>Enter your password to confirm:</p>
+
+                                <form id="deleteAccountForm">
+                                    <div class="mb-3">
+                                        <label for="deletePasswordInput" class="form-label">Password</label>
+                                        <input type="password"
+                                               class="form-control"
+                                               id="deletePasswordInput"
+                                               required
+                                               placeholder="Enter your password">
+                                        <div class="invalid-feedback">Invalid password</div>
+                                    </div>
+                                </form>
+
+                                <div id="deleteErrorAlert" class="alert alert-danger d-none">
+                                    <span id="deleteErrorMessage"></span>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                                    <span id="deleteButtonText">
+                                        <i class="bi bi-trash"></i> Delete My Account
+                                    </span>
+                                    <span id="deleteButtonSpinner" class="d-none">
+                                        <span class="spinner-border spinner-border-sm"></span> Deleting...
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -80,13 +153,85 @@
 
     <!-- Custom Scripts -->
     <th:block layout:fragment="scripts">
-        <script th:inline="javascript">
+        <script>
             document.addEventListener('DOMContentLoaded', function() {
                 // Redirect to login if not authenticated
                 if (!FitPubAuth.isAuthenticated()) {
                     window.location.href = '/login';
                     return;
                 }
+
+                const modal = new bootstrap.Modal(document.getElementById('deleteAccountModal'));
+                const deletePasswordInput = document.getElementById('deletePasswordInput');
+                const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+                // Show modal
+                document.getElementById('deleteAccountBtn').addEventListener('click', () => {
+                    deletePasswordInput.value = '';
+                    deletePasswordInput.classList.remove('is-invalid');
+                    document.getElementById('deleteErrorAlert').classList.add('d-none');
+                    modal.show();
+                });
+
+                // Handle Enter key
+                deletePasswordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        confirmDeleteBtn.click();
+                    }
+                });
+
+                // Confirm deletion
+                confirmDeleteBtn.addEventListener('click', async () => {
+                    const password = deletePasswordInput.value.trim();
+                    if (!password) {
+                        deletePasswordInput.classList.add('is-invalid');
+                        return;
+                    }
+
+                    // Show loading
+                    confirmDeleteBtn.disabled = true;
+                    document.getElementById('deleteButtonText').classList.add('d-none');
+                    document.getElementById('deleteButtonSpinner').classList.remove('d-none');
+
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch('/api/users/me', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ password })
+                        });
+
+                        if (response.ok) {
+                            // Success - logout and redirect
+                            FitPubAuth.logout();
+                            FitPub.showAlert('Account deleted successfully', 'success');
+                            setTimeout(() => window.location.href = '/', 2000);
+                        } else if (response.status === 401) {
+                            // Invalid password
+                            deletePasswordInput.classList.add('is-invalid');
+                            confirmDeleteBtn.disabled = false;
+                            document.getElementById('deleteButtonText').classList.remove('d-none');
+                            document.getElementById('deleteButtonSpinner').classList.add('d-none');
+                        } else {
+                            // Other error
+                            const data = await response.json();
+                            document.getElementById('deleteErrorMessage').textContent =
+                                data.error || 'Failed to delete account';
+                            document.getElementById('deleteErrorAlert').classList.remove('d-none');
+                            confirmDeleteBtn.disabled = false;
+                            document.getElementById('deleteButtonText').classList.remove('d-none');
+                            document.getElementById('deleteButtonSpinner').classList.add('d-none');
+                        }
+                    } catch (error) {
+                        console.error('Delete error:', error);
+                        document.getElementById('deleteErrorMessage').textContent =
+                            'Network error. Please try again.';
+                        document.getElementById('deleteErrorAlert').classList.remove('d-none');
+                        confirmDeleteBtn.disabled = false;
+                        document.getElementById('deleteButtonText').classList.remove('d-none');
+                        document.getElementById('deleteButtonSpinner').classList.add('d-none');
+                    }
+                });
             });
         </script>
     </th:block>
