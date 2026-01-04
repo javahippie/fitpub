@@ -194,8 +194,8 @@ function createActivityMap(containerId, geoJsonData, options = {}) {
                             popupContent += `<strong>Heart Rate:</strong> ${props.heartRate} bpm<br>`;
                         }
                         if (props.speed !== undefined) {
-                            const speedKmh = props.speed * 3.6;
-                            popupContent += `<strong>Speed:</strong> ${speedKmh.toFixed(2)} km/h<br>`;
+                            // Speed is already in km/h from backend (converted in FitParser)
+                            popupContent += `<strong>Speed:</strong> ${props.speed.toFixed(2)} km/h<br>`;
                         }
                         if (props.elevation !== undefined) {
                             popupContent += `<strong>Elevation:</strong> ${props.elevation.toFixed(1)} m<br>`;

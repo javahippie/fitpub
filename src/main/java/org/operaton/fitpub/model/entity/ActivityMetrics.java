@@ -27,9 +27,15 @@ public class ActivityMetrics {
     @JoinColumn(name = "activity_id", nullable = false)
     private Activity activity;
 
+    /**
+     * Average speed in km/h (converted from m/s in FitParser/GpxParser).
+     */
     @Column(name = "average_speed", precision = 8, scale = 2)
     private BigDecimal averageSpeed;
 
+    /**
+     * Maximum speed in km/h (converted from m/s in FitParser/GpxParser).
+     */
     @Column(name = "max_speed", precision = 8, scale = 2)
     private BigDecimal maxSpeed;
 

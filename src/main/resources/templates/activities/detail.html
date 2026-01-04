@@ -487,9 +487,10 @@
                     }
 
                     // Additional Metrics (conditional)
+                    // Note: averageSpeed is already in km/h from backend (converted in FitParser)
                     if (activity.averageSpeed) {
                         document.getElementById('metricAvgSpeedContainer').style.display = 'block';
-                        document.getElementById('metricAvgSpeed').textContent = (activity.averageSpeed * 3.6).toFixed(1) + ' km/h';
+                        document.getElementById('metricAvgSpeed').textContent = parseFloat(activity.averageSpeed).toFixed(1) + ' km/h';
                     }
                     if (activity.averageHeartRate) {
                         document.getElementById('metricAvgHRContainer').style.display = 'block';

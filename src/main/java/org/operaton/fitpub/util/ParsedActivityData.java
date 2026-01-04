@@ -49,6 +49,7 @@ public class ParsedActivityData {
         private Integer heartRate;
         private Integer cadence;
         private Integer power;
+        /** Speed in km/h (converted from m/s in FitParser/GpxParser). */
         private BigDecimal speed;
         private BigDecimal temperature;
         private BigDecimal distance;
