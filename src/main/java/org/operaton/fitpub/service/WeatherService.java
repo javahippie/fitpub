@@ -97,12 +97,17 @@ public class WeatherService {
             }
 
             JsonNode firstPoint = trackPoints.get(0);
-            log.debug("First track point: {}", firstPoint.toString());
+            log.info("First track point JSON: {}", firstPoint.toString());
 
             // Check if lat/lon fields exist
             if (!firstPoint.has("lat") || !firstPoint.has("lon")) {
-                log.error("First track point MISSING lat/lon fields for activity {}. Available fields: {}",
-                          activity.getId(), firstPoint.fieldNames());
+                // Collect field names from iterator
+                java.util.List<String> fieldNames = new java.util.ArrayList<>();
+                firstPoint.fieldNames().forEachRemaining(fieldNames::add);
+
+                log.error("First track point MISSING lat/lon fields for activity {}.", activity.getId());
+                log.error("Available fields in track point: {}", fieldNames);
+                log.error("First track point content: {}", firstPoint.toString());
                 return Optional.empty();
             }
 
