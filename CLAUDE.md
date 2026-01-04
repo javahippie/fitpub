@@ -862,11 +862,12 @@ For ActivityPub federated posts and thumbnails:
 
 ### Phase 6: Testing & Documentation
 
-**Testing:** ✅ **77 tests passing**
+**Testing:** ✅ **95 tests passing**
 - [x] Unit tests for TrainingLoadService (10 tests - TSS, ATL, CTL, TSB calculations)
 - [x] Unit tests for PersonalRecordService (13 tests - all PR types, improvement detection)
 - [x] Unit tests for AchievementService (16 tests - all badge types, edge cases)
 - [x] Unit tests for FitFileService (10 tests - existing tests updated and fixed)
+- [x] Unit tests for WeatherService (18 tests - lat/lon vs latitude/longitude field names, configuration, API errors, parsing)
 - [x] Integration tests for ActivityController (10 tests - full stack HTTP to database)
 - [ ] Integration tests for ActivityPub federation endpoints
 - [ ] Integration tests for WebFinger discovery

@@ -99,8 +99,11 @@ public class WeatherService {
             JsonNode firstPoint = trackPoints.get(0);
             log.info("First track point JSON: {}", firstPoint.toString());
 
-            // Check if lat/lon fields exist
-            if (!firstPoint.has("lat") || !firstPoint.has("lon")) {
+            // Check if lat/lon fields exist (support both "lat"/"lon" and "latitude"/"longitude")
+            boolean hasLat = firstPoint.has("lat") || firstPoint.has("latitude");
+            boolean hasLon = firstPoint.has("lon") || firstPoint.has("longitude");
+
+            if (!hasLat || !hasLon) {
                 // Collect field names from iterator
                 java.util.List<String> fieldNames = new java.util.ArrayList<>();
                 firstPoint.fieldNames().forEachRemaining(fieldNames::add);
@@ -111,8 +114,9 @@ public class WeatherService {
                 return Optional.empty();
             }
 
-            double lat = firstPoint.get("lat").asDouble();
-            double lon = firstPoint.get("lon").asDouble();
+            // Extract coordinates (try both short and long field names)
+            double lat = firstPoint.has("lat") ? firstPoint.get("lat").asDouble() : firstPoint.get("latitude").asDouble();
+            double lon = firstPoint.has("lon") ? firstPoint.get("lon").asDouble() : firstPoint.get("longitude").asDouble();
             log.info("Extracted location from first track point: lat={}, lon={}", lat, lon);
 
             // Check if activity is recent (within 5 days) - use current weather API
