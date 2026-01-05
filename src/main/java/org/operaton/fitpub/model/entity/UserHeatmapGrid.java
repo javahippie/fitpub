@@ -40,7 +40,7 @@ public class UserHeatmapGrid {
 
     /**
      * Center point of the grid cell.
-     * Grid cells are ~100m x 100m (0.001 degrees).
+     * Grid cells are ~10m x 10m (0.0001 degrees).
      */
     @Column(name = "grid_cell", nullable = false, columnDefinition = "geometry(Point,4326)")
     private Point gridCell;

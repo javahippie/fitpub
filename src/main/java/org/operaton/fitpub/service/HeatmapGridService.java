@@ -49,10 +49,11 @@ public class HeatmapGridService {
     }
 
     /**
-     * Grid resolution in degrees (~100m at equator).
-     * 0.001 degrees = ~111 meters
+     * Grid resolution in degrees (~10m at equator).
+     * 0.0001 degrees = ~11 meters
+     * Finer grid provides better granularity when zoomed in.
      */
-    private static final double GRID_SIZE = 0.001;
+    private static final double GRID_SIZE = 0.0001;
 
     /**
      * SRID for WGS84 coordinate system.
@@ -66,9 +67,10 @@ public class HeatmapGridService {
 
     /**
      * Sampling rate for large activities.
-     * Process every Nth point to avoid overwhelming the grid.
+     * Process every Nth point to balance detail vs performance.
+     * Lower value = more detail, higher processing time.
      */
-    private static final int SAMPLING_RATE = 10;
+    private static final int SAMPLING_RATE = 2;
 
     /**
      * Update heatmap grid for a single activity.

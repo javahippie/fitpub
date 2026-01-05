@@ -115,8 +115,11 @@ function renderHeatmap(data) {
         const lat = feature.geometry.coordinates[1];
         const intensity = feature.properties.intensity;
 
-        // Normalize intensity to 0-1 range
-        const normalizedIntensity = Math.min(intensity / data.maxIntensity, 1.0);
+        // Use logarithmic scaling for better differentiation between low and high values
+        // log(1 + x) ensures that intensity=1 is still visible
+        const logMax = Math.log(1 + data.maxIntensity);
+        const logIntensity = Math.log(1 + intensity);
+        const normalizedIntensity = Math.min(logIntensity / logMax, 1.0);
 
         return [lat, lon, normalizedIntensity];
     });
@@ -126,27 +129,79 @@ function renderHeatmap(data) {
         heatmapMap.removeLayer(heatLayer);
     }
 
-    // Create heat layer with red color scheme
+    // Get current zoom level for dynamic radius
+    const currentZoom = heatmapMap.getZoom();
+
+    // Calculate dynamic radius based on zoom level
+    // Higher zoom = smaller radius for more detail
+    // Lower zoom = larger radius for better visibility
+    const dynamicRadius = calculateDynamicRadius(currentZoom);
+    const dynamicBlur = Math.max(4, dynamicRadius * 0.4);  // Reduced blur for sharper appearance
+
+    // Create heat layer with red color scheme and improved gradient
     heatLayer = L.heatLayer(heatData, {
-        radius: 10,          // Reduced for more detail
-        blur: 5,            // Reduced for sharper appearance
-        maxZoom: 17,
-        max: 0.8,            // Reduced from 1.0 to make colors more intense
-        minOpacity: 0.3,     // Minimum opacity for better visibility
+        radius: dynamicRadius,
+        blur: dynamicBlur,
+        maxZoom: 18,
+        max: 0.75,           // Increased to concentrate color at hotspots
+        minOpacity: 0.25,    // Reduced for more transparency over streets
         gradient: {
-            0.0: 'rgba(0, 0, 0, 0)',        // Transparent for low values
-            0.2: 'rgba(139, 0, 0, 0.5)',     // Dark red with transparency
-            0.4: 'rgba(178, 34, 34, 0.7)',   // Firebrick red
-            0.6: 'rgb(220, 20, 60)',         // Crimson
-            0.75: 'rgb(255, 69, 0)',         // Red-orange
-            0.85: 'rgb(255, 140, 0)',        // Dark orange
-            0.95: 'rgb(255, 215, 0)',        // Gold
-            1.0: 'rgb(255, 255, 0)'          // Yellow (highest intensity)
+            0.0: 'rgba(0, 0, 0, 0)',          // Transparent
+            0.1: 'rgba(0, 0, 139, 0.2)',       // Dark blue (very low values) - more transparent
+            0.2: 'rgba(0, 0, 255, 0.35)',      // Blue (low values) - more transparent
+            0.3: 'rgba(0, 128, 255, 0.45)',    // Light blue - more transparent
+            0.4: 'rgba(0, 255, 255, 0.55)',    // Cyan - more transparent
+            0.5: 'rgba(0, 255, 0, 0.6)',       // Green - more transparent
+            0.6: 'rgba(255, 255, 0, 0.65)',    // Yellow - more transparent
+            0.7: 'rgba(255, 165, 0, 0.7)',     // Orange - more transparent
+            0.85: 'rgba(255, 69, 0, 0.8)',     // Red-orange
+            1.0: 'rgba(255, 0, 0, 0.85)'       // Red (highest intensity) - slightly transparent
         }
     }).addTo(heatmapMap);
 
+    // Update radius dynamically when zoom changes
+    heatmapMap.on('zoomend', function() {
+        if (heatLayer) {
+            const newZoom = heatmapMap.getZoom();
+            const newRadius = calculateDynamicRadius(newZoom);
+            const newBlur = Math.max(4, newRadius * 0.4);  // Reduced blur for sharper appearance
+
+            // Update heat layer options
+            heatLayer.setOptions({
+                radius: newRadius,
+                blur: newBlur
+            });
+        }
+    });
+
     // Fit map bounds to heatmap data
     fitMapToBounds(data.features);
+}
+
+/**
+ * Calculate dynamic radius based on zoom level.
+ * Higher zoom = smaller radius for more granular detail.
+ * Lower zoom = larger radius for better visibility.
+ *
+ * @param {number} zoom - Current map zoom level (0-18)
+ * @returns {number} Radius in pixels
+ */
+function calculateDynamicRadius(zoom) {
+    // Zoom levels:
+    // 2-8: World/continent view - large radius
+    // 9-12: City view - medium radius
+    // 13-15: Neighborhood view - small radius
+    // 16-18: Street view - very small radius
+
+    if (zoom <= 8) {
+        return 25;  // Large radius for world view
+    } else if (zoom <= 12) {
+        return 20 - (zoom - 8);  // 20 -> 16
+    } else if (zoom <= 15) {
+        return 16 - (zoom - 12) * 2;  // 16 -> 10
+    } else {
+        return Math.max(6, 10 - (zoom - 15) * 2);  // 10 -> 6 (minimum)
+    }
 }
 
 /**
