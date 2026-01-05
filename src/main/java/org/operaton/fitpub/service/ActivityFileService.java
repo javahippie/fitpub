@@ -265,12 +265,19 @@ public class ActivityFileService {
         String trackPointsJson = convertTrackPointsToJson(parsedData.getTrackPoints());
         activity.setTrackPointsJson(trackPointsJson);
 
-        // Create full LineString from all points
-        LineString fullTrack = createLineStringFromTrackPoints(parsedData.getTrackPoints());
+        // Create and simplify track only if GPS data is present
+        if (!parsedData.getTrackPoints().isEmpty()) {
+            // Create full LineString from all points
+            LineString fullTrack = createLineStringFromTrackPoints(parsedData.getTrackPoints());
 
-        // Simplify track for map rendering
-        LineString simplifiedTrack = trackSimplifier.simplify(fullTrack.getCoordinates());
-        activity.setSimplifiedTrack(simplifiedTrack);
+            // Simplify track for map rendering
+            LineString simplifiedTrack = trackSimplifier.simplify(fullTrack.getCoordinates());
+            activity.setSimplifiedTrack(simplifiedTrack);
+        } else {
+            // No GPS track for indoor activities
+            activity.setSimplifiedTrack(null);
+            log.info("Activity has no GPS track (indoor activity)");
+        }
 
         // Create metrics
         if (parsedData.getMetrics() != null) {
@@ -282,11 +289,17 @@ public class ActivityFileService {
         // Save activity (single INSERT instead of 855!)
         Activity savedActivity = activityRepository.save(activity);
 
-        log.info("Successfully created {} activity {} with {} track points (simplified to {} for map)",
-            parsedData.getSourceFormat(),
-            savedActivity.getId(),
-            parsedData.getTrackPoints().size(),
-            simplifiedTrack.getNumPoints());
+        if (savedActivity.getSimplifiedTrack() != null) {
+            log.info("Successfully created {} activity {} with {} track points (simplified to {} for map)",
+                parsedData.getSourceFormat(),
+                savedActivity.getId(),
+                parsedData.getTrackPoints().size(),
+                savedActivity.getSimplifiedTrack().getNumPoints());
+        } else {
+            log.info("Successfully created {} activity {} (indoor activity without GPS track)",
+                parsedData.getSourceFormat(),
+                savedActivity.getId());
+        }
 
         // Execute side effects based on processing options
         // In batch import mode, these are skipped and executed later as a batch

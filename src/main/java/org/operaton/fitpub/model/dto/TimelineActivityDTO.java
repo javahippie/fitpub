@@ -53,6 +53,9 @@ public class TimelineActivityDTO {
     private Long commentsCount;
     private Boolean likedByCurrentUser;
 
+    // GPS track availability
+    private Boolean hasGpsTrack;  // True if activity has GPS data
+
     // Metrics summary
     private ActivityMetricsSummary metrics;
 
@@ -77,6 +80,7 @@ public class TimelineActivityDTO {
             .displayName(displayName)
             .avatarUrl(avatarUrl)
             .isLocal(true)
+            .hasGpsTrack(activity.getSimplifiedTrack() != null)
             .metrics(activity.getMetrics() != null ? ActivityMetricsSummary.fromMetrics(activity.getMetrics()) : null)
             .build();
     }
@@ -116,6 +120,7 @@ public class TimelineActivityDTO {
             .isLocal(false)
             .activityUri(remote.getActivityUri())
             .mapImageUrl(remote.getMapImageUrl())
+            .hasGpsTrack(remote.getMapImageUrl() != null)  // Remote activity has GPS if it has a map image
             .metrics(metrics)
             .build();
     }

@@ -50,6 +50,7 @@ public class ActivityDTO {
     // Map rendering data
     private Map<String, Object> simplifiedTrack; // GeoJSON LineString
     private List<Map<String, Object>> trackPoints; // Full track points from JSONB
+    private Boolean hasGpsTrack; // True if activity has GPS data (outdoor), false for indoor activities
 
     // Social interaction counts (populated separately)
     private Long likesCount;
@@ -115,7 +116,10 @@ public class ActivityDTO {
         }
 
         // Convert simplified track to GeoJSON
-        if (activity.getSimplifiedTrack() != null) {
+        boolean hasGps = activity.getSimplifiedTrack() != null;
+        builder.hasGpsTrack(hasGps);
+
+        if (hasGps) {
             builder.simplifiedTrack(lineStringToGeoJson(activity.getSimplifiedTrack()));
         }
 

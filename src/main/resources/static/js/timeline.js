@@ -155,16 +155,21 @@ const FitPubTimeline = {
                         <!-- Activity Metrics -->
                         <div class="mb-2">
                             <small class="text-muted">
-                                <strong>Distance:</strong> ${this.formatDistance(activity.totalDistance)} •
-                                <strong>Duration:</strong> ${this.formatDuration(activity.totalDurationSeconds)} •
-                                <strong>Pace:</strong> ${this.formatPace(activity.totalDurationSeconds, activity.totalDistance)} •
-                                <strong>Elevation:</strong> ${activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A'}
+                                ${activity.hasGpsTrack
+                                    ? `<strong>Distance:</strong> ${this.formatDistance(activity.totalDistance)} •
+                                       <strong>Duration:</strong> ${this.formatDuration(activity.totalDurationSeconds)} •
+                                       <strong>Pace:</strong> ${this.formatPace(activity.totalDurationSeconds, activity.totalDistance)} •
+                                       <strong>Elevation:</strong> ${activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A'}`
+                                    : `<strong>Duration:</strong> ${this.formatDuration(activity.totalDurationSeconds)}
+                                       ${activity.metrics?.averageHeartRate ? ` • <strong>Avg HR:</strong> ${activity.metrics.averageHeartRate} bpm` : ''}
+                                       ${activity.metrics?.calories ? ` • <strong>Calories:</strong> ${activity.metrics.calories} kcal` : ''}`
+                                }
                             </small>
                         </div>
 
-                        <!-- Preview Map -->
+                        <!-- Preview Map or Indoor Placeholder -->
                         <div class="activity-preview-map" id="${mapId}" style="height: 300px; border-radius: 8px; margin-bottom: 1rem;">
-                            <!-- Map will be rendered here -->
+                            <!-- Map or placeholder will be rendered here -->
                         </div>
 
                         <!-- Activity Actions -->
@@ -292,6 +297,13 @@ const FitPubTimeline = {
 
         if (!mapElement) {
             console.warn('Map element not found:', mapId);
+            return;
+        }
+
+        // Check if activity has GPS track
+        if (!activity.hasGpsTrack) {
+            // Show indoor activity placeholder
+            this.renderIndoorPlaceholder(mapElement, activity.activityType);
             return;
         }
 
@@ -517,5 +529,66 @@ const FitPubTimeline = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    /**
+     * Render indoor activity placeholder with emoji
+     * @param {HTMLElement} element - Container element
+     * @param {string} activityType - Activity type
+     */
+    renderIndoorPlaceholder: function(element, activityType) {
+        const emojiMap = {
+            'RUN': '🏃',
+            'RIDE': '🚴',
+            'CYCLING': '🚴',
+            'INDOOR_CYCLING': '🚴',
+            'HIKE': '🥾',
+            'WALK': '🚶',
+            'SWIM': '🏊',
+            'WORKOUT': '💪',
+            'YOGA': '🧘',
+            'ALPINE_SKI': '⛷️',
+            'NORDIC_SKI': '⛷️',
+            'SNOWBOARD': '🏂',
+            'ROWING': '🚣',
+            'KAYAKING': '🛶',
+            'CANOEING': '🛶',
+            'ROCK_CLIMBING': '🧗',
+            'MOUNTAINEERING': '⛰️',
+            'OTHER': '🏋️'
+        };
+
+        const nameMap = {
+            'RUN': 'Indoor Running',
+            'RIDE': 'Indoor Cycling',
+            'CYCLING': 'Indoor Cycling',
+            'INDOOR_CYCLING': 'Indoor Cycling',
+            'HIKE': 'Indoor Activity',
+            'WALK': 'Indoor Walking',
+            'SWIM': 'Indoor Swimming',
+            'WORKOUT': 'Workout',
+            'YOGA': 'Yoga',
+            'ALPINE_SKI': 'Skiing',
+            'NORDIC_SKI': 'Cross-Country Skiing',
+            'SNOWBOARD': 'Snowboarding',
+            'ROWING': 'Indoor Rowing',
+            'KAYAKING': 'Kayaking',
+            'CANOEING': 'Canoeing',
+            'ROCK_CLIMBING': 'Climbing',
+            'MOUNTAINEERING': 'Mountaineering',
+            'OTHER': 'Indoor Activity'
+        };
+
+        const emoji = emojiMap[activityType] || '🏋️';
+        const name = nameMap[activityType] || 'Indoor Activity';
+
+        element.innerHTML = `
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 indoor-activity-placeholder">
+                <div style="font-size: 4rem;" class="mb-2">${emoji}</div>
+                <div class="text-muted fw-bold">${this.escapeHtml(name)}</div>
+                <div class="text-muted small">No GPS track</div>
+            </div>
+        `;
+        element.style.backgroundColor = '#f8f9fa';
     }
 };

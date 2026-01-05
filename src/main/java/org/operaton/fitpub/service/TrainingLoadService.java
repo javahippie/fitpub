@@ -102,6 +102,14 @@ public class TrainingLoadService {
         double distance = distanceMeters.doubleValue();
         double elevation = elevationMeters.doubleValue();
 
+        // For indoor activities without distance (treadmill, indoor cycling, etc.)
+        // Calculate TSS based on duration alone with moderate intensity assumption
+        if (distance == 0.0) {
+            // Assume moderate intensity (0.7) for indoor activities
+            double tss = durationHours * 0.7 * 100.0;
+            return BigDecimal.valueOf(tss).setScale(2, RoundingMode.HALF_UP);
+        }
+
         // Intensity factor based on distance/time ratio and elevation
         double speed = distance / durationSeconds; // m/s
         double intensityFactor = Math.min(1.0, speed / 3.0); // Normalize to ~3 m/s baseline

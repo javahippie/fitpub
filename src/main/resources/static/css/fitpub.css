@@ -982,4 +982,36 @@ h1 {
     footer.bg-light p {
         color: var(--dark-text) !important;
     }
+
+    /* Indoor Activity Placeholder - Dark Mode */
+    #indoorPlaceholder .card {
+        background: var(--dark-surface);
+        border-color: var(--neon-cyan);
+    }
+
+    #indoorPlaceholder .card-body {
+        background: var(--dark-surface);
+    }
+
+    #indoorPlaceholder .text-muted,
+    #indoorPlaceholder h4 {
+        color: var(--dark-text) !important;
+    }
+
+    #indoorPlaceholder p.text-muted {
+        color: var(--dark-text-muted) !important;
+    }
+
+    /* Indoor activity placeholder for timeline - Dark Mode */
+    .indoor-activity-placeholder {
+        background-color: var(--dark-surface) !important;
+    }
+
+    .indoor-activity-placeholder .text-muted {
+        color: var(--dark-text-muted) !important;
+    }
+
+    .indoor-activity-placeholder .fw-bold {
+        color: var(--dark-text) !important;
+    }
 }

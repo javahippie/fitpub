@@ -59,13 +59,14 @@ public class ActivityImageService {
 
             // Calculate bounds once for both map tiles and track rendering
             TrackBounds trackBounds = null;
+            boolean isIndoorActivity = activity.getSimplifiedTrack() == null;
 
             // Render background - either OSM tiles or gradient background
             if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
                 trackBounds = calculateTrackBounds(activity);
             }
 
-            if (osmTilesEnabled && trackBounds != null) {
+            if (osmTilesEnabled && trackBounds != null && !isIndoorActivity) {
                 try {
                     // Render OSM tiles for left 60% of image (track area)
                     int trackWidth = (int) (width * 0.6);
@@ -96,24 +97,31 @@ public class ActivityImageService {
                     g2d.fillRect(0, 0, width, height);
                 }
             } else {
-                // OSM tiles disabled or no track data - use gradient background
+                // OSM tiles disabled or no track data (indoor activity) - use gradient background
                 GradientPaint gradient = new GradientPaint(
                         0, 0, new Color(26, 0, 51),
                         width, height, new Color(45, 0, 82)
                 );
                 g2d.setPaint(gradient);
                 g2d.fillRect(0, 0, width, height);
+
+                // For indoor activities, draw a large emoji in the center-left area
+                if (isIndoorActivity) {
+                    drawIndoorActivityEmoji(g2d, activity, width, height);
+                }
             }
 
-            // Draw track if available
-            if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
-                drawTrack(g2d, activity, width, height);
-            } else if (activity.getSimplifiedTrack() != null) {
-                drawSimplifiedTrack(g2d, activity, width, height);
+            // Draw track if available (not for indoor activities)
+            if (!isIndoorActivity) {
+                if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
+                    drawTrack(g2d, activity, width, height);
+                } else if (activity.getSimplifiedTrack() != null) {
+                    drawSimplifiedTrack(g2d, activity, width, height);
+                }
             }
 
             // Draw metadata overlay
-            drawMetadata(g2d, activity, width, height);
+            drawMetadata(g2d, activity, width, height, isIndoorActivity);
 
             g2d.dispose();
 
@@ -377,7 +385,7 @@ public class ActivityImageService {
     /**
      * Draw metadata overlay on the right side of the image in 80s Aerobic style.
      */
-    private void drawMetadata(Graphics2D g2d, Activity activity, int width, int height) {
+    private void drawMetadata(Graphics2D g2d, Activity activity, int width, int height, boolean isIndoorActivity) {
         int metadataX = (int) (width * 0.62); // Start at 62% to leave some margin
         int y = 80;
         int lineHeight = 50;
@@ -387,6 +395,7 @@ public class ActivityImageService {
         Color neonCyan = new Color(0, 255, 255);
         Color neonOrange = new Color(255, 102, 0);
         Color neonGreen = new Color(57, 255, 20);
+        Color neonYellow = new Color(255, 255, 0);
 
         // Title with neon pink
         g2d.setColor(neonPink);
@@ -398,6 +407,14 @@ public class ActivityImageService {
         }
         g2d.drawString(title, metadataX, y);
         y += lineHeight + 20;
+
+        // Indoor activity label (if applicable)
+        if (isIndoorActivity) {
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 16));
+            g2d.setColor(neonYellow);
+            g2d.drawString("INDOOR ACTIVITY", metadataX, y);
+            y += 35;
+        }
 
         // Activity type badge with border
         g2d.setFont(new Font("Arial Black", Font.BOLD, 20));
@@ -451,8 +468,8 @@ public class ActivityImageService {
             y += lineHeight + 35;
         }
 
-        // Elevation gain with neon green value
-        if (activity.getElevationGain() != null) {
+        // Elevation gain with neon green value (only for outdoor activities)
+        if (activity.getElevationGain() != null && !isIndoorActivity) {
             g2d.setFont(new Font("Arial Black", Font.BOLD, 40));
             g2d.setColor(neonGreen);
             String elevation = String.format("%.0f", activity.getElevationGain());
@@ -466,6 +483,42 @@ public class ActivityImageService {
             g2d.setFont(new Font("Arial Black", Font.PLAIN, 16));
             g2d.setColor(new Color(180, 180, 180));
             g2d.drawString("ELEVATION", metadataX, y + 22);
+            y += lineHeight + 35;
+        }
+
+        // Heart Rate with neon orange value (for indoor activities)
+        if (isIndoorActivity && activity.getMetrics() != null && activity.getMetrics().getAverageHeartRate() != null) {
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 40));
+            g2d.setColor(neonOrange);
+            String hr = String.format("%d", activity.getMetrics().getAverageHeartRate());
+            g2d.drawString(hr, metadataX, y);
+
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 22));
+            g2d.setColor(Color.WHITE);
+            int hrWidth = g2d.getFontMetrics(new Font("Arial Black", Font.BOLD, 40)).stringWidth(hr);
+            g2d.drawString("BPM", metadataX + hrWidth + 10, y);
+
+            g2d.setFont(new Font("Arial Black", Font.PLAIN, 16));
+            g2d.setColor(new Color(180, 180, 180));
+            g2d.drawString("AVG HEART RATE", metadataX, y + 22);
+            y += lineHeight + 35;
+        }
+
+        // Calories with neon green value (for indoor activities)
+        if (isIndoorActivity && activity.getMetrics() != null && activity.getMetrics().getCalories() != null) {
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 40));
+            g2d.setColor(neonGreen);
+            String calories = String.format("%d", activity.getMetrics().getCalories());
+            g2d.drawString(calories, metadataX, y);
+
+            g2d.setFont(new Font("Arial Black", Font.BOLD, 22));
+            g2d.setColor(Color.WHITE);
+            int calWidth = g2d.getFontMetrics(new Font("Arial Black", Font.BOLD, 40)).stringWidth(calories);
+            g2d.drawString("KCAL", metadataX + calWidth + 10, y);
+
+            g2d.setFont(new Font("Arial Black", Font.PLAIN, 16));
+            g2d.setColor(new Color(180, 180, 180));
+            g2d.drawString("CALORIES", metadataX, y + 22);
             y += lineHeight + 35;
         }
 
@@ -580,6 +633,78 @@ public class ActivityImageService {
     private double latitudeToWebMercatorY(double lat) {
         return (1.0 - Math.log(Math.tan(Math.toRadians(lat)) +
                 1.0 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2.0;
+    }
+
+    /**
+     * Draw a large emoji for indoor activities in the center-left area.
+     */
+    private void drawIndoorActivityEmoji(Graphics2D g2d, Activity activity, int width, int height) {
+        // Map activity types to emojis
+        String emoji;
+        switch (activity.getActivityType()) {
+            case RUN:
+                emoji = "🏃";
+                break;
+            case RIDE:
+                emoji = "🚴";
+                break;
+            case SWIM:
+                emoji = "🏊";
+                break;
+            case WORKOUT:
+                emoji = "💪";
+                break;
+            case YOGA:
+                emoji = "🧘";
+                break;
+            case ROWING:
+                emoji = "🚣";
+                break;
+            case WALK:
+                emoji = "🚶";
+                break;
+            case HIKE:
+                emoji = "🥾";
+                break;
+            case ALPINE_SKI:
+            case NORDIC_SKI:
+            case BACKCOUNTRY_SKI:
+                emoji = "⛷️";
+                break;
+            case SNOWBOARD:
+                emoji = "🏂";
+                break;
+            case KAYAKING:
+            case CANOEING:
+                emoji = "🛶";
+                break;
+            case ROCK_CLIMBING:
+            case MOUNTAINEERING:
+                emoji = "🧗";
+                break;
+            case INLINE_SKATING:
+                emoji = "🛼";
+                break;
+            default:
+                emoji = "🏋️";
+                break;
+        }
+
+        // Draw emoji in the center-left area (where the map would be)
+        int emojiX = (int) (width * 0.3) - 100; // Center of left 60%
+        int emojiY = height / 2;
+
+        // Use a very large font for the emoji
+        g2d.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 200));
+        g2d.setColor(Color.WHITE);
+
+        // Calculate emoji width to center it properly
+        FontMetrics fm = g2d.getFontMetrics();
+        int emojiWidth = fm.stringWidth(emoji);
+        int emojiHeight = fm.getHeight();
+
+        // Draw emoji centered in the left area
+        g2d.drawString(emoji, emojiX - emojiWidth / 2, emojiY + emojiHeight / 3);
     }
 
     /**

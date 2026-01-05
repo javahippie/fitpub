@@ -198,8 +198,8 @@
                 </div>
             </div>
 
-            <!-- Map -->
-            <div class="row mb-4">
+            <!-- Map / Indoor Activity Placeholder -->
+            <div class="row mb-4" id="mapSection">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
@@ -209,6 +209,19 @@
                         </div>
                         <div class="card-body p-0">
                             <div id="activityMap" class="map-container-large"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indoor Activity Placeholder -->
+            <div class="row mb-4" id="indoorPlaceholder" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <div id="activityTypeEmoji" style="font-size: 5rem;" class="mb-3">🏋️</div>
+                            <h4 id="activityTypeName" class="text-muted">Indoor Activity</h4>
+                            <p class="text-muted">No GPS track available</p>
                         </div>
                     </div>
                 </div>
@@ -475,20 +488,33 @@
                         checkActivityOwnership(activity);
                     }
 
-                    // Metrics - Basic (always shown)
-                    document.getElementById('metricDistance').textContent = formatDistance(activity.totalDistance);
-                    document.getElementById('metricDuration').textContent = formatDuration(activity.totalDuration);
-                    document.getElementById('metricElevationGain').textContent = activity.elevationGain ? Math.round(activity.elevationGain) + ' m' : 'N/A';
+                    // Check if activity has GPS track
+                    const hasGpsTrack = activity.hasGpsTrack === true;
 
-                    // Calculate pace
-                    if (activity.totalDistance && activity.totalDuration) {
-                        const paceSeconds = activity.totalDuration / (activity.totalDistance / 1000);
-                        document.getElementById('metricPace').textContent = formatPace(paceSeconds);
+                    // Metrics - Conditional based on GPS availability
+                    if (hasGpsTrack) {
+                        // Show GPS-related metrics
+                        document.getElementById('metricDistance').textContent = formatDistance(activity.totalDistance);
+                        document.getElementById('metricElevationGain').textContent = activity.elevationGain ? Math.round(activity.elevationGain) + ' m' : 'N/A';
+
+                        // Calculate pace
+                        if (activity.totalDistance && activity.totalDuration) {
+                            const paceSeconds = activity.totalDuration / (activity.totalDistance / 1000);
+                            document.getElementById('metricPace').textContent = formatPace(paceSeconds);
+                        }
+                    } else {
+                        // Hide GPS-related metrics for indoor activities
+                        document.getElementById('metricDistance').parentElement.parentElement.parentElement.style.display = 'none';
+                        document.getElementById('metricElevationGain').parentElement.parentElement.parentElement.style.display = 'none';
+                        document.getElementById('metricPace').parentElement.parentElement.parentElement.style.display = 'none';
                     }
+
+                    // Duration is always shown
+                    document.getElementById('metricDuration').textContent = formatDuration(activity.totalDuration);
 
                     // Additional Metrics (conditional)
                     // Note: averageSpeed is already in km/h from backend (converted in FitParser)
-                    if (activity.averageSpeed) {
+                    if (activity.averageSpeed && hasGpsTrack) {
                         document.getElementById('metricAvgSpeedContainer').style.display = 'block';
                         document.getElementById('metricAvgSpeed').textContent = parseFloat(activity.averageSpeed).toFixed(1) + ' km/h';
                     }
@@ -501,13 +527,22 @@
                         document.getElementById('metricCalories').textContent = activity.calories + ' kcal';
                     }
 
-                    // Render map if track data exists
-                    if (activity.simplifiedTrack) {
+                    // Render map or indoor placeholder
+                    if (hasGpsTrack && activity.simplifiedTrack) {
+                        document.getElementById('mapSection').style.display = 'block';
+                        document.getElementById('indoorPlaceholder').style.display = 'none';
                         renderMap(activity.simplifiedTrack);
+                    } else {
+                        // Show indoor activity placeholder
+                        document.getElementById('mapSection').style.display = 'none';
+                        document.getElementById('indoorPlaceholder').style.display = 'block';
+                        showIndoorPlaceholder(activity.activityType);
                     }
 
-                    // Load weather data
-                    loadWeatherData(activity.id);
+                    // Load weather data (only for outdoor activities)
+                    if (hasGpsTrack) {
+                        loadWeatherData(activity.id);
+                    }
 
                     // Render elevation chart if data exists
                     if (activity.trackPoints && activity.trackPoints.length > 0) {
@@ -1377,6 +1412,59 @@
                         case 'PRIVATE': return 'lock';
                         default: return 'question-circle';
                     }
+                }
+
+                /**
+                 * Show indoor activity placeholder with appropriate emoji
+                 */
+                function showIndoorPlaceholder(activityType) {
+                    const emojiMap = {
+                        'RUN': '🏃',
+                        'RIDE': '🚴',
+                        'CYCLING': '🚴',
+                        'INDOOR_CYCLING': '🚴',
+                        'HIKE': '🥾',
+                        'WALK': '🚶',
+                        'SWIM': '🏊',
+                        'WORKOUT': '💪',
+                        'YOGA': '🧘',
+                        'ALPINE_SKI': '⛷️',
+                        'NORDIC_SKI': '⛷️',
+                        'SNOWBOARD': '🏂',
+                        'ROWING': '🚣',
+                        'KAYAKING': '🛶',
+                        'CANOEING': '🛶',
+                        'ROCK_CLIMBING': '🧗',
+                        'MOUNTAINEERING': '⛰️',
+                        'OTHER': '🏋️'
+                    };
+
+                    const nameMap = {
+                        'RUN': 'Indoor Running',
+                        'RIDE': 'Indoor Cycling',
+                        'CYCLING': 'Indoor Cycling',
+                        'INDOOR_CYCLING': 'Indoor Cycling',
+                        'HIKE': 'Indoor Activity',
+                        'WALK': 'Indoor Walking',
+                        'SWIM': 'Indoor Swimming',
+                        'WORKOUT': 'Workout',
+                        'YOGA': 'Yoga',
+                        'ALPINE_SKI': 'Skiing',
+                        'NORDIC_SKI': 'Cross-Country Skiing',
+                        'SNOWBOARD': 'Snowboarding',
+                        'ROWING': 'Indoor Rowing',
+                        'KAYAKING': 'Kayaking',
+                        'CANOEING': 'Canoeing',
+                        'ROCK_CLIMBING': 'Climbing',
+                        'MOUNTAINEERING': 'Mountaineering',
+                        'OTHER': 'Indoor Activity'
+                    };
+
+                    const emoji = emojiMap[activityType] || '🏋️';
+                    const name = nameMap[activityType] || 'Indoor Activity';
+
+                    document.getElementById('activityTypeEmoji').textContent = emoji;
+                    document.getElementById('activityTypeName').textContent = name;
                 }
             });
         </script>

@@ -105,15 +105,18 @@ public class FitParser {
                 throw new FitFileProcessingException("Failed to decode FIT file");
             }
 
+            // Process GPS-related data only if track points are present
             if (parsedData.getTrackPoints().isEmpty()) {
-                throw new FitFileProcessingException("No GPS track points found in FIT file");
+                log.info("No GPS track points found in FIT file - likely an indoor activity");
+                // Default to UTC timezone for indoor activities
+                parsedData.setTimezone("UTC");
+            } else {
+                // Determine timezone from first GPS coordinate
+                determineTimezone(parsedData);
+
+                // Apply speed smoothing and recalculate max speed
+                smoothSpeedData(parsedData);
             }
-
-            // Determine timezone from first GPS coordinate
-            determineTimezone(parsedData);
-
-            // Apply speed smoothing and recalculate max speed
-            smoothSpeedData(parsedData);
 
             log.info("Successfully parsed FIT file: {} track points, activity type: {}, timezone: {}",
                 parsedData.getTrackPoints().size(), parsedData.getActivityType(), parsedData.getTimezone());
