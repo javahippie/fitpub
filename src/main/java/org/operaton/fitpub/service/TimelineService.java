@@ -75,23 +75,25 @@ public class TimelineService {
 
         // 3. Fetch local activities from followed users (fetch more to account for merging)
         // We fetch double the page size to have enough items after merging
-        // Explicitly sort by startedAt DESC (latest first)
-        Pageable expandedPageable = PageRequest.of(0, pageable.getPageSize() * 2,
+        // Explicitly sort by startedAt DESC (latest first) for local activities
+        Pageable expandedPageableLocal = PageRequest.of(0, pageable.getPageSize() * 2,
             org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "startedAt"));
         Page<Activity> localActivities = activityRepository.findByUserIdInAndVisibilityInOrderByStartedAtDesc(
             followedUserIds,
             List.of(Activity.Visibility.PUBLIC, Activity.Visibility.FOLLOWERS),
-            expandedPageable
+            expandedPageableLocal
         );
 
         // 4. Fetch remote activities from followed remote actors (if any)
         List<RemoteActivity> remoteActivities = new ArrayList<>();
         if (!remoteActorUris.isEmpty()) {
-            // Use same pageable with explicit sort for remote activities
+            // Use publishedAt for sorting remote activities (not startedAt)
+            Pageable expandedPageableRemote = PageRequest.of(0, pageable.getPageSize() * 2,
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "publishedAt"));
             Page<RemoteActivity> remoteActivitiesPage = remoteActivityRepository.findByRemoteActorUriInAndVisibilityIn(
                 remoteActorUris,
                 List.of(RemoteActivity.Visibility.PUBLIC, RemoteActivity.Visibility.FOLLOWERS),
-                expandedPageable
+                expandedPageableRemote
             );
             remoteActivities = remoteActivitiesPage.getContent();
         }

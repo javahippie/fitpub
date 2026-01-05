@@ -210,10 +210,10 @@ public class FitParser {
             }
         }
 
+        BigDecimal totalDistance = null;
         if (session.getTotalDistance() != null) {
-            parsedData.setTotalDistance(
-                BigDecimal.valueOf(session.getTotalDistance()).setScale(2, RoundingMode.HALF_UP)
-            );
+            totalDistance = BigDecimal.valueOf(session.getTotalDistance()).setScale(2, RoundingMode.HALF_UP);
+            parsedData.setTotalDistance(totalDistance);
         }
 
         if (session.getTotalAscent() != null) {
@@ -230,12 +230,6 @@ public class FitParser {
 
         // Extract metrics
         ActivityMetricsData metrics = new ActivityMetricsData();
-
-        if (session.getAvgSpeed() != null) {
-            metrics.setAverageSpeed(
-                BigDecimal.valueOf(session.getAvgSpeed() * MPS_TO_KPH).setScale(2, RoundingMode.HALF_UP)
-            );
-        }
 
         if (session.getMaxSpeed() != null) {
             metrics.setMaxSpeed(
@@ -275,15 +269,53 @@ public class FitParser {
             metrics.setCalories(session.getTotalCalories());
         }
 
+        Duration movingTime = null;
         if (session.getTotalMovingTime() != null) {
-            metrics.setMovingTime(Duration.ofSeconds(session.getTotalMovingTime().longValue()));
+            movingTime = Duration.ofSeconds(session.getTotalMovingTime().longValue());
+            metrics.setMovingTime(movingTime);
+        } else if (session.getTotalTimerTime() != null) {
+            // Fallback to timer time if moving time is not available
+            movingTime = Duration.ofSeconds(session.getTotalTimerTime().longValue());
+            metrics.setMovingTime(movingTime);
         } else {
             // Fallback: Calculate moving time from track points if native value is not available
-            Duration calculatedMovingTime = calculateMovingTimeFromTrackPoints(parsedData);
-            if (calculatedMovingTime != null) {
-                metrics.setMovingTime(calculatedMovingTime);
-                log.debug("Calculated moving time from track points: {}", calculatedMovingTime);
+            movingTime = calculateMovingTimeFromTrackPoints(parsedData);
+            if (movingTime != null) {
+                metrics.setMovingTime(movingTime);
+                log.debug("Calculated moving time from track points: {}", movingTime);
             }
+        }
+
+        // Calculate stopped time (elapsed - moving)
+        if (parsedData.getTotalDuration() != null && movingTime != null) {
+            Duration stoppedTime = parsedData.getTotalDuration().minus(movingTime);
+            if (stoppedTime.isNegative()) {
+                stoppedTime = Duration.ZERO;
+            }
+            metrics.setStoppedTime(stoppedTime);
+        }
+
+        // Calculate average speed from distance and moving time (not from FIT SDK's avgSpeed)
+        // This ensures consistency with GPX parser and correct calculation based on moving time only
+        if (totalDistance != null && movingTime != null && movingTime.getSeconds() > 0) {
+            // distance in meters / time in seconds = m/s, then * 3.6 = km/h
+            double avgSpeedKmh = (totalDistance.doubleValue() / movingTime.getSeconds()) * 3.6;
+            metrics.setAverageSpeed(
+                BigDecimal.valueOf(avgSpeedKmh).setScale(2, RoundingMode.HALF_UP)
+            );
+
+            // Calculate average pace (min/km) for running activities
+            // pace = time (seconds) / distance (km)
+            double distanceKm = totalDistance.doubleValue() / 1000.0;
+            if (distanceKm > 0) {
+                long paceSecondsPerKm = (long) (movingTime.getSeconds() / distanceKm);
+                metrics.setAveragePace(Duration.ofSeconds(paceSecondsPerKm));
+            }
+        } else if (session.getAvgSpeed() != null) {
+            // Fallback to FIT SDK's average speed if moving time is not available
+            metrics.setAverageSpeed(
+                BigDecimal.valueOf(session.getAvgSpeed() * MPS_TO_KPH).setScale(2, RoundingMode.HALF_UP)
+            );
         }
 
         if (session.getTotalStrides() != null) {

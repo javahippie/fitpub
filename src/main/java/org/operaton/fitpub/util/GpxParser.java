@@ -414,8 +414,22 @@ public class GpxParser {
         parsedData.setElevationLoss(BigDecimal.valueOf(elevationLoss).setScale(2, RoundingMode.HALF_UP));
 
         // Calculate average and max values
+        // Calculate average speed from total distance and moving time (not from all speed values)
+        if (totalDistance > 0 && movingTime.getSeconds() > 0) {
+            // Convert: distance (meters) / time (seconds) = m/s, then * 3.6 = km/h
+            double avgSpeedKmh = (totalDistance / movingTime.getSeconds()) * 3.6;
+            metrics.setAverageSpeed(BigDecimal.valueOf(avgSpeedKmh).setScale(2, RoundingMode.HALF_UP));
+
+            // Calculate average pace (min/km) for running activities
+            // pace = time (seconds) / distance (km)
+            double distanceKm = totalDistance / 1000.0;
+            if (distanceKm > 0) {
+                long paceSecondsPerKm = (long) (movingTime.getSeconds() / distanceKm);
+                metrics.setAveragePace(Duration.ofSeconds(paceSecondsPerKm));
+            }
+        }
+
         if (!speeds.isEmpty()) {
-            metrics.setAverageSpeed(calculateAverage(speeds));
             metrics.setMaxSpeed(speeds.stream().max(BigDecimal::compareTo).orElse(null));
         }
 
