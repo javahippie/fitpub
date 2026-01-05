@@ -447,11 +447,17 @@ public class ActivityImageService {
             y += lineHeight + 35;
         }
 
-        // Duration with neon cyan value
+        // Duration/Moving Time with neon cyan value
         if (activity.getTotalDurationSeconds() != null) {
-            long hours = activity.getTotalDurationSeconds() / 3600;
-            long minutes = (activity.getTotalDurationSeconds() % 3600) / 60;
-            long seconds = activity.getTotalDurationSeconds() % 60;
+            // Check if we have moving time that's different from total duration
+            Long movingTime = activity.getMetrics() != null ? activity.getMetrics().getMovingTimeSeconds() : null;
+            Long totalDuration = activity.getTotalDurationSeconds();
+            boolean showMovingTime = movingTime != null && movingTime < totalDuration;
+
+            long timeToDisplay = showMovingTime ? movingTime : totalDuration;
+            long hours = timeToDisplay / 3600;
+            long minutes = (timeToDisplay % 3600) / 60;
+            long seconds = timeToDisplay % 60;
 
             g2d.setFont(new Font("Arial Black", Font.BOLD, 40));
             g2d.setColor(neonCyan);
@@ -464,7 +470,8 @@ public class ActivityImageService {
             g2d.drawString(duration, metadataX, y);
             g2d.setFont(new Font("Arial Black", Font.PLAIN, 16));
             g2d.setColor(new Color(180, 180, 180));
-            g2d.drawString("DURATION", metadataX, y + 22);
+            String label = showMovingTime ? "MOVING TIME" : "DURATION";
+            g2d.drawString(label, metadataX, y + 22);
             y += lineHeight + 35;
         }
 

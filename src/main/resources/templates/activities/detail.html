@@ -83,6 +83,16 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Moving Time -->
+                                <div class="col-md-3 col-6" id="metricMovingTimeContainer" style="display: none;">
+                                    <div class="d-flex align-items-center py-2">
+                                        <i class="bi bi-clock-history text-primary me-2" style="font-size: 1.5rem;"></i>
+                                        <div>
+                                            <div class="text-muted small">Moving Time</div>
+                                            <div class="fw-bold" id="metricMovingTime">--</div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <!-- Elevation Gain -->
                                 <div class="col-md-3 col-6">
                                     <div class="d-flex align-items-center py-2">
@@ -511,6 +521,12 @@
 
                     // Duration is always shown
                     document.getElementById('metricDuration').textContent = formatDuration(activity.totalDuration);
+
+                    // Moving Time - only show if available and different from total duration
+                    if (activity.movingTimeSeconds != null && activity.movingTimeSeconds < activity.totalDuration) {
+                        document.getElementById('metricMovingTimeContainer').style.display = 'block';
+                        document.getElementById('metricMovingTime').textContent = formatDuration(activity.movingTimeSeconds);
+                    }
 
                     // Additional Metrics (conditional)
                     // Note: averageSpeed is already in km/h from backend (converted in FitParser)

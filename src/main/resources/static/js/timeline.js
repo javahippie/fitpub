@@ -157,10 +157,12 @@ const FitPubTimeline = {
                             <small class="text-muted">
                                 ${activity.hasGpsTrack
                                     ? `<strong>Distance:</strong> ${this.formatDistance(activity.totalDistance)} •
-                                       <strong>Duration:</strong> ${this.formatDuration(activity.totalDurationSeconds)} •
+                                       <strong>Duration:</strong> ${this.formatDuration(activity.totalDurationSeconds)}
+                                       ${activity.movingTimeSeconds && activity.movingTimeSeconds < activity.totalDurationSeconds ? ` • <strong>Moving:</strong> ${this.formatDuration(activity.movingTimeSeconds)}` : ''} •
                                        <strong>Pace:</strong> ${this.formatPace(activity.totalDurationSeconds, activity.totalDistance)} •
                                        <strong>Elevation:</strong> ${activity.elevationGain ? Math.round(activity.elevationGain) + 'm' : 'N/A'}`
                                     : `<strong>Duration:</strong> ${this.formatDuration(activity.totalDurationSeconds)}
+                                       ${activity.movingTimeSeconds && activity.movingTimeSeconds < activity.totalDurationSeconds ? ` • <strong>Moving:</strong> ${this.formatDuration(activity.movingTimeSeconds)}` : ''}
                                        ${activity.metrics?.averageHeartRate ? ` • <strong>Avg HR:</strong> ${activity.metrics.averageHeartRate} bpm` : ''}
                                        ${activity.metrics?.calories ? ` • <strong>Calories:</strong> ${activity.metrics.calories} kcal` : ''}`
                                 }

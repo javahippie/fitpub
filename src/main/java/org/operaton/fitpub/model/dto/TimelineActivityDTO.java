@@ -31,6 +31,8 @@ public class TimelineActivityDTO {
     private LocalDateTime endedAt;
     private Double totalDistance;
     private Long totalDurationSeconds;
+    private Long movingTimeSeconds;
+    private Long stoppedTimeSeconds;
     private Double elevationGain;
     private Double elevationLoss;
     private String visibility;
@@ -72,6 +74,8 @@ public class TimelineActivityDTO {
             .endedAt(activity.getEndedAt())
             .totalDistance(activity.getTotalDistance() != null ? activity.getTotalDistance().doubleValue() : null)
             .totalDurationSeconds(activity.getTotalDurationSeconds())
+            .movingTimeSeconds(activity.getMetrics() != null ? activity.getMetrics().getMovingTimeSeconds() : null)
+            .stoppedTimeSeconds(activity.getMetrics() != null ? activity.getMetrics().getStoppedTimeSeconds() : null)
             .elevationGain(activity.getElevationGain() != null ? activity.getElevationGain().doubleValue() : null)
             .elevationLoss(activity.getElevationLoss() != null ? activity.getElevationLoss().doubleValue() : null)
             .visibility(activity.getVisibility().name())
@@ -140,6 +144,8 @@ public class TimelineActivityDTO {
         private Long averagePaceSeconds;
         private Integer averagePower;
         private Integer calories;
+        private Long movingTimeSeconds;
+        private Long stoppedTimeSeconds;
 
         public static ActivityMetricsSummary fromMetrics(org.operaton.fitpub.model.entity.ActivityMetrics metrics) {
             return ActivityMetricsSummary.builder()
@@ -150,6 +156,8 @@ public class TimelineActivityDTO {
                 .averagePaceSeconds(metrics.getAveragePaceSeconds())
                 .averagePower(metrics.getAveragePower())
                 .calories(metrics.getCalories())
+                .movingTimeSeconds(metrics.getMovingTimeSeconds())
+                .stoppedTimeSeconds(metrics.getStoppedTimeSeconds())
                 .build();
         }
     }

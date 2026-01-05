@@ -40,6 +40,8 @@ public class FitParser {
 
     private static final double SEMICIRCLES_TO_DEGREES = 180.0 / Math.pow(2, 31);
     private static final double MPS_TO_KPH = 3.6;
+    private static final double STOPPED_SPEED_THRESHOLD = 0.5; // km/h - below this is considered stopped
+    private static final long STOPPED_TIME_THRESHOLD = 30; // seconds - must be stopped this long to count
 
     // Lazy-loaded timezone engine (expensive to initialize)
     private static TimeZoneEngine timezoneEngine = null;
@@ -275,6 +277,13 @@ public class FitParser {
 
         if (session.getTotalMovingTime() != null) {
             metrics.setMovingTime(Duration.ofSeconds(session.getTotalMovingTime().longValue()));
+        } else {
+            // Fallback: Calculate moving time from track points if native value is not available
+            Duration calculatedMovingTime = calculateMovingTimeFromTrackPoints(parsedData);
+            if (calculatedMovingTime != null) {
+                metrics.setMovingTime(calculatedMovingTime);
+                log.debug("Calculated moving time from track points: {}", calculatedMovingTime);
+            }
         }
 
         if (session.getTotalStrides() != null) {
@@ -400,5 +409,83 @@ public class FitParser {
         } else {
             return Activity.ActivityType.OTHER;
         }
+    }
+
+    /**
+     * Calculates moving time from track points when native moving time is not available.
+     * Uses same logic as GPX parser: speed < 0.5 km/h for > 30 seconds = stopped.
+     */
+    private Duration calculateMovingTimeFromTrackPoints(ParsedActivityData parsedData) {
+        List<TrackPointData> trackPoints = parsedData.getTrackPoints();
+
+        // For indoor activities or activities without track points, use total duration
+        if (trackPoints == null || trackPoints.isEmpty()) {
+            Duration totalDuration = parsedData.getTotalDuration();
+            if (totalDuration != null) {
+                log.debug("No track points available, using total duration as moving time: {}", totalDuration);
+                return totalDuration;
+            }
+            return null;
+        }
+
+        // Need at least 2 points to calculate moving time
+        if (trackPoints.size() < 2) {
+            Duration totalDuration = parsedData.getTotalDuration();
+            log.debug("Only 1 track point, using total duration as moving time: {}", totalDuration);
+            return totalDuration;
+        }
+
+        Duration movingTime = Duration.ZERO;
+        Duration stoppedTime = Duration.ZERO;
+        LocalDateTime lastStoppedTime = null;
+
+        for (int i = 1; i < trackPoints.size(); i++) {
+            TrackPointData prev = trackPoints.get(i - 1);
+            TrackPointData curr = trackPoints.get(i);
+
+            if (prev.getTimestamp() == null || curr.getTimestamp() == null) {
+                continue;
+            }
+
+            Duration timeDelta = Duration.between(prev.getTimestamp(), curr.getTimestamp());
+
+            // Skip unrealistic time deltas (> 1 hour between points)
+            if (timeDelta.getSeconds() > 3600) {
+                continue;
+            }
+
+            // Check if we have speed data
+            BigDecimal speed = curr.getSpeed();
+            if (speed != null) {
+                double speedKmh = speed.doubleValue(); // Already in km/h from FIT parser
+
+                // Track moving vs stopped time
+                if (speedKmh < STOPPED_SPEED_THRESHOLD) {
+                    if (lastStoppedTime == null) {
+                        lastStoppedTime = prev.getTimestamp();
+                    }
+                    Duration currentStopDuration = Duration.between(lastStoppedTime, curr.getTimestamp());
+                    if (currentStopDuration.getSeconds() > STOPPED_TIME_THRESHOLD) {
+                        stoppedTime = stoppedTime.plus(timeDelta);
+                    }
+                } else {
+                    lastStoppedTime = null;
+                    movingTime = movingTime.plus(timeDelta);
+                }
+            } else {
+                // No speed data, assume moving
+                movingTime = movingTime.plus(timeDelta);
+            }
+        }
+
+        // If we didn't calculate any moving time, use total duration
+        if (movingTime.isZero() && stoppedTime.isZero()) {
+            Duration totalDuration = parsedData.getTotalDuration();
+            log.debug("No speed data in track points, using total duration as moving time: {}", totalDuration);
+            return totalDuration;
+        }
+
+        log.debug("Calculated moving time from track points: moving={}, stopped={}", movingTime, stoppedTime);
+        return movingTime;
     }
 }

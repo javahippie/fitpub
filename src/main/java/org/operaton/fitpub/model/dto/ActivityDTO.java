@@ -82,6 +82,14 @@ public class ActivityDTO {
         return metrics != null ? metrics.getCalories() : null;
     }
 
+    public Long getMovingTimeSeconds() {
+        return metrics != null ? metrics.getMovingTimeSeconds() : null;
+    }
+
+    public Long getStoppedTimeSeconds() {
+        return metrics != null ? metrics.getStoppedTimeSeconds() : null;
+    }
+
     // Alias for frontend compatibility
     public Long getTotalDuration() {
         return totalDurationSeconds;
