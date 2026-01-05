@@ -22,9 +22,11 @@ FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
-# Install curl for healthcheck
+# Install curl for healthcheck and emoji fonts for activity image generation
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        fonts-noto-color-emoji && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security

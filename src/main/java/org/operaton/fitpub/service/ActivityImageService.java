@@ -694,8 +694,35 @@ public class ActivityImageService {
         int emojiX = (int) (width * 0.3) - 100; // Center of left 60%
         int emojiY = height / 2;
 
-        // Use a very large font for the emoji
-        g2d.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 200));
+        // Try multiple emoji fonts with fallbacks for cross-platform support
+        Font emojiFont = null;
+        String[] fontFamilies = {
+            "Noto Color Emoji",    // Linux (most common on servers)
+            "Apple Color Emoji",   // macOS
+            "Segoe UI Emoji",      // Windows
+            "Symbola",             // Fallback
+            "DejaVu Sans",         // Universal fallback
+            Font.SANS_SERIF        // System default
+        };
+
+        // Find first available emoji font
+        for (String fontFamily : fontFamilies) {
+            Font testFont = new Font(fontFamily, Font.PLAIN, 200);
+            if (testFont.canDisplayUpTo(emoji) == -1) {
+                emojiFont = testFont;
+                log.debug("Using emoji font: {}", fontFamily);
+                break;
+            }
+        }
+
+        // If no font found that can display emoji, use default and log warning
+        if (emojiFont == null) {
+            emojiFont = new Font(Font.SANS_SERIF, Font.PLAIN, 200);
+            log.warn("No suitable emoji font found, using fallback. Available fonts: {}",
+                String.join(", ", GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()));
+        }
+
+        g2d.setFont(emojiFont);
         g2d.setColor(Color.WHITE);
 
         // Calculate emoji width to center it properly
