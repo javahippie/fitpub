@@ -18,8 +18,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -96,122 +94,112 @@ class ActivityPostProcessingServiceTest {
 
     @Test
     @DisplayName("Should successfully update personal records async")
-    void testUpdatePersonalRecordsAsync_Success() throws ExecutionException, InterruptedException {
+    void testUpdatePersonalRecordsAsync_Success() {
         // Given
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
         when(personalRecordService.checkAndUpdatePersonalRecords(testActivity)).thenReturn(java.util.List.of());
 
         // When
-        CompletableFuture<Void> future = service.updatePersonalRecordsAsync(activityId);
+        service.updatePersonalRecordsAsync(activityId);
 
         // Then
-        assertNotNull(future);
-        future.get(); // Wait for completion
         verify(activityRepository).findById(activityId);
         verify(personalRecordService).checkAndUpdatePersonalRecords(testActivity);
     }
 
     @Test
     @DisplayName("Should handle personal records update failure gracefully")
-    void testUpdatePersonalRecordsAsync_Failure() throws ExecutionException, InterruptedException {
+    void testUpdatePersonalRecordsAsync_Failure() {
         // Given
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
         doThrow(new RuntimeException("Database error")).when(personalRecordService).checkAndUpdatePersonalRecords(testActivity);
 
         // When
-        CompletableFuture<Void> future = service.updatePersonalRecordsAsync(activityId);
+        service.updatePersonalRecordsAsync(activityId);
 
         // Then
-        assertNotNull(future);
-        future.get(); // Should complete without throwing (error is logged, not propagated)
+        // Should complete without throwing (error is logged, not propagated)
         verify(personalRecordService).checkAndUpdatePersonalRecords(testActivity);
     }
 
     @Test
     @DisplayName("Should handle activity not found in personal records update")
-    void testUpdatePersonalRecordsAsync_ActivityNotFound() throws ExecutionException, InterruptedException {
+    void testUpdatePersonalRecordsAsync_ActivityNotFound() {
         // Given
         when(activityRepository.findById(activityId)).thenReturn(Optional.empty());
 
         // When
-        CompletableFuture<Void> future = service.updatePersonalRecordsAsync(activityId);
+        service.updatePersonalRecordsAsync(activityId);
 
         // Then
-        assertNotNull(future);
-        future.get(); // Should complete without throwing
+        // Should complete without throwing
         verify(activityRepository).findById(activityId);
         verify(personalRecordService, never()).checkAndUpdatePersonalRecords(any());
     }
 
     @Test
     @DisplayName("Should successfully update heatmap async")
-    void testUpdateHeatmapAsync_Success() throws ExecutionException, InterruptedException {
+    void testUpdateHeatmapAsync_Success() {
         // Given
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
         doNothing().when(heatmapGridService).updateHeatmapForActivity(testActivity);
 
         // When
-        CompletableFuture<Void> future = service.updateHeatmapAsync(activityId);
+        service.updateHeatmapAsync(activityId);
 
         // Then
-        assertNotNull(future);
-        future.get();
         verify(activityRepository).findById(activityId);
         verify(heatmapGridService).updateHeatmapForActivity(testActivity);
     }
 
     @Test
     @DisplayName("Should handle heatmap update failure gracefully")
-    void testUpdateHeatmapAsync_Failure() throws ExecutionException, InterruptedException {
+    void testUpdateHeatmapAsync_Failure() {
         // Given
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
         doThrow(new RuntimeException("Heatmap error")).when(heatmapGridService).updateHeatmapForActivity(testActivity);
 
         // When
-        CompletableFuture<Void> future = service.updateHeatmapAsync(activityId);
+        service.updateHeatmapAsync(activityId);
 
         // Then
-        assertNotNull(future);
-        future.get(); // Should complete without throwing
+        // Should complete without throwing
         verify(heatmapGridService).updateHeatmapForActivity(testActivity);
     }
 
     @Test
     @DisplayName("Should successfully fetch weather async")
-    void testFetchWeatherAsync_Success() throws ExecutionException, InterruptedException {
+    void testFetchWeatherAsync_Success() {
         // Given
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
         when(weatherService.fetchWeatherForActivity(testActivity)).thenReturn(Optional.empty());
 
         // When
-        CompletableFuture<Void> future = service.fetchWeatherAsync(activityId);
+        service.fetchWeatherAsync(activityId);
 
         // Then
-        assertNotNull(future);
-        future.get();
         verify(activityRepository).findById(activityId);
         verify(weatherService).fetchWeatherForActivity(testActivity);
     }
 
     @Test
     @DisplayName("Should handle weather fetch failure gracefully")
-    void testFetchWeatherAsync_Failure() throws ExecutionException, InterruptedException {
+    void testFetchWeatherAsync_Failure() {
         // Given
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
         doThrow(new RuntimeException("Weather API error")).when(weatherService).fetchWeatherForActivity(testActivity);
 
         // When
-        CompletableFuture<Void> future = service.fetchWeatherAsync(activityId);
+        service.fetchWeatherAsync(activityId);
 
         // Then
-        assertNotNull(future);
-        future.get(); // Should complete without throwing
+        // Should complete without throwing
         verify(weatherService).fetchWeatherForActivity(testActivity);
     }
 
     @Test
     @DisplayName("Should successfully publish to federation async for PUBLIC activity")
-    void testPublishToFederationAsync_PublicActivity() throws ExecutionException, InterruptedException {
+    void testPublishToFederationAsync_PublicActivity() {
         // Given
         testActivity.setVisibility(Activity.Visibility.PUBLIC);
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
@@ -220,11 +208,9 @@ class ActivityPostProcessingServiceTest {
         doNothing().when(federationService).sendCreateActivity(anyString(), any(), any(), anyBoolean());
 
         // When
-        CompletableFuture<Void> future = service.publishToFederationAsync(activityId, userId);
+        service.publishToFederationAsync(activityId, userId);
 
         // Then
-        assertNotNull(future);
-        future.get();
         verify(activityRepository).findById(activityId);
         verify(userRepository).findById(userId);
         verify(activityImageService).generateActivityImage(testActivity);
@@ -233,7 +219,7 @@ class ActivityPostProcessingServiceTest {
 
     @Test
     @DisplayName("Should successfully publish to federation async for FOLLOWERS activity")
-    void testPublishToFederationAsync_FollowersActivity() throws ExecutionException, InterruptedException {
+    void testPublishToFederationAsync_FollowersActivity() {
         // Given
         testActivity.setVisibility(Activity.Visibility.FOLLOWERS);
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
@@ -242,35 +228,31 @@ class ActivityPostProcessingServiceTest {
         doNothing().when(federationService).sendCreateActivity(anyString(), any(), any(), anyBoolean());
 
         // When
-        CompletableFuture<Void> future = service.publishToFederationAsync(activityId, userId);
+        service.publishToFederationAsync(activityId, userId);
 
         // Then
-        assertNotNull(future);
-        future.get();
         verify(federationService).sendCreateActivity(anyString(), any(), eq(testUser), eq(false));
     }
 
     @Test
     @DisplayName("Should skip federation for PRIVATE activity")
-    void testPublishToFederationAsync_PrivateActivity() throws ExecutionException, InterruptedException {
+    void testPublishToFederationAsync_PrivateActivity() {
         // Given
         testActivity.setVisibility(Activity.Visibility.PRIVATE);
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
         // When
-        CompletableFuture<Void> future = service.publishToFederationAsync(activityId, userId);
+        service.publishToFederationAsync(activityId, userId);
 
         // Then
-        assertNotNull(future);
-        future.get();
         verify(activityImageService, never()).generateActivityImage(any());
         verify(federationService, never()).sendCreateActivity(anyString(), any(), any(), anyBoolean());
     }
 
     @Test
     @DisplayName("Should handle federation publish failure gracefully")
-    void testPublishToFederationAsync_Failure() throws ExecutionException, InterruptedException {
+    void testPublishToFederationAsync_Failure() {
         // Given
         testActivity.setVisibility(Activity.Visibility.PUBLIC);
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
@@ -279,17 +261,16 @@ class ActivityPostProcessingServiceTest {
         doThrow(new RuntimeException("Federation error")).when(federationService).sendCreateActivity(anyString(), any(), any(), anyBoolean());
 
         // When
-        CompletableFuture<Void> future = service.publishToFederationAsync(activityId, userId);
+        service.publishToFederationAsync(activityId, userId);
 
         // Then
-        assertNotNull(future);
-        future.get(); // Should complete without throwing
+        // Should complete without throwing
         verify(federationService).sendCreateActivity(anyString(), any(), any(), anyBoolean());
     }
 
     @Test
     @DisplayName("Should handle image generation failure and continue with federation")
-    void testPublishToFederationAsync_ImageGenerationFailure() throws ExecutionException, InterruptedException {
+    void testPublishToFederationAsync_ImageGenerationFailure() {
         // Given
         testActivity.setVisibility(Activity.Visibility.PUBLIC);
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
@@ -298,28 +279,25 @@ class ActivityPostProcessingServiceTest {
         doNothing().when(federationService).sendCreateActivity(anyString(), any(), any(), anyBoolean());
 
         // When
-        CompletableFuture<Void> future = service.publishToFederationAsync(activityId, userId);
+        service.publishToFederationAsync(activityId, userId);
 
         // Then
-        assertNotNull(future);
-        future.get();
         verify(activityImageService).generateActivityImage(testActivity);
         verify(federationService).sendCreateActivity(anyString(), any(), eq(testUser), eq(true)); // Should still publish without image
     }
 
     @Test
     @DisplayName("Should handle user not found in federation publish")
-    void testPublishToFederationAsync_UserNotFound() throws ExecutionException, InterruptedException {
+    void testPublishToFederationAsync_UserNotFound() {
         // Given
         when(activityRepository.findById(activityId)).thenReturn(Optional.of(testActivity));
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         // When
-        CompletableFuture<Void> future = service.publishToFederationAsync(activityId, userId);
+        service.publishToFederationAsync(activityId, userId);
 
         // Then
-        assertNotNull(future);
-        future.get(); // Should complete without throwing
+        // Should complete without throwing
         verify(userRepository).findById(userId);
         verify(federationService, never()).sendCreateActivity(anyString(), any(), any(), anyBoolean());
     }
@@ -336,11 +314,7 @@ class ActivityPostProcessingServiceTest {
         doNothing().when(federationService).sendCreateActivity(anyString(), any(), any(), anyBoolean());
 
         // When
-        try {
-            service.publishToFederationAsync(activityId, userId).get();
-        } catch (Exception e) {
-            fail("Should not throw exception");
-        }
+        service.publishToFederationAsync(activityId, userId);
 
         // Then: Verify federation was called (content formatting is tested indirectly)
         verify(federationService).sendCreateActivity(anyString(), any(), any(), anyBoolean());

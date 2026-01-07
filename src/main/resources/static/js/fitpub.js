@@ -303,8 +303,11 @@ function createElevationChart(canvasId, elevationData) {
                 data: elevationData.map(d => d.elevation),
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2,
                 fill: true,
-                tension: 0.4
+                tension: 0.3,
+                pointRadius: 0,
+                pointHoverRadius: 5
             }]
         },
         options: {

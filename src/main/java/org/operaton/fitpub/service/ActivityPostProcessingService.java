@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Service for asynchronous post-processing of activities after upload.
@@ -62,34 +61,33 @@ public class ActivityPostProcessingService {
      * @param activityId the saved activity ID
      * @param userId the user ID who uploaded the activity
      */
+    @Async("taskExecutor")
     public void processActivityAsync(UUID activityId, UUID userId) {
         log.info("Starting async post-processing for activity {} by user {}", activityId, userId);
 
-        // Launch independent async operations (run in parallel)
+        // Run post-processing operations in background thread
+        // All operations run sequentially with separate transactions (REQUIRES_NEW)
+        // for fault isolation - failures in one operation don't affect others
+
         updatePersonalRecordsAsync(activityId);
         updateHeatmapAsync(activityId);
 
-        // Sequential chain: Weather → Federation
         // Weather must complete before federation for potential weather data in share images
-        fetchWeatherAsync(activityId)
-            .thenCompose(result -> publishToFederationAsync(activityId, userId))
-            .exceptionally(ex -> {
-                log.error("Failed async post-processing chain (Weather → Federation) for activity {}: {}",
-                    activityId, ex.getMessage(), ex);
-                return null;
-            });
+        fetchWeatherAsync(activityId);
+        publishToFederationAsync(activityId, userId);
+
+        log.info("Completed async post-processing for activity {}", activityId);
     }
 
     /**
-     * Asynchronously check and update personal records for the activity.
+     * Check and update personal records for the activity.
+     * Called internally from processActivityAsync background thread.
      * Runs in a separate transaction to isolate from main upload transaction.
      *
      * @param activityId the activity ID to process
-     * @return CompletableFuture that completes when processing is done
      */
-    @Async("taskExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public CompletableFuture<Void> updatePersonalRecordsAsync(UUID activityId) {
+    void updatePersonalRecordsAsync(UUID activityId) {
         try {
             log.debug("Async: Checking personal records for activity {}", activityId);
 
@@ -105,19 +103,17 @@ public class ActivityPostProcessingService {
                 activityId, e.getMessage(), e);
             // Don't rethrow - error logged, operation fails independently
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     /**
-     * Asynchronously update heatmap grid with activity GPS data.
+     * Update heatmap grid with activity GPS data.
+     * Called internally from processActivityAsync background thread.
      * Runs in a separate transaction to isolate from main upload transaction.
      *
      * @param activityId the activity ID to process
-     * @return CompletableFuture that completes when processing is done
      */
-    @Async("taskExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public CompletableFuture<Void> updateHeatmapAsync(UUID activityId) {
+    void updateHeatmapAsync(UUID activityId) {
         try {
             log.debug("Async: Updating heatmap for activity {}", activityId);
 
@@ -133,21 +129,19 @@ public class ActivityPostProcessingService {
                 activityId, e.getMessage(), e);
             // Don't rethrow - error logged, operation fails independently
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     /**
-     * Asynchronously fetch weather data for the activity location and time.
+     * Fetch weather data for the activity location and time.
+     * Called internally from processActivityAsync background thread.
      * Runs in a separate transaction to isolate from main upload transaction.
      *
      * Must complete before federation push to allow future integration of weather in share images.
      *
      * @param activityId the activity ID to process
-     * @return CompletableFuture that completes when weather fetch is done
      */
-    @Async("taskExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public CompletableFuture<Void> fetchWeatherAsync(UUID activityId) {
+    void fetchWeatherAsync(UUID activityId) {
         try {
             log.debug("Async: Fetching weather for activity {}", activityId);
 
@@ -163,12 +157,12 @@ public class ActivityPostProcessingService {
                 activityId, e.getMessage(), e);
             // Don't rethrow - error logged, operation fails independently
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     /**
-     * Asynchronously publish activity to the Fediverse (ActivityPub federation).
+     * Publish activity to the Fediverse (ActivityPub federation).
      * Generates activity image and sends Create activity to all follower inboxes.
+     * Called internally from processActivityAsync background thread.
      * Runs in a separate transaction to isolate from main upload transaction.
      *
      * Only publishes if activity visibility is PUBLIC or FOLLOWERS.
@@ -176,11 +170,9 @@ public class ActivityPostProcessingService {
      *
      * @param activityId the activity ID to publish
      * @param userId the user ID who owns the activity
-     * @return CompletableFuture that completes when federation is done
      */
-    @Async("taskExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public CompletableFuture<Void> publishToFederationAsync(UUID activityId, UUID userId) {
+    void publishToFederationAsync(UUID activityId, UUID userId) {
         try {
             log.debug("Async: Publishing activity {} to Fediverse", activityId);
 
@@ -194,7 +186,7 @@ public class ActivityPostProcessingService {
             if (activity.getVisibility() != Activity.Visibility.PUBLIC &&
                 activity.getVisibility() != Activity.Visibility.FOLLOWERS) {
                 log.debug("Async: Skipping federation for private activity {}", activityId);
-                return CompletableFuture.completedFuture(null);
+                return;
             }
 
             String activityUri = baseUrl + "/activities/" + activity.getId();
@@ -252,7 +244,6 @@ public class ActivityPostProcessingService {
                 activityId, e.getMessage(), e);
             // Don't rethrow - error logged, operation fails independently
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     /**

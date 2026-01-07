@@ -439,6 +439,11 @@
                 const errorMessage = document.getElementById('errorMessage');
                 const activityContent = document.getElementById('activityContent');
 
+                // Global variables for map interaction
+                let activityMap = null;
+                let hoverMarker = null;
+                let currentTrackPoints = null;
+
                 // Load activity details
                 loadActivity();
 
@@ -562,6 +567,9 @@
 
                     // Render elevation chart if data exists
                     if (activity.trackPoints && activity.trackPoints.length > 0) {
+                        // Store track points globally for map marker updates
+                        currentTrackPoints = activity.trackPoints;
+
                         const hasElevation = activity.trackPoints.some(p => p.elevation != null);
                         if (hasElevation) {
                             document.getElementById('elevationSection').style.display = 'block';
@@ -694,18 +702,59 @@
 
                     // Create map (needs to be done after container is visible)
                     setTimeout(() => {
-                        const map = FitPub.createActivityMap('activityMap', geoJson, {
+                        activityMap = FitPub.createActivityMap('activityMap', geoJson, {
                             showStartEnd: false,  // Privacy: Do not show start/end markers
                             fitBounds: true
                         });
 
+                        // Create a hover marker (initially hidden)
+                        if (activityMap) {
+                            const pulsingIcon = L.divIcon({
+                                className: 'chart-hover-marker',
+                                html: '<div class="marker-pulse"></div>',
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            });
+
+                            hoverMarker = L.marker([0, 0], {
+                                icon: pulsingIcon,
+                                opacity: 0
+                            }).addTo(activityMap);
+
+                            // Add CSS for the pulsing marker
+                            if (!document.getElementById('chart-hover-marker-style')) {
+                                const style = document.createElement('style');
+                                style.id = 'chart-hover-marker-style';
+                                style.textContent = `
+                                    .chart-hover-marker {
+                                        background: transparent;
+                                        border: none;
+                                    }
+                                    .marker-pulse {
+                                        width: 20px;
+                                        height: 20px;
+                                        border-radius: 50%;
+                                        background: rgba(255, 69, 0, 0.8);
+                                        border: 3px solid white;
+                                        box-shadow: 0 0 10px rgba(255, 69, 0, 0.6);
+                                        animation: pulse 1.5s ease-in-out infinite;
+                                    }
+                                    @keyframes pulse {
+                                        0%, 100% { transform: scale(1); opacity: 0.8; }
+                                        50% { transform: scale(1.2); opacity: 1; }
+                                    }
+                                `;
+                                document.head.appendChild(style);
+                            }
+                        }
+
                         // Force fit bounds again after map is fully rendered
-                        if (map && map.trackLayer) {
+                        if (activityMap && activityMap.trackLayer) {
                             setTimeout(() => {
                                 try {
-                                    const bounds = map.trackLayer.getBounds();
+                                    const bounds = activityMap.trackLayer.getBounds();
                                     if (bounds.isValid()) {
-                                        map.fitBounds(bounds, { padding: [50, 50] });
+                                        activityMap.fitBounds(bounds, { padding: [50, 50] });
                                     }
                                 } catch (e) {
                                     console.warn('Could not fit bounds on second attempt:', e);
@@ -739,7 +788,8 @@
                         if (point.elevation != null) {
                             elevationData.push({
                                 distance: cumulativeDistance,
-                                elevation: point.elevation
+                                elevation: point.elevation,
+                                trackPointIndex: i  // Store the original track point index
                             });
                         }
                     }
@@ -747,13 +797,75 @@
                     if (elevationData.length > 0) {
                         // Smooth elevation data to remove zero/invalid values
                         const smoothedData = smoothElevationData(elevationData);
-                        FitPub.createElevationChart('elevationChart', smoothedData);
+
+                        // Create elevation chart with hover interaction
+                        const ctx = document.getElementById('elevationChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: smoothedData.map(d => (d.distance / 1000).toFixed(2)),
+                                datasets: [{
+                                    label: 'Elevation (m)',
+                                    data: smoothedData.map(d => d.elevation),
+                                    borderColor: '#10b981',
+                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.3,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 5
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: true,
+                                onHover: (event, activeElements) => {
+                                    if (activeElements && activeElements.length > 0) {
+                                        const dataIndex = activeElements[0].index;
+                                        if (smoothedData[dataIndex]) {
+                                            updateMapMarker(smoothedData[dataIndex].trackPointIndex);
+                                        }
+                                    } else {
+                                        hideMapMarker();
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            title: (context) => {
+                                                return `Distance: ${context[0].label} km`;
+                                            },
+                                            label: (context) => {
+                                                return `Elevation: ${context.parsed.y.toFixed(1)} m`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Distance (km)'
+                                        }
+                                    },
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Elevation (m)'
+                                        }
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
 
                 /**
                  * Smooth elevation data by interpolating zero/invalid values and applying moving average
-                 * @param {Array} data - Array of {distance, elevation} objects
+                 * @param {Array} data - Array of {distance, elevation, trackPointIndex} objects
                  * @returns {Array} Smoothed elevation data
                  */
                 function smoothElevationData(data) {
@@ -812,11 +924,55 @@
 
                         smoothed.push({
                             distance: interpolated[i].distance,
-                            elevation: count > 0 ? sum / count : interpolated[i].elevation
+                            elevation: count > 0 ? sum / count : interpolated[i].elevation,
+                            trackPointIndex: interpolated[i].trackPointIndex  // Preserve track point index
                         });
                     }
 
                     return smoothed;
+                }
+
+                /**
+                 * Update the hover marker position on the map
+                 * @param {number} trackPointIndex - Index of the track point to show
+                 */
+                function updateMapMarker(trackPointIndex) {
+                    if (!activityMap || !hoverMarker || !currentTrackPoints) return;
+
+                    const point = currentTrackPoints[trackPointIndex];
+                    if (point && point.latitude != null && point.longitude != null) {
+                        hoverMarker.setLatLng([point.latitude, point.longitude]);
+                        hoverMarker.setOpacity(1);
+                    }
+                }
+
+                /**
+                 * Hide the hover marker on the map
+                 */
+                function hideMapMarker() {
+                    if (hoverMarker) {
+                        hoverMarker.setOpacity(0);
+                    }
+                }
+
+                /**
+                 * Format elapsed time in minutes to mm:ss or hh:mm:ss
+                 * @param {number} minutes - Elapsed time in decimal minutes
+                 * @param {number} totalMinutes - Total duration in minutes (to determine if hours are needed)
+                 * @returns {string} Formatted time string
+                 */
+                function formatElapsedTime(minutes, totalMinutes) {
+                    const totalSeconds = Math.floor(minutes * 60);
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const mins = Math.floor((totalSeconds % 3600) / 60);
+                    const secs = totalSeconds % 60;
+
+                    // Use hh:mm:ss format if total duration is 1 hour or more
+                    if (totalMinutes >= 60) {
+                        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    } else {
+                        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    }
                 }
 
                 /**
@@ -844,18 +1000,22 @@
 
                             heartRateData.push({
                                 time: elapsedMinutes,
-                                heartRate: point.heartRate
+                                heartRate: point.heartRate,
+                                trackPointIndex: i  // Store the original track point index
                             });
                         }
                     }
 
                     if (heartRateData.length > 0) {
+                        // Calculate total duration to determine time format
+                        const totalMinutes = heartRateData[heartRateData.length - 1].time;
+
                         // Create heart rate chart using Chart.js
                         const ctx = document.getElementById('heartRateChart').getContext('2d');
                         new Chart(ctx, {
                             type: 'line',
                             data: {
-                                labels: heartRateData.map(d => d.time.toFixed(1)),
+                                labels: heartRateData.map(d => formatElapsedTime(d.time, totalMinutes)),
                                 datasets: [{
                                     label: 'Heart Rate (bpm)',
                                     data: heartRateData.map(d => d.heartRate),
@@ -871,6 +1031,16 @@
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: true,
+                                onHover: (event, activeElements) => {
+                                    if (activeElements && activeElements.length > 0) {
+                                        const dataIndex = activeElements[0].index;
+                                        if (heartRateData[dataIndex]) {
+                                            updateMapMarker(heartRateData[dataIndex].trackPointIndex);
+                                        }
+                                    } else {
+                                        hideMapMarker();
+                                    }
+                                },
                                 plugins: {
                                     legend: {
                                         display: false
@@ -879,6 +1049,9 @@
                                         mode: 'index',
                                         intersect: false,
                                         callbacks: {
+                                            title: function(context) {
+                                                return 'Time: ' + context[0].label;
+                                            },
                                             label: function(context) {
                                                 return context.parsed.y + ' bpm';
                                             }
@@ -889,7 +1062,7 @@
                                     x: {
                                         title: {
                                             display: true,
-                                            text: 'Time (minutes)'
+                                            text: 'Time'
                                         },
                                         ticks: {
                                             maxTicksLimit: 10
@@ -950,12 +1123,15 @@
                         // Apply moving average smoothing to speed data (window size 5)
                         const smoothedSpeedData = smoothSpeedData(speedData);
 
+                        // Calculate total duration to determine time format
+                        const totalMinutes = smoothedSpeedData[smoothedSpeedData.length - 1].time;
+
                         // Create speed chart using Chart.js
                         const ctx = document.getElementById('speedChart').getContext('2d');
                         new Chart(ctx, {
                             type: 'line',
                             data: {
-                                labels: smoothedSpeedData.map(d => d.time.toFixed(1)),
+                                labels: smoothedSpeedData.map(d => formatElapsedTime(d.time, totalMinutes)),
                                 datasets: [{
                                     label: 'Speed (km/h)',
                                     data: smoothedSpeedData.map(d => d.speed),
@@ -979,6 +1155,9 @@
                                         mode: 'index',
                                         intersect: false,
                                         callbacks: {
+                                            title: function(context) {
+                                                return 'Time: ' + context[0].label;
+                                            },
                                             label: function(context) {
                                                 const speedKmh = context.parsed.y;
                                                 // Calculate pace (min/km)
@@ -994,7 +1173,7 @@
                                     x: {
                                         title: {
                                             display: true,
-                                            text: 'Time (minutes)'
+                                            text: 'Time'
                                         },
                                         ticks: {
                                             maxTicksLimit: 10
