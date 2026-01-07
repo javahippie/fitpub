@@ -98,12 +98,14 @@ public class ActivityFileService {
     private final TrackSimplifier trackSimplifier;
     private final ActivityRepository activityRepository;
     private final ObjectMapper objectMapper;
-    private final PersonalRecordService personalRecordService;
+    // Async operations moved to ActivityPostProcessingService:
+    // - PersonalRecordService (async)
+    // - HeatmapGridService (async)
+    // - WeatherService (async)
+    // Synchronous operations remain here:
     private final AchievementService achievementService;
     private final TrainingLoadService trainingLoadService;
     private final ActivitySummaryService activitySummaryService;
-    private final WeatherService weatherService;
-    private final HeatmapGridService heatmapGridService;
 
     /**
      * Processes an uploaded activity file (FIT or GPX) and creates an activity.
@@ -301,28 +303,15 @@ public class ActivityFileService {
                 savedActivity.getId());
         }
 
-        // Execute side effects based on processing options
-        // In batch import mode, these are skipped and executed later as a batch
-
-        if (!options.isSkipPersonalRecords()) {
-            log.debug("Checking personal records for activity {}", savedActivity.getId());
-            personalRecordService.checkAndUpdatePersonalRecords(savedActivity);
-        } else {
-            log.debug("Skipping personal records check for activity {} (batch mode)", savedActivity.getId());
-        }
+        // Execute synchronous side effects based on processing options
+        // Personal Records, Heatmap, and Weather are now handled asynchronously by caller (ActivityController)
+        // In batch import mode, even synchronous operations are skipped and executed later as a batch
 
         if (!options.isSkipAchievements()) {
             log.debug("Checking achievements for activity {}", savedActivity.getId());
             achievementService.checkAndAwardAchievements(savedActivity);
         } else {
             log.debug("Skipping achievements check for activity {} (batch mode)", savedActivity.getId());
-        }
-
-        if (!options.isSkipHeatmap()) {
-            log.debug("Updating heatmap for activity {}", savedActivity.getId());
-            heatmapGridService.updateHeatmapForActivity(savedActivity);
-        } else {
-            log.debug("Skipping heatmap update for activity {} (batch mode)", savedActivity.getId());
         }
 
         if (!options.isSkipTrainingLoad()) {
@@ -339,18 +328,9 @@ public class ActivityFileService {
             log.debug("Skipping summaries update for activity {} (batch mode)", savedActivity.getId());
         }
 
-        if (!options.isSkipWeather()) {
-            // Fetch weather data (async, non-blocking)
-            try {
-                log.debug("Fetching weather for activity {}", savedActivity.getId());
-                weatherService.fetchWeatherForActivity(savedActivity);
-            } catch (Exception e) {
-                log.warn("Failed to fetch weather data for activity {}: {}", savedActivity.getId(), e.getMessage());
-                // Don't fail the activity creation if weather fetching fails
-            }
-        } else {
-            log.debug("Skipping weather fetch for activity {} (batch mode)", savedActivity.getId());
-        }
+        // Note: Async post-processing (Personal Records, Heatmap, Weather, Federation)
+        // is triggered by the caller (ActivityController) via ActivityPostProcessingService
+        // This keeps ActivityFileService focused on file parsing and initial activity save
 
         return savedActivity;
     }

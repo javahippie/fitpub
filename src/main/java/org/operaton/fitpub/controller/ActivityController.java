@@ -11,9 +11,9 @@ import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.service.ActivityFileService;
 import org.operaton.fitpub.service.ActivityImageService;
+import org.operaton.fitpub.service.ActivityPostProcessingService;
 import org.operaton.fitpub.service.FederationService;
 import org.operaton.fitpub.service.FitFileService;
-import org.operaton.fitpub.util.ActivityFormatter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,12 +23,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * REST controller for activity management.
@@ -43,6 +40,7 @@ public class ActivityController {
     private final ActivityFileService activityFileService;
     private final FitFileService fitFileService;
     private final UserRepository userRepository;
+    private final ActivityPostProcessingService activityPostProcessingService;
     private final FederationService federationService;
     private final ActivityImageService activityImageService;
     private final org.operaton.fitpub.service.WeatherService weatherService;
@@ -90,122 +88,25 @@ public class ActivityController {
             request.getVisibility()
         );
 
-        // Send ActivityPub Create activity to followers if public or followers-only
-        if (activity.getVisibility() == Activity.Visibility.PUBLIC ||
-            activity.getVisibility() == Activity.Visibility.FOLLOWERS) {
+        // Trigger async post-processing (non-blocking):
+        // - Personal Records checking
+        // - Weather data fetching
+        // - Heatmap grid updates
+        // - Federation push (includes image generation)
+        //
+        // Operations run in separate transactions with proper ordering:
+        // - Personal Records and Heatmap run in parallel
+        // - Weather → Federation run sequentially (weather must complete before federation)
+        //
+        // Activity is immediately visible to user, processing continues in background
+        activityPostProcessingService.processActivityAsync(activity.getId(), user.getId());
 
-            String activityUri = baseUrl + "/activities/" + activity.getId();
-            String actorUri = baseUrl + "/users/" + user.getUsername();
-
-            // Create the Note object representing the activity
-            Map<String, Object> noteObject = new HashMap<>();
-            noteObject.put("id", activityUri);
-            noteObject.put("type", "Note");
-            noteObject.put("attributedTo", actorUri);
-            noteObject.put("published", activity.getCreatedAt().toString());
-            noteObject.put("content", formatActivityContent(activity));
-
-            if (activity.getVisibility() == Activity.Visibility.PUBLIC) {
-                noteObject.put("to", List.of("https://www.w3.org/ns/activitystreams#Public"));
-                noteObject.put("cc", List.of(actorUri + "/followers"));
-            } else {
-                noteObject.put("to", List.of(actorUri + "/followers"));
-            }
-
-            // Add URL to the activity page
-            noteObject.put("url", baseUrl + "/activities/" + activity.getId());
-
-            // Generate and attach activity image
-            String imageUrl = activityImageService.generateActivityImage(activity);
-            if (imageUrl != null) {
-                Map<String, Object> imageAttachment = new HashMap<>();
-                imageAttachment.put("type", "Image");
-                imageAttachment.put("mediaType", "image/png");
-                imageAttachment.put("url", imageUrl);
-                imageAttachment.put("name", "Activity map showing " + activity.getActivityType() + " route");
-                noteObject.put("attachment", List.of(imageAttachment));
-            }
-
-            federationService.sendCreateActivity(
-                activityUri,
-                noteObject,
-                user,
-                activity.getVisibility() == Activity.Visibility.PUBLIC
-            );
-        }
+        log.info("Activity {} created and queued for async post-processing", activity.getId());
 
         ActivityDTO dto = ActivityDTO.fromEntity(activity);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
-    /**
-     * Format activity content for ActivityPub.
-     * Uses plain text with Unicode symbols for maximum compatibility across Fediverse platforms.
-     */
-    private String formatActivityContent(Activity activity) {
-        StringBuilder content = new StringBuilder();
-
-        // Title (if present)
-        if (activity.getTitle() != null && !activity.getTitle().isEmpty()) {
-            content.append(activity.getTitle()).append("\n\n");
-        }
-
-        // Description (if present)
-        if (activity.getDescription() != null && !activity.getDescription().isEmpty()) {
-            content.append(activity.getDescription()).append("\n\n");
-        }
-
-        // Activity type with emoji
-        String activityEmoji = getActivityEmoji(activity.getActivityType());
-        String formattedType = ActivityFormatter.formatActivityType(activity.getActivityType());
-        content.append(activityEmoji).append(" ").append(formattedType);
-
-        // Metrics on separate lines
-        if (activity.getTotalDistance() != null) {
-            content.append("\n📏 ")
-                .append(String.format("%.2f km", activity.getTotalDistance().doubleValue() / 1000.0));
-        }
-
-        if (activity.getTotalDurationSeconds() != null) {
-            long hours = activity.getTotalDurationSeconds() / 3600;
-            long minutes = (activity.getTotalDurationSeconds() % 3600) / 60;
-            long seconds = activity.getTotalDurationSeconds() % 60;
-            content.append("\n⏱️ ");
-            if (hours > 0) {
-                content.append(hours).append("h ");
-            }
-            content.append(minutes).append("m ").append(seconds).append("s");
-        }
-
-        if (activity.getElevationGain() != null) {
-            content.append("\n⛰️ ")
-                .append(String.format("%.0f m", activity.getElevationGain()));
-        }
-
-        return content.toString();
-    }
-
-    /**
-     * Get an emoji for the activity type.
-     */
-    private String getActivityEmoji(Activity.ActivityType type) {
-        return switch (type) {
-            case RUN -> "🏃";
-            case RIDE -> "🚴";
-            case HIKE -> "🥾";
-            case WALK -> "🚶";
-            case SWIM -> "🏊";
-            case ALPINE_SKI, BACKCOUNTRY_SKI, NORDIC_SKI -> "⛷️";
-            case SNOWBOARD -> "🏂";
-            case ROWING -> "🚣";
-            case KAYAKING, CANOEING -> "🛶";
-            case INLINE_SKATING -> "⛸️";
-            case ROCK_CLIMBING, MOUNTAINEERING -> "🧗";
-            case YOGA -> "🧘";
-            case WORKOUT -> "💪";
-            default -> "🏋️";
-        };
-    }
 
     /**
      * Simple HTML escaping.
