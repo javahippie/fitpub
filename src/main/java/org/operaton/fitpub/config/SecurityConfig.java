@@ -125,6 +125,9 @@ public class SecurityConfig {
                 // Protected endpoints - Batch Import API
                 .requestMatchers("/api/batch-import/**").authenticated()
 
+                // Protected endpoints - Privacy Zones API
+                .requestMatchers("/api/privacy-zones/**").authenticated()
+
                 // Protected endpoints - Activities API (upload, edit, delete)
                 .requestMatchers(HttpMethod.POST, "/api/activities/upload").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/activities/*").authenticated()

@@ -44,6 +44,15 @@ spring:
       write-dates-as-timestamps: false
     time-zone: UTC
 
+  # Cache configuration for privacy zone filtering
+  cache:
+    type: caffeine
+    cache-names:
+      - filteredTracks
+      - filteredTrackPoints
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=7d
+
 # FitPub specific configuration
 fitpub:
   # Domain and URL configuration

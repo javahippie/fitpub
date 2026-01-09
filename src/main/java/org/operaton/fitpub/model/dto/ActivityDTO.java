@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
 import org.operaton.fitpub.model.entity.Activity;
+import org.operaton.fitpub.model.entity.PrivacyZone;
+import org.operaton.fitpub.service.TrackPrivacyFilter;
 import org.operaton.fitpub.util.ActivityFormatter;
 
 import java.math.BigDecimal;
@@ -56,6 +58,9 @@ public class ActivityDTO {
     private Long likesCount;
     private Long commentsCount;
     private Boolean likedByCurrentUser; // True if current user has liked this activity
+
+    // Privacy zones (only for activity owner, to show what's hidden for others)
+    private List<PrivacyZonePreview> privacyZones;
 
     // Convenience getters for flattened metrics (for frontend compatibility)
     public Integer getAverageHeartRate() {
@@ -140,6 +145,124 @@ public class ActivityDTO {
     }
 
     /**
+     * Creates a DTO from an Activity entity with privacy zone filtering applied.
+     * Filters GPS coordinates that fall within the activity owner's privacy zones.
+     *
+     * @param activity the activity entity
+     * @param requestingUserId the ID of the user requesting the activity (null for anonymous)
+     * @param privacyZones the activity owner's active privacy zones
+     * @param filter the privacy filter service
+     * @return activity DTO with filtered GPS data, or null if entire track was filtered
+     */
+    public static ActivityDTO fromEntityWithFiltering(
+        Activity activity,
+        UUID requestingUserId,
+        List<PrivacyZone> privacyZones,
+        TrackPrivacyFilter filter
+    ) {
+        // If requester is the activity owner, don't filter (show full track)
+        boolean isOwner = requestingUserId != null && requestingUserId.equals(activity.getUserId());
+
+        // If no privacy zones or requester is owner, use standard conversion
+        if (privacyZones == null || privacyZones.isEmpty() || isOwner) {
+            if (isOwner && privacyZones != null && !privacyZones.isEmpty()) {
+                org.slf4j.LoggerFactory.getLogger(ActivityDTO.class)
+                    .info("Activity {} - Owner viewing, bypassing {} privacy zones",
+                          activity.getId(), privacyZones.size());
+
+                // For owner, return full track but include privacy zones for visualization
+                ActivityDTO dto = fromEntity(activity);
+                dto.setPrivacyZones(privacyZones.stream()
+                    .map(zone -> PrivacyZonePreview.builder()
+                        .id(zone.getId())
+                        .name(zone.getName())
+                        .latitude(zone.getCenterPoint().getY())
+                        .longitude(zone.getCenterPoint().getX())
+                        .radiusMeters(zone.getRadiusMeters())
+                        .build())
+                    .collect(java.util.stream.Collectors.toList()));
+                return dto;
+            }
+            return fromEntity(activity);
+        }
+
+        // Apply filtering to tracks
+        LineString filteredSimplifiedTrack = null;
+        String filteredTrackPointsJson = null;
+
+        if (activity.getSimplifiedTrack() != null) {
+            filteredSimplifiedTrack = filter.filterLineString(activity.getSimplifiedTrack(), privacyZones);
+        }
+
+        if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
+            filteredTrackPointsJson = filter.filterTrackPointsJson(activity.getTrackPointsJson(), privacyZones);
+        }
+
+        // If entire track was filtered out, return null (activity is completely private)
+        if (filteredSimplifiedTrack == null && filteredTrackPointsJson == null) {
+            // Return basic activity info without GPS data
+            return ActivityDTO.builder()
+                .id(activity.getId())
+                .userId(activity.getUserId())
+                .activityType(ActivityFormatter.formatActivityType(activity.getActivityType()))
+                .title(activity.getTitle())
+                .description(activity.getDescription())
+                .startedAt(activity.getStartedAt())
+                .endedAt(activity.getEndedAt())
+                .timezone(activity.getTimezone())
+                .visibility(activity.getVisibility().name())
+                .totalDistance(activity.getTotalDistance())
+                .totalDurationSeconds(activity.getTotalDurationSeconds())
+                .elevationGain(activity.getElevationGain())
+                .elevationLoss(activity.getElevationLoss())
+                .metrics(activity.getMetrics() != null ? ActivityMetricsDTO.fromEntity(activity.getMetrics()) : null)
+                .createdAt(activity.getCreatedAt())
+                .updatedAt(activity.getUpdatedAt())
+                .hasGpsTrack(false) // Mark as no GPS data available
+                .build();
+        }
+
+        // Build DTO with filtered tracks
+        ActivityDTOBuilder builder = ActivityDTO.builder()
+            .id(activity.getId())
+            .userId(activity.getUserId())
+            .activityType(ActivityFormatter.formatActivityType(activity.getActivityType()))
+            .title(activity.getTitle())
+            .description(activity.getDescription())
+            .startedAt(activity.getStartedAt())
+            .endedAt(activity.getEndedAt())
+            .timezone(activity.getTimezone())
+            .visibility(activity.getVisibility().name())
+            .totalDistance(activity.getTotalDistance())
+            .elevationGain(activity.getElevationGain())
+            .elevationLoss(activity.getElevationLoss())
+            .createdAt(activity.getCreatedAt())
+            .updatedAt(activity.getUpdatedAt());
+
+        if (activity.getTotalDurationSeconds() != null) {
+            builder.totalDurationSeconds(activity.getTotalDurationSeconds());
+        }
+
+        if (activity.getMetrics() != null) {
+            builder.metrics(ActivityMetricsDTO.fromEntity(activity.getMetrics()));
+        }
+
+        // Add filtered GPS data
+        boolean hasGps = filteredSimplifiedTrack != null;
+        builder.hasGpsTrack(hasGps);
+
+        if (hasGps) {
+            builder.simplifiedTrack(lineStringToGeoJson(filteredSimplifiedTrack));
+        }
+
+        if (filteredTrackPointsJson != null) {
+            builder.trackPoints(parseTrackPoints(filteredTrackPointsJson));
+        }
+
+        return builder.build();
+    }
+
+    /**
      * Converts a JTS LineString to GeoJSON format.
      */
     private static Map<String, Object> lineStringToGeoJson(LineString lineString) {
@@ -186,5 +309,20 @@ public class ActivityDTO {
             System.err.println("Error parsing track points JSON: " + e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Simple preview of a privacy zone for map rendering.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PrivacyZonePreview {
+        private UUID id;
+        private String name;
+        private Double latitude;
+        private Double longitude;
+        private Integer radiusMeters;
     }
 }

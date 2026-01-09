@@ -569,7 +569,7 @@
                     if (hasGpsTrack && activity.simplifiedTrack) {
                         document.getElementById('mapSection').style.display = 'block';
                         document.getElementById('indoorPlaceholder').style.display = 'none';
-                        renderMap(activity.simplifiedTrack);
+                        renderMap(activity.simplifiedTrack, activity);
                     } else {
                         // Show indoor activity placeholder
                         document.getElementById('mapSection').style.display = 'none';
@@ -710,7 +710,7 @@
                     }
                 }
 
-                function renderMap(simplifiedTrack) {
+                function renderMap(simplifiedTrack, activity) {
                     // Parse GeoJSON from simplifiedTrack
                     const geoJson = {
                         type: 'LineString',
@@ -765,6 +765,15 @@
                             }
                         }
 
+                        // Render privacy zones if present (owner view only)
+                        console.log('Privacy zones in response:', activity.privacyZones);
+                        if (activity.privacyZones && activity.privacyZones.length > 0) {
+                            console.log('Rendering', activity.privacyZones.length, 'privacy zones');
+                            renderPrivacyZones(activityMap, activity.privacyZones);
+                        } else {
+                            console.log('No privacy zones to render');
+                        }
+
                         // Force fit bounds again after map is fully rendered
                         if (activityMap && activityMap.trackLayer) {
                             setTimeout(() => {
@@ -779,6 +788,60 @@
                             }, 200);
                         }
                     }, 50);
+                }
+
+                function renderPrivacyZones(map, zones) {
+                    // Helper to escape HTML
+                    const escapeHtml = (text) => {
+                        const div = document.createElement('div');
+                        div.textContent = text;
+                        return div.innerHTML;
+                    };
+
+                    // Render each privacy zone as a translucent red circle
+                    zones.forEach(zone => {
+                        const circle = L.circle([zone.latitude, zone.longitude], {
+                            color: '#dc3545',
+                            fillColor: '#dc3545',
+                            fillOpacity: 0.1,
+                            opacity: 0.4,
+                            weight: 2,
+                            dashArray: '5, 10',
+                            radius: zone.radiusMeters
+                        }).addTo(map);
+
+                        // Add tooltip
+                        const zoneName = escapeHtml(zone.name || 'Privacy Zone');
+                        circle.bindTooltip(
+                            `<strong>🔒 Privacy Zone</strong><br>${zoneName}<br><small class="text-muted">Hidden for others</small>`,
+                            {
+                                permanent: false,
+                                direction: 'top',
+                                className: 'privacy-zone-tooltip'
+                            }
+                        );
+                    });
+
+                    // Add CSS for privacy zone tooltip
+                    if (!document.getElementById('privacy-zone-tooltip-style')) {
+                        const style = document.createElement('style');
+                        style.id = 'privacy-zone-tooltip-style';
+                        style.textContent = `
+                            .privacy-zone-tooltip {
+                                background: rgba(220, 53, 69, 0.95);
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 8px 12px;
+                                font-size: 13px;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                            }
+                            .privacy-zone-tooltip::before {
+                                border-top-color: rgba(220, 53, 69, 0.95);
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
                 }
 
                 function renderElevationChart(trackPoints) {

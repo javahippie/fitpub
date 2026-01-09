@@ -2,7 +2,9 @@ package org.operaton.fitpub.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.LineString;
 import org.operaton.fitpub.model.entity.Activity;
+import org.operaton.fitpub.model.entity.PrivacyZone;
 import org.operaton.fitpub.util.ActivityFormatter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,8 @@ import java.util.UUID;
 public class ActivityImageService {
 
     private final OsmTileRenderer osmTileRenderer;
+    private final PrivacyZoneService privacyZoneService;
+    private final TrackPrivacyFilter trackPrivacyFilter;
 
     @Value("${fitpub.storage.images.path:${java.io.tmpdir}/fitpub/images}")
     private String imagesPath;
@@ -38,12 +42,16 @@ public class ActivityImageService {
 
     /**
      * Generate a preview image for an activity showing the track outline and metadata.
+     * Applies privacy zone filtering to ensure GPS coordinates within zones are not rendered.
      *
      * @param activity the activity to generate an image for
      * @return the URL of the generated image
      */
     public String generateActivityImage(Activity activity) {
         try {
+            // Apply privacy zone filtering before rendering
+            Activity filteredActivity = applyPrivacyFiltering(activity);
+
             // Image dimensions
             int width = 1200;
             int height = 630; // Open Graph standard size
@@ -59,11 +67,11 @@ public class ActivityImageService {
 
             // Calculate bounds once for both map tiles and track rendering
             TrackBounds trackBounds = null;
-            boolean isIndoorActivity = activity.getSimplifiedTrack() == null;
+            boolean isIndoorActivity = filteredActivity.getSimplifiedTrack() == null;
 
             // Render background - either OSM tiles or gradient background
-            if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
-                trackBounds = calculateTrackBounds(activity);
+            if (filteredActivity.getTrackPointsJson() != null && !filteredActivity.getTrackPointsJson().isEmpty()) {
+                trackBounds = calculateTrackBounds(filteredActivity);
             }
 
             if (osmTilesEnabled && trackBounds != null && !isIndoorActivity) {
@@ -107,20 +115,20 @@ public class ActivityImageService {
 
                 // For indoor activities, draw a large emoji in the center-left area
                 if (isIndoorActivity) {
-                    drawIndoorActivityEmoji(g2d, activity, width, height);
+                    drawIndoorActivityEmoji(g2d, filteredActivity, width, height);
                 }
             }
 
             // Draw track if available (not for indoor activities)
             if (!isIndoorActivity) {
-                if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
-                    drawTrack(g2d, activity, width, height);
-                } else if (activity.getSimplifiedTrack() != null) {
-                    drawSimplifiedTrack(g2d, activity, width, height);
+                if (filteredActivity.getTrackPointsJson() != null && !filteredActivity.getTrackPointsJson().isEmpty()) {
+                    drawTrack(g2d, filteredActivity, width, height);
+                } else if (filteredActivity.getSimplifiedTrack() != null) {
+                    drawSimplifiedTrack(g2d, filteredActivity, width, height);
                 }
             }
 
-            // Draw metadata overlay
+            // Draw metadata overlay (use original activity for metadata, not filtered)
             drawMetadata(g2d, activity, width, height, isIndoorActivity);
 
             g2d.dispose();
@@ -739,6 +747,63 @@ public class ActivityImageService {
 
         // Draw emoji centered in the left area
         g2d.drawString(emoji, emojiX - emojiWidth / 2, emojiY + emojiHeight / 3);
+    }
+
+    /**
+     * Apply privacy zone filtering to an activity's GPS data.
+     * Filters both simplified track and full track points JSON.
+     *
+     * @param activity the original activity
+     * @return a copy of the activity with filtered GPS data
+     */
+    private Activity applyPrivacyFiltering(Activity activity) {
+        // Get user's active privacy zones
+        List<PrivacyZone> privacyZones = privacyZoneService.getActivePrivacyZones(activity.getUserId());
+
+        // If no privacy zones, return original activity
+        if (privacyZones == null || privacyZones.isEmpty()) {
+            return activity;
+        }
+
+        // Create a copy of the activity with filtered tracks
+        Activity filtered = new Activity();
+        filtered.setId(activity.getId());
+        filtered.setUserId(activity.getUserId());
+        filtered.setActivityType(activity.getActivityType());
+        filtered.setTitle(activity.getTitle());
+        filtered.setDescription(activity.getDescription());
+        filtered.setStartedAt(activity.getStartedAt());
+        filtered.setEndedAt(activity.getEndedAt());
+        filtered.setTimezone(activity.getTimezone());
+        filtered.setVisibility(activity.getVisibility());
+        filtered.setTotalDistance(activity.getTotalDistance());
+        filtered.setTotalDurationSeconds(activity.getTotalDurationSeconds());
+        filtered.setElevationGain(activity.getElevationGain());
+        filtered.setElevationLoss(activity.getElevationLoss());
+        filtered.setMetrics(activity.getMetrics());
+        filtered.setCreatedAt(activity.getCreatedAt());
+        filtered.setUpdatedAt(activity.getUpdatedAt());
+
+        // Filter simplified track
+        if (activity.getSimplifiedTrack() != null) {
+            LineString filteredTrack = trackPrivacyFilter.filterLineString(
+                activity.getSimplifiedTrack(),
+                privacyZones
+            );
+            filtered.setSimplifiedTrack(filteredTrack);
+        }
+
+        // Filter track points JSON
+        if (activity.getTrackPointsJson() != null && !activity.getTrackPointsJson().isEmpty()) {
+            String filteredJson = trackPrivacyFilter.filterTrackPointsJson(
+                activity.getTrackPointsJson(),
+                privacyZones
+            );
+            filtered.setTrackPointsJson(filteredJson);
+        }
+
+        log.debug("Applied privacy filtering to activity {} for image generation", activity.getId());
+        return filtered;
     }
 
     /**

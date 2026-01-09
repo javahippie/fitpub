@@ -32,15 +32,15 @@
                                 <p class="mb-1">Update your display name, bio, and avatar</p>
                             </a>
 
-                            <div class="list-group-item list-group-item-action disabled">
+                            <a href="#privacyZones" class="list-group-item list-group-item-action" id="privacyZonesLink">
                                 <div class="d-flex w-100 justify-content-between">
                                     <h5 class="mb-1">
-                                        <i class="bi bi-shield-lock"></i> Privacy Settings
+                                        <i class="bi bi-shield-lock"></i> Privacy Zones
                                     </h5>
-                                    <small class="text-muted">Coming soon</small>
+                                    <small><i class="bi bi-chevron-right"></i></small>
                                 </div>
-                                <p class="mb-1 text-muted">Manage your privacy and data preferences</p>
-                            </div>
+                                <p class="mb-1">Define private GPS zones to protect your home and other sensitive locations</p>
+                            </a>
 
                             <div class="list-group-item list-group-item-action disabled">
                                 <div class="d-flex w-100 justify-content-between">
@@ -73,8 +73,104 @@
                             </div>
                         </div>
 
+                        <!-- Privacy Zones Section (hidden by default) -->
+                        <div id="privacyZonesSection" class="d-none mt-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <button class="btn btn-sm btn-outline-secondary me-3" id="backToSettings">
+                                    <i class="bi bi-arrow-left"></i> Back
+                                </button>
+                                <h5 class="mb-0">
+                                    <i class="bi bi-shield-lock"></i> GPS Privacy Zones
+                                </h5>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Privacy Protection:</strong> GPS coordinates within your privacy zones will be automatically removed from all public activity maps and Fediverse share images. Changes apply retroactively to all existing activities.
+                            </div>
+
+                            <!-- Add Zone Form -->
+                            <div class="card mb-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Add Privacy Zone</h6>
+                                    <button class="btn btn-sm btn-primary" id="startAddZoneBtn">
+                                        <i class="bi bi-plus-circle"></i> Add Zone
+                                    </button>
+                                </div>
+                                <div class="card-body d-none" id="addZoneForm">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <!-- Map for zone placement -->
+                                            <div id="zoneMap" style="height: 400px; width: 100%;"></div>
+                                            <small class="text-muted">Click on the map to place a privacy zone</small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <form id="zoneDetailsForm">
+                                                <input type="hidden" id="zoneId">
+                                                <div class="mb-3">
+                                                    <label for="zoneName" class="form-label">Name *</label>
+                                                    <input type="text" class="form-control" id="zoneName" required maxlength="100" placeholder="e.g., Home, Office">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="zoneDescription" class="form-label">Description</label>
+                                                    <textarea class="form-control" id="zoneDescription" rows="2" maxlength="500" placeholder="Optional description"></textarea>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="zoneLatitude" class="form-label">Latitude *</label>
+                                                        <input type="number" class="form-control" id="zoneLatitude" step="0.000001" readonly required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="zoneLongitude" class="form-label">Longitude *</label>
+                                                        <input type="number" class="form-control" id="zoneLongitude" step="0.000001" readonly required>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="zoneRadius" class="form-label">Radius (meters) *</label>
+                                                    <input type="range" class="form-range" id="zoneRadius" min="50" max="10000" value="200" step="50">
+                                                    <div class="d-flex justify-content-between">
+                                                        <small class="text-muted">50m</small>
+                                                        <small><strong id="radiusValue">200</strong> meters</small>
+                                                        <small class="text-muted">10km</small>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-2">
+                                                    <button type="submit" class="btn btn-primary flex-grow-1" id="saveZoneBtn">
+                                                        <i class="bi bi-check-circle"></i> Save Zone
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" id="cancelZoneBtn">
+                                                        <i class="bi bi-x-circle"></i> Cancel
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Existing Zones List -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Your Privacy Zones</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="zonesListLoading" class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading zones...</span>
+                                        </div>
+                                    </div>
+                                    <div id="zonesListEmpty" class="text-center py-4 text-muted d-none">
+                                        <i class="bi bi-shield-lock" style="font-size: 3rem;"></i>
+                                        <p class="mt-3">No privacy zones defined yet.</p>
+                                        <p class="small">Click "Add Zone" above to create your first privacy zone.</p>
+                                    </div>
+                                    <div id="zonesList" class="list-group list-group-flush"></div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Danger Zone: Delete Account -->
-                        <div class="mt-5">
+                        <div class="mt-5" id="dangerZone">
                             <h5 class="text-danger">
                                 <i class="bi bi-exclamation-triangle-fill"></i> Danger Zone
                             </h5>
@@ -153,6 +249,7 @@
 
     <!-- Custom Scripts -->
     <th:block layout:fragment="scripts">
+        <script src="/js/privacy-zones.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 // Redirect to login if not authenticated
@@ -160,6 +257,31 @@
                     window.location.href = '/login';
                     return;
                 }
+
+                // Privacy Zones navigation
+                const settingsContent = document.querySelector('.list-group');
+                const privacyZonesSection = document.getElementById('privacyZonesSection');
+                const dangerZone = document.getElementById('dangerZone');
+                const privacyZonesLink = document.getElementById('privacyZonesLink');
+                const backToSettings = document.getElementById('backToSettings');
+
+                privacyZonesLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    settingsContent.classList.add('d-none');
+                    dangerZone.classList.add('d-none');
+                    privacyZonesSection.classList.remove('d-none');
+
+                    // Initialize privacy zones module
+                    if (typeof PrivacyZones !== 'undefined') {
+                        PrivacyZones.init();
+                    }
+                });
+
+                backToSettings.addEventListener('click', () => {
+                    privacyZonesSection.classList.add('d-none');
+                    settingsContent.classList.remove('d-none');
+                    dangerZone.classList.remove('d-none');
+                });
 
                 const modal = new bootstrap.Modal(document.getElementById('deleteAccountModal'));
                 const deletePasswordInput = document.getElementById('deletePasswordInput');

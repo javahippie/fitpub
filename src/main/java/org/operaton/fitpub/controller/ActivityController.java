@@ -7,6 +7,7 @@ import org.operaton.fitpub.model.dto.ActivityDTO;
 import org.operaton.fitpub.model.dto.ActivityUpdateRequest;
 import org.operaton.fitpub.model.dto.ActivityUploadRequest;
 import org.operaton.fitpub.model.entity.Activity;
+import org.operaton.fitpub.model.entity.PrivacyZone;
 import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.service.ActivityFileService;
@@ -14,6 +15,8 @@ import org.operaton.fitpub.service.ActivityImageService;
 import org.operaton.fitpub.service.ActivityPostProcessingService;
 import org.operaton.fitpub.service.FederationService;
 import org.operaton.fitpub.service.FitFileService;
+import org.operaton.fitpub.service.PrivacyZoneService;
+import org.operaton.fitpub.service.TrackPrivacyFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +47,8 @@ public class ActivityController {
     private final FederationService federationService;
     private final ActivityImageService activityImageService;
     private final org.operaton.fitpub.service.WeatherService weatherService;
+    private final PrivacyZoneService privacyZoneService;
+    private final TrackPrivacyFilter trackPrivacyFilter;
 
     @Value("${fitpub.base-url}")
     private String baseUrl;
@@ -59,6 +64,23 @@ public class ActivityController {
         User user = userRepository.findByUsername(userDetails.getUsername())
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userDetails.getUsername()));
         return user.getId();
+    }
+
+    /**
+     * Helper method to get user ID from authenticated UserDetails, or null if not authenticated.
+     *
+     * @param userDetails the authenticated user details (may be null)
+     * @return the user's UUID, or null if not authenticated
+     */
+    private UUID getUserIdOrNull(UserDetails userDetails) {
+        if (userDetails == null) {
+            return null;
+        }
+        try {
+            return getUserId(userDetails);
+        } catch (UsernameNotFoundException e) {
+            return null;
+        }
     }
 
     /**
@@ -140,10 +162,21 @@ public class ActivityController {
             return ResponseEntity.notFound().build();
         }
 
+        // Get requesting user ID (or null for anonymous)
+        UUID requestingUserId = getUserIdOrNull(userDetails);
+
+        // Get activity owner's privacy zones
+        java.util.List<PrivacyZone> privacyZones = privacyZoneService.getActivePrivacyZones(activity.getUserId());
+
+        log.debug("Activity {} - Requesting user: {}, Owner: {}, Privacy zones: {}",
+                  id, requestingUserId, activity.getUserId(), privacyZones.size());
+
         // Check visibility
         if (activity.getVisibility() == Activity.Visibility.PUBLIC) {
-            // Public activities are always accessible
-            ActivityDTO dto = ActivityDTO.fromEntity(activity);
+            // Public activities are always accessible, but apply privacy filtering
+            ActivityDTO dto = ActivityDTO.fromEntityWithFiltering(activity, requestingUserId, privacyZones, trackPrivacyFilter);
+            log.debug("Activity {} - DTO privacy zones: {}", id,
+                      dto.getPrivacyZones() != null ? dto.getPrivacyZones().size() : 0);
             return ResponseEntity.ok(dto);
         }
 
@@ -160,7 +193,8 @@ public class ActivityController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        ActivityDTO dto = ActivityDTO.fromEntity(checkedActivity);
+        // Apply privacy filtering (owner sees full track, others see filtered)
+        ActivityDTO dto = ActivityDTO.fromEntityWithFiltering(checkedActivity, requestingUserId, privacyZones, trackPrivacyFilter);
         return ResponseEntity.ok(dto);
     }
 
@@ -277,19 +311,27 @@ public class ActivityController {
      * @param username the username
      * @param page page number (default: 0)
      * @param size page size (default: 10)
+     * @param userDetails the authenticated user (optional)
      * @return page of public activities
      */
     @GetMapping("/user/{username}")
     public ResponseEntity<?> getUserPublicActivities(
         @PathVariable String username,
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "10") int size
+        @RequestParam(defaultValue = "10") int size,
+        @AuthenticationPrincipal UserDetails userDetails
     ) {
         log.debug("Retrieving public activities for user: {}", username);
 
         // Get user by username
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        // Get requesting user ID (or null for anonymous)
+        UUID requestingUserId = getUserIdOrNull(userDetails);
+
+        // Get activity owner's privacy zones
+        java.util.List<PrivacyZone> privacyZones = privacyZoneService.getActivePrivacyZones(user.getId());
 
         // Get public activities only
         org.springframework.data.domain.Pageable pageable =
@@ -299,8 +341,10 @@ public class ActivityController {
         org.springframework.data.domain.Page<Activity> activityPage =
             fitFileService.getPublicActivitiesByUserId(user.getId(), pageable);
 
-        // Convert to DTOs
-        org.springframework.data.domain.Page<ActivityDTO> dtoPage = activityPage.map(ActivityDTO::fromEntity);
+        // Convert to DTOs with privacy filtering
+        org.springframework.data.domain.Page<ActivityDTO> dtoPage = activityPage.map(activity ->
+            ActivityDTO.fromEntityWithFiltering(activity, requestingUserId, privacyZones, trackPrivacyFilter)
+        );
 
         return ResponseEntity.ok(dtoPage);
     }
@@ -343,8 +387,14 @@ public class ActivityController {
             }
         }
 
-        // Build GeoJSON FeatureCollection
-        ActivityDTO dto = ActivityDTO.fromEntity(activity);
+        // Get requesting user ID (or null for anonymous)
+        UUID requestingUserId = getUserIdOrNull(userDetails);
+
+        // Get activity owner's privacy zones
+        java.util.List<PrivacyZone> privacyZones = privacyZoneService.getActivePrivacyZones(activity.getUserId());
+
+        // Build GeoJSON FeatureCollection with privacy filtering
+        ActivityDTO dto = ActivityDTO.fromEntityWithFiltering(activity, requestingUserId, privacyZones, trackPrivacyFilter);
 
         // Use high-resolution track points if available, otherwise fall back to simplified track
         java.util.List<java.util.List<Double>> coordinates = new java.util.ArrayList<>();
