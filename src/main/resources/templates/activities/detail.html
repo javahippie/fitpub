@@ -444,6 +444,23 @@
                 let hoverMarker = null;
                 let currentTrackPoints = null;
 
+                /**
+                 * Throttle function to limit how often a function can be called
+                 * @param {Function} func - Function to throttle
+                 * @param {number} limit - Minimum time between calls in milliseconds
+                 * @returns {Function} Throttled function
+                 */
+                function throttle(func, limit) {
+                    let inThrottle;
+                    return function(...args) {
+                        if (!inThrottle) {
+                            func.apply(this, args);
+                            inThrottle = true;
+                            setTimeout(() => inThrottle = false, limit);
+                        }
+                    };
+                }
+
                 // Load activity details
                 loadActivity();
 
@@ -798,6 +815,18 @@
                         // Smooth elevation data to remove zero/invalid values
                         const smoothedData = smoothElevationData(elevationData);
 
+                        // Create throttled hover handler for elevation chart
+                        const elevationHoverHandler = throttle((event, activeElements) => {
+                            if (activeElements && activeElements.length > 0) {
+                                const dataIndex = activeElements[0].index;
+                                if (smoothedData[dataIndex]) {
+                                    updateMapMarker(smoothedData[dataIndex].trackPointIndex);
+                                }
+                            } else {
+                                hideMapMarker();
+                            }
+                        }, 50); // 50ms throttle
+
                         // Create elevation chart with hover interaction
                         const ctx = document.getElementById('elevationChart').getContext('2d');
                         new Chart(ctx, {
@@ -813,22 +842,13 @@
                                     fill: true,
                                     tension: 0.3,
                                     pointRadius: 0,
-                                    pointHoverRadius: 5
+                                    pointHoverRadius: 0  // Disable hover radius for better performance
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: true,
-                                onHover: (event, activeElements) => {
-                                    if (activeElements && activeElements.length > 0) {
-                                        const dataIndex = activeElements[0].index;
-                                        if (smoothedData[dataIndex]) {
-                                            updateMapMarker(smoothedData[dataIndex].trackPointIndex);
-                                        }
-                                    } else {
-                                        hideMapMarker();
-                                    }
-                                },
+                                onHover: elevationHoverHandler,
                                 plugins: {
                                     legend: {
                                         display: false
@@ -1010,6 +1030,18 @@
                         // Calculate total duration to determine time format
                         const totalMinutes = heartRateData[heartRateData.length - 1].time;
 
+                        // Create throttled hover handler for heart rate chart
+                        const heartRateHoverHandler = throttle((event, activeElements) => {
+                            if (activeElements && activeElements.length > 0) {
+                                const dataIndex = activeElements[0].index;
+                                if (heartRateData[dataIndex]) {
+                                    updateMapMarker(heartRateData[dataIndex].trackPointIndex);
+                                }
+                            } else {
+                                hideMapMarker();
+                            }
+                        }, 50); // 50ms throttle
+
                         // Create heart rate chart using Chart.js
                         const ctx = document.getElementById('heartRateChart').getContext('2d');
                         new Chart(ctx, {
@@ -1025,22 +1057,13 @@
                                     fill: true,
                                     tension: 0.3,
                                     pointRadius: 0,
-                                    pointHoverRadius: 5
+                                    pointHoverRadius: 0  // Disable hover radius for better performance
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: true,
-                                onHover: (event, activeElements) => {
-                                    if (activeElements && activeElements.length > 0) {
-                                        const dataIndex = activeElements[0].index;
-                                        if (heartRateData[dataIndex]) {
-                                            updateMapMarker(heartRateData[dataIndex].trackPointIndex);
-                                        }
-                                    } else {
-                                        hideMapMarker();
-                                    }
-                                },
+                                onHover: heartRateHoverHandler,
                                 plugins: {
                                     legend: {
                                         display: false
@@ -1114,7 +1137,8 @@
 
                             speedData.push({
                                 time: elapsedMinutes,
-                                speed: speedKmh
+                                speed: speedKmh,
+                                trackPointIndex: i  // Store the original track point index
                             });
                         }
                     }
@@ -1125,6 +1149,18 @@
 
                         // Calculate total duration to determine time format
                         const totalMinutes = smoothedSpeedData[smoothedSpeedData.length - 1].time;
+
+                        // Create throttled hover handler for speed chart
+                        const speedHoverHandler = throttle((event, activeElements) => {
+                            if (activeElements && activeElements.length > 0) {
+                                const dataIndex = activeElements[0].index;
+                                if (smoothedSpeedData[dataIndex]) {
+                                    updateMapMarker(smoothedSpeedData[dataIndex].trackPointIndex);
+                                }
+                            } else {
+                                hideMapMarker();
+                            }
+                        }, 50); // 50ms throttle
 
                         // Create speed chart using Chart.js
                         const ctx = document.getElementById('speedChart').getContext('2d');
@@ -1141,12 +1177,13 @@
                                     fill: true,
                                     tension: 0.3,
                                     pointRadius: 0,
-                                    pointHoverRadius: 5
+                                    pointHoverRadius: 0  // Disable hover radius for better performance
                                 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: true,
+                                onHover: speedHoverHandler,
                                 plugins: {
                                     legend: {
                                         display: false
@@ -1199,7 +1236,7 @@
 
                 /**
                  * Smooth speed data by applying moving average
-                 * @param {Array} data - Array of {time, speed} objects
+                 * @param {Array} data - Array of {time, speed, trackPointIndex} objects
                  * @returns {Array} Smoothed speed data
                  */
                 function smoothSpeedData(data) {
@@ -1224,7 +1261,8 @@
 
                         smoothed.push({
                             time: data[i].time,
-                            speed: count > 0 ? sum / count : data[i].speed
+                            speed: count > 0 ? sum / count : data[i].speed,
+                            trackPointIndex: data[i].trackPointIndex  // Preserve track point index
                         });
                     }
 

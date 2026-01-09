@@ -311,7 +311,7 @@
                             </div>
 
                             ${actor.bio
-                                ? `<p class="card-text small mb-3">${escapeHtml(actor.bio)}</p>`
+                                ? `<p class="card-text small mb-3">${sanitizeHtml(actor.bio)}</p>`
                                 : '<p class="card-text small text-muted mb-3 fst-italic">No bio</p>'
                             }
 
@@ -444,7 +444,7 @@
 
                                 <!-- Bio -->
                                 ${user.bio
-                                    ? `<p class="card-text small text-muted mb-3 bio-preview">${escapeHtml(user.bio)}</p>`
+                                    ? `<p class="card-text small text-muted mb-3 bio-preview">${sanitizeHtml(user.bio)}</p>`
                                     : '<p class="card-text small text-muted mb-3 fst-italic">No bio</p>'
                                 }
 
@@ -539,6 +539,15 @@
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
+            }
+
+            function sanitizeHtml(html) {
+                if (!html) return '';
+                // Use DOMPurify to sanitize HTML, allowing safe tags like p, br, a
+                return DOMPurify.sanitize(html, {
+                    ALLOWED_TAGS: ['p', 'br', 'a', 'strong', 'em', 'b', 'i', 'span'],
+                    ALLOWED_ATTR: ['href', 'class', 'rel', 'target']
+                });
             }
         </script>
 

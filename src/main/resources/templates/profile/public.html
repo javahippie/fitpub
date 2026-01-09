@@ -172,7 +172,7 @@
                     // Bio
                     const bioElement = document.getElementById('bio');
                     if (user.bio) {
-                        bioElement.textContent = user.bio;
+                        bioElement.innerHTML = sanitizeHtml(user.bio);
                     } else {
                         bioElement.innerHTML = '<span class="text-muted">No bio</span>';
                     }
@@ -428,6 +428,15 @@
                     const div = document.createElement('div');
                     div.textContent = text;
                     return div.innerHTML;
+                }
+
+                function sanitizeHtml(html) {
+                    if (!html) return '';
+                    // Use DOMPurify to sanitize HTML, allowing safe tags like p, br, a
+                    return DOMPurify.sanitize(html, {
+                        ALLOWED_TAGS: ['p', 'br', 'a', 'strong', 'em', 'b', 'i', 'span'],
+                        ALLOWED_ATTR: ['href', 'class', 'rel', 'target']
+                    });
                 }
             });
         </script>
