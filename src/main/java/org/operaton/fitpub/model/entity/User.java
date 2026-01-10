@@ -47,6 +47,27 @@ public class User {
     private String avatarUrl;
 
     /**
+     * Home location latitude for heatmap default view.
+     * Used to center the map on user's preferred location.
+     */
+    @Column(name = "home_latitude")
+    private Double homeLatitude;
+
+    /**
+     * Home location longitude for heatmap default view.
+     * Used to center the map on user's preferred location.
+     */
+    @Column(name = "home_longitude")
+    private Double homeLongitude;
+
+    /**
+     * Home location zoom level for heatmap default view.
+     * Default zoom level is 13 (neighborhood level).
+     */
+    @Column(name = "home_zoom")
+    private Integer homeZoom;
+
+    /**
      * RSA public key for ActivityPub HTTP Signatures.
      * Used by remote servers to verify signed requests from this user.
      */

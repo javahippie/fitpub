@@ -23,6 +23,7 @@ public class HeatmapDataDTO {
     private String type = "FeatureCollection";
     private List<Feature> features;
     private Integer maxIntensity;
+    private Long activityCount;  // Total number of activities user has
 
     /**
      * GeoJSON Feature representing a heatmap grid cell.
@@ -73,8 +74,10 @@ public class HeatmapDataDTO {
         List<Feature> features = new ArrayList<>();
 
         for (UserHeatmapGrid cell : gridCells) {
-            double lon = cell.getGridCell().getX();
-            double lat = cell.getGridCell().getY();
+            // Round coordinates to 6 decimal places (~11cm precision)
+            // This significantly reduces JSON size while maintaining visual accuracy
+            double lon = round(cell.getGridCell().getX(), 6);
+            double lat = round(cell.getGridCell().getY(), 6);
 
             Feature feature = Feature.builder()
                     .type("Feature")
@@ -95,5 +98,17 @@ public class HeatmapDataDTO {
                 .features(features)
                 .maxIntensity(maxIntensity)
                 .build();
+    }
+
+    /**
+     * Round a double value to specified number of decimal places.
+     *
+     * @param value the value to round
+     * @param places number of decimal places
+     * @return rounded value
+     */
+    private static double round(double value, int places) {
+        double scale = Math.pow(10, places);
+        return Math.round(value * scale) / scale;
     }
 }

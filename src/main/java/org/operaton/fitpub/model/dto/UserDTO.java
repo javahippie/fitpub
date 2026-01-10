@@ -28,6 +28,11 @@ public class UserDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // Home location for heatmap default view
+    private Double homeLatitude;
+    private Double homeLongitude;
+    private Integer homeZoom;
+
     // Social counts (populated separately)
     private Long followersCount;
     private Long followingCount;
@@ -48,14 +53,18 @@ public class UserDTO {
             .displayName(user.getDisplayName())
             .bio(user.getBio())
             .avatarUrl(user.getAvatarUrl())
+            .homeLatitude(user.getHomeLatitude())
+            .homeLongitude(user.getHomeLongitude())
+            .homeZoom(user.getHomeZoom())
             .createdAt(user.getCreatedAt())
             .updatedAt(user.getUpdatedAt())
             .build();
     }
 
     /**
-     * Creates a public DTO from a User entity (excludes email).
+     * Creates a public DTO from a User entity (excludes email and home location).
      * Use this when returning user data to other users.
+     * Home location is personal preference and not shared publicly.
      */
     public static UserDTO fromEntityPublic(User user) {
         return UserDTO.builder()

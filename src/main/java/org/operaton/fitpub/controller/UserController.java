@@ -112,6 +112,12 @@ public class UserController {
             user.setAvatarUrl(request.getAvatarUrl().trim());
         }
 
+        // Update home location fields
+        // Allow explicit null to clear home location
+        user.setHomeLatitude(request.getHomeLatitude());
+        user.setHomeLongitude(request.getHomeLongitude());
+        user.setHomeZoom(request.getHomeZoom());
+
         User updated = userRepository.save(user);
 
         UserDTO dto = UserDTO.fromEntity(updated);

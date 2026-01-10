@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.operaton.fitpub.model.dto.HeatmapDataDTO;
 import org.operaton.fitpub.model.entity.User;
 import org.operaton.fitpub.model.entity.UserHeatmapGrid;
+import org.operaton.fitpub.repository.ActivityRepository;
 import org.operaton.fitpub.repository.UserRepository;
 import org.operaton.fitpub.service.HeatmapGridService;
 import org.springframework.http.ResponseEntity;
@@ -26,16 +27,23 @@ public class HeatmapController {
 
     private final HeatmapGridService heatmapGridService;
     private final UserRepository userRepository;
+    private final ActivityRepository activityRepository;
 
     /**
      * Get heatmap data for the authenticated user.
-     * Optionally filtered by bounding box (viewport).
+     * Optionally filtered by bounding box (viewport) and aggregated by zoom level.
+     *
+     * Grid size is dynamically calculated based on zoom level:
+     * - Zoom 1-8 (world/continent): 0.01° grid (~1.1 km)
+     * - Zoom 9-12 (city): 0.001° grid (~111 m)
+     * - Zoom 13-18 (street): 0.0001° grid (~11 m)
      *
      * @param userDetails authenticated user
      * @param minLon minimum longitude (optional)
      * @param minLat minimum latitude (optional)
      * @param maxLon maximum longitude (optional)
      * @param maxLat maximum latitude (optional)
+     * @param zoom map zoom level (1-18, optional)
      * @return heatmap data in GeoJSON format
      */
     @GetMapping("/me")
@@ -44,21 +52,25 @@ public class HeatmapController {
             @RequestParam(required = false) Double minLon,
             @RequestParam(required = false) Double minLat,
             @RequestParam(required = false) Double maxLon,
-            @RequestParam(required = false) Double maxLat) {
+            @RequestParam(required = false) Double maxLat,
+            @RequestParam(required = false) Integer zoom) {
 
-        log.debug("User {} requesting heatmap data", userDetails.getUsername());
+        log.debug("User {} requesting heatmap data (zoom: {})", userDetails.getUsername(), zoom);
 
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         List<UserHeatmapGrid> gridCells = heatmapGridService.getUserHeatmapData(
-                user.getId(), minLon, minLat, maxLon, maxLat);
+                user.getId(), minLon, minLat, maxLon, maxLat, zoom);
 
         Integer maxIntensity = heatmapGridService.getMaxPointCount(user.getId());
+        long activityCount = activityRepository.countByUserId(user.getId());
 
         HeatmapDataDTO heatmapData = HeatmapDataDTO.fromGridCells(gridCells, maxIntensity);
+        heatmapData.setActivityCount(activityCount);
 
-        log.debug("Returning {} grid cells for user {}", gridCells.size(), userDetails.getUsername());
+        log.debug("Returning {} grid cells for user {} (zoom {}, {} total activities)",
+                  gridCells.size(), userDetails.getUsername(), zoom, activityCount);
 
         return ResponseEntity.ok(heatmapData);
     }
@@ -72,6 +84,7 @@ public class HeatmapController {
      * @param minLat minimum latitude (optional)
      * @param maxLon maximum longitude (optional)
      * @param maxLat maximum latitude (optional)
+     * @param zoom map zoom level (1-18, optional)
      * @return heatmap data in GeoJSON format
      */
     @GetMapping("/user/{username}")
@@ -80,21 +93,25 @@ public class HeatmapController {
             @RequestParam(required = false) Double minLon,
             @RequestParam(required = false) Double minLat,
             @RequestParam(required = false) Double maxLon,
-            @RequestParam(required = false) Double maxLat) {
+            @RequestParam(required = false) Double maxLat,
+            @RequestParam(required = false) Integer zoom) {
 
-        log.debug("Requesting heatmap data for user {}", username);
+        log.debug("Requesting heatmap data for user {} (zoom: {})", username, zoom);
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         List<UserHeatmapGrid> gridCells = heatmapGridService.getUserHeatmapData(
-                user.getId(), minLon, minLat, maxLon, maxLat);
+                user.getId(), minLon, minLat, maxLon, maxLat, zoom);
 
         Integer maxIntensity = heatmapGridService.getMaxPointCount(user.getId());
+        long activityCount = activityRepository.countByUserId(user.getId());
 
         HeatmapDataDTO heatmapData = HeatmapDataDTO.fromGridCells(gridCells, maxIntensity);
+        heatmapData.setActivityCount(activityCount);
 
-        log.debug("Returning {} grid cells for user {}", gridCells.size(), username);
+        log.debug("Returning {} grid cells for user {} (zoom {}, {} total activities)",
+                  gridCells.size(), username, zoom, activityCount);
 
         return ResponseEntity.ok(heatmapData);
     }

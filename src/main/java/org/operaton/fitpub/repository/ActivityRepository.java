@@ -205,4 +205,120 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
     @Modifying
     @Query("DELETE FROM Activity a WHERE a.id IN :ids")
     int deleteByIdIn(@Param("ids") List<UUID> ids);
+
+    /**
+     * Find public timeline activities with user info and social stats in a single query.
+     * OPTIMIZED: Eliminates N+1 query pattern (81 queries → 1 query for 20 activities)
+     *
+     * Returns Object[] with columns:
+     * [0-16]: Activity fields (id, user_id, activity_type, title, description, started_at, ended_at,
+     *         timezone, visibility, total_distance, total_duration_seconds, elevation_gain, elevation_loss,
+     *         simplified_track, track_points_json, created_at, updated_at)
+     * [17]: username
+     * [18]: display_name
+     * [19]: avatar_url
+     * [20]: likes_count
+     * [21]: comments_count
+     * [22]: liked_by_current_user
+     *
+     * @param visibility the visibility level
+     * @param currentUserId the current user ID (for liked status, can be null)
+     * @param pageable pagination parameters
+     * @return page of Object[] results
+     */
+    @Query(value = """
+        SELECT
+            a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+            a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+            a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+            u.username, u.display_name, u.avatar_url,
+            COUNT(DISTINCT l.id) AS likes_count,
+            COUNT(DISTINCT c.id) AS comments_count,
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+        FROM activities a
+        INNER JOIN users u ON a.user_id = u.id
+        LEFT JOIN likes l ON a.id = l.activity_id
+        LEFT JOIN comments c ON a.id = c.activity_id AND c.deleted = false
+        LEFT JOIN likes ul ON a.id = ul.activity_id AND ul.user_id = CAST(:currentUserId AS uuid)
+        WHERE a.visibility = :visibility
+        GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+                 a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+                 a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+                 u.username, u.display_name, u.avatar_url, ul.id
+        ORDER BY a.started_at DESC
+        """, nativeQuery = true)
+    Page<Object[]> findPublicTimelineWithStats(@Param("visibility") String visibility,
+                                                @Param("currentUserId") UUID currentUserId,
+                                                Pageable pageable);
+
+    /**
+     * Find user timeline activities with social stats in a single query.
+     * OPTIMIZED: Eliminates N+1 query pattern
+     *
+     * @param userId the user ID
+     * @param currentUserId the current user ID (for liked status, usually same as userId)
+     * @param pageable pagination parameters
+     * @return page of Object[] results (same structure as findPublicTimelineWithStats)
+     */
+    @Query(value = """
+        SELECT
+            a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+            a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+            a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+            u.username, u.display_name, u.avatar_url,
+            COUNT(DISTINCT l.id) AS likes_count,
+            COUNT(DISTINCT c.id) AS comments_count,
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+        FROM activities a
+        INNER JOIN users u ON a.user_id = u.id
+        LEFT JOIN likes l ON a.id = l.activity_id
+        LEFT JOIN comments c ON a.id = c.activity_id AND c.deleted = false
+        LEFT JOIN likes ul ON a.id = ul.activity_id AND ul.user_id = CAST(:currentUserId AS uuid)
+        WHERE a.user_id = CAST(:userId AS uuid)
+        GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+                 a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+                 a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+                 u.username, u.display_name, u.avatar_url, ul.id
+        ORDER BY a.started_at DESC
+        """, nativeQuery = true)
+    Page<Object[]> findUserTimelineWithStats(@Param("userId") UUID userId,
+                                              @Param("currentUserId") UUID currentUserId,
+                                              Pageable pageable);
+
+    /**
+     * Find federated timeline activities (from followed users) with social stats.
+     * OPTIMIZED: Eliminates N+1 query pattern
+     *
+     * @param userIds list of user IDs to include
+     * @param visibilities list of visibility levels
+     * @param currentUserId the current user ID (for liked status)
+     * @param pageable pagination parameters
+     * @return page of Object[] results (same structure as findPublicTimelineWithStats)
+     */
+    @Query(value = """
+        SELECT
+            a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+            a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+            a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+            u.username, u.display_name, u.avatar_url,
+            COUNT(DISTINCT l.id) AS likes_count,
+            COUNT(DISTINCT c.id) AS comments_count,
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+        FROM activities a
+        INNER JOIN users u ON a.user_id = u.id
+        LEFT JOIN likes l ON a.id = l.activity_id
+        LEFT JOIN comments c ON a.id = c.activity_id AND c.deleted = false
+        LEFT JOIN likes ul ON a.id = ul.activity_id AND ul.user_id = CAST(:currentUserId AS uuid)
+        WHERE a.user_id IN (:userIds)
+          AND a.visibility IN (:visibilities)
+        GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+                 a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+                 a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+                 u.username, u.display_name, u.avatar_url, ul.id
+        ORDER BY a.started_at DESC
+        """, nativeQuery = true)
+    Page<Object[]> findFederatedTimelineWithStats(@Param("userIds") List<UUID> userIds,
+                                                    @Param("visibilities") List<String> visibilities,
+                                                    @Param("currentUserId") UUID currentUserId,
+                                                    Pageable pageable);
 }

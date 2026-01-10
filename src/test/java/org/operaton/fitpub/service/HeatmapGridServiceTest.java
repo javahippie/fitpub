@@ -62,8 +62,9 @@ class HeatmapGridServiceTest {
     void testUpdateHeatmapForActivity_WithValidTrackPoints() throws Exception {
         // Create test activity with track points JSON
         UUID userId = UUID.randomUUID();
+        UUID activityId = UUID.randomUUID();
         Activity activity = Activity.builder()
-                .id(UUID.randomUUID())
+                .id(activityId)
                 .userId(userId)
                 .activityType(Activity.ActivityType.RUN)
                 .title("Test Run")
@@ -79,27 +80,11 @@ class HeatmapGridServiceTest {
         String trackPointsJson = objectMapper.writeValueAsString(trackPoints);
         activity.setTrackPointsJson(trackPointsJson);
 
-        // Mock repository behavior
-        when(heatmapGridRepository.findByUserIdAndGridCell(any(UUID.class), any(Point.class)))
-                .thenReturn(Optional.empty());
-        when(heatmapGridRepository.save(any(UserHeatmapGrid.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Execute
+        // Execute - now uses native SQL query
         heatmapGridService.updateHeatmapForActivity(activity);
 
-        // Verify that grid cells were saved
-        ArgumentCaptor<UserHeatmapGrid> gridCaptor = ArgumentCaptor.forClass(UserHeatmapGrid.class);
-        verify(heatmapGridRepository, atLeastOnce()).save(gridCaptor.capture());
-
-        List<UserHeatmapGrid> savedGrids = gridCaptor.getAllValues();
-        assertFalse(savedGrids.isEmpty(), "Should save at least one grid cell");
-
-        // Verify grid cell properties
-        UserHeatmapGrid firstGrid = savedGrids.get(0);
-        assertEquals(userId, firstGrid.getUserId());
-        assertNotNull(firstGrid.getGridCell());
-        assertTrue(firstGrid.getPointCount() > 0);
+        // Verify that native query method was called
+        verify(heatmapGridRepository).updateHeatmapForActivityNative(activityId);
     }
 
     @Test
@@ -140,44 +125,25 @@ class HeatmapGridServiceTest {
 
     @Test
     void testRecalculateUserHeatmap() throws Exception {
-        // Create test user and activities
+        // Create test user
         UUID userId = UUID.randomUUID();
         User user = User.builder()
                 .id(userId)
                 .username("testuser")
                 .build();
 
-        // Create activities with track points
-        List<Activity> activities = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
-            Activity activity = Activity.builder()
-                    .id(UUID.randomUUID())
-                    .userId(userId)
-                    .activityType(Activity.ActivityType.RUN)
-                    .title("Test Run " + i)
-                    .build();
-
-            List<Map<String, Object>> trackPoints = new ArrayList<>();
-            trackPoints.add(createTrackPoint(52.520008 + i * 0.01, 13.404954 + i * 0.01));
-            activity.setTrackPointsJson(objectMapper.writeValueAsString(trackPoints));
-            activities.add(activity);
-        }
-
-        // Mock repository behavior
-        when(activityRepository.findByUserIdOrderByStartedAtDesc(userId))
-                .thenReturn(activities);
-        when(heatmapGridRepository.saveAll(anyList()))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        // Mock JDBC template to simulate deleting existing grid cells
         when(jdbcTemplate.update(anyString(), any(UUID.class)))
                 .thenReturn(10);  // Simulate deleting 10 rows
 
-        // Execute
+        // Execute - now uses native SQL query
         heatmapGridService.recalculateUserHeatmap(user);
 
         // Verify
-        verify(jdbcTemplate).update(anyString(), eq(userId));
-        verify(activityRepository).findByUserIdOrderByStartedAtDesc(userId);
-        verify(heatmapGridRepository, atLeastOnce()).saveAll(anyList());
+        verify(jdbcTemplate).update(anyString(), eq(userId));  // Delete existing grid
+        verify(entityManager).flush();  // Flush changes
+        verify(entityManager).clear();  // Clear persistence context
+        verify(heatmapGridRepository).recalculateUserHeatmapNative(userId);  // Native recalculation
     }
 
     @Test
@@ -185,19 +151,19 @@ class HeatmapGridServiceTest {
         UUID userId = UUID.randomUUID();
         List<UserHeatmapGrid> expectedGrids = new ArrayList<>();
 
-        // Mock repository
-        when(heatmapGridRepository.findByUserIdWithinBoundingBox(
-                userId, 13.0, 52.0, 14.0, 53.0))
+        // Mock repository - using aggregated method with default grid size (0.0001)
+        when(heatmapGridRepository.findByUserIdWithinBoundingBoxAggregated(
+                userId, 13.0, 52.0, 14.0, 53.0, 0.0001))
                 .thenReturn(expectedGrids);
 
-        // Execute
+        // Execute with null zoom (uses default grid size 0.0001)
         List<UserHeatmapGrid> result = heatmapGridService.getUserHeatmapData(
-                userId, 13.0, 52.0, 14.0, 53.0);
+                userId, 13.0, 52.0, 14.0, 53.0, null);
 
         // Verify
         assertEquals(expectedGrids, result);
-        verify(heatmapGridRepository).findByUserIdWithinBoundingBox(
-                userId, 13.0, 52.0, 14.0, 53.0);
+        verify(heatmapGridRepository).findByUserIdWithinBoundingBoxAggregated(
+                userId, 13.0, 52.0, 14.0, 53.0, 0.0001);
     }
 
     @Test
@@ -205,17 +171,17 @@ class HeatmapGridServiceTest {
         UUID userId = UUID.randomUUID();
         List<UserHeatmapGrid> expectedGrids = new ArrayList<>();
 
-        // Mock repository
-        when(heatmapGridRepository.findByUserId(userId))
+        // Mock repository - using aggregated method with default grid size (0.0001)
+        when(heatmapGridRepository.findByUserIdAggregated(userId, 0.0001))
                 .thenReturn(expectedGrids);
 
-        // Execute
+        // Execute with null zoom (uses default grid size 0.0001)
         List<UserHeatmapGrid> result = heatmapGridService.getUserHeatmapData(
-                userId, null, null, null, null);
+                userId, null, null, null, null, null);
 
         // Verify
         assertEquals(expectedGrids, result);
-        verify(heatmapGridRepository).findByUserId(userId);
+        verify(heatmapGridRepository).findByUserIdAggregated(userId, 0.0001);
     }
 
     @Test

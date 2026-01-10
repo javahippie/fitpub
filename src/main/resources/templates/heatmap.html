@@ -81,10 +81,16 @@
                             </div>
                         </div>
                         <div class="col-md-3 text-md-end">
-                            <button id="rebuildBtn" class="btn btn-outline-primary">
-                                <i class="bi bi-arrow-clockwise"></i>
-                                Rebuild Heatmap
-                            </button>
+                            <div class="d-flex gap-2 justify-content-md-end flex-wrap">
+                                <button id="setHomeBtn" class="btn btn-outline-secondary" title="Save current map position as home location">
+                                    <i class="bi bi-house-heart"></i>
+                                    Set as Home
+                                </button>
+                                <button id="rebuildBtn" class="btn btn-outline-primary">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                    Rebuild
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -103,8 +109,8 @@
                     <span id="errorMessage"></span>
                 </div>
 
-                <!-- Empty State -->
-                <div id="emptyState" class="empty-state empty-state-activities d-none">
+                <!-- Empty State: No Activities -->
+                <div id="emptyStateNoActivities" class="empty-state empty-state-activities d-none">
                     <div class="empty-state-icon">
                         <i class="bi bi-map"></i>
                     </div>
@@ -113,6 +119,18 @@
                     <a th:href="@{/upload}" class="btn btn-primary">
                         <i class="bi bi-upload"></i> Upload Activity
                     </a>
+                </div>
+
+                <!-- Empty State: Heatmap Not Built -->
+                <div id="emptyStateNotBuilt" class="empty-state empty-state-activities d-none">
+                    <div class="empty-state-icon">
+                        <i class="bi bi-hammer"></i>
+                    </div>
+                    <h3>Heatmap Not Built</h3>
+                    <p>You have <strong id="emptyActivityCount">0</strong> activities, but the heatmap hasn't been generated yet.</p>
+                    <button id="emptyRebuildBtn" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise"></i> Build Heatmap
+                    </button>
                 </div>
 
                 <!-- Map Container -->

@@ -60,6 +60,44 @@
                                 </div>
                             </div>
 
+                            <!-- Home Location Section -->
+                            <div class="mb-4">
+                                <h5 class="mb-3">
+                                    <i class="bi bi-geo-alt"></i> Heatmap Home Location
+                                </h5>
+                                <p class="text-muted small">Set your preferred map center and zoom level for the heatmap page.</p>
+
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="homeLatitude" class="form-label">Latitude</label>
+                                        <input type="number" class="form-control" id="homeLatitude" name="homeLatitude"
+                                               step="0.000001" min="-90" max="90" placeholder="e.g., 51.5074">
+                                        <div class="form-text">-90 to 90</div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="homeLongitude" class="form-label">Longitude</label>
+                                        <input type="number" class="form-control" id="homeLongitude" name="homeLongitude"
+                                               step="0.000001" min="-180" max="180" placeholder="e.g., -0.1278">
+                                        <div class="form-text">-180 to 180</div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="homeZoom" class="form-label">Zoom Level</label>
+                                        <input type="number" class="form-control" id="homeZoom" name="homeZoom"
+                                               min="1" max="18" placeholder="e.g., 13">
+                                        <div class="form-text">1-18 (default: 13)</div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="setCurrentLocationBtn">
+                                        <i class="bi bi-crosshair"></i> Use Current Location
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearHomeLocationBtn">
+                                        <i class="bi bi-x-circle"></i> Clear Home Location
+                                    </button>
+                                </div>
+                            </div>
+
                             <!-- Email (read-only for now) -->
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email</label>
@@ -143,6 +181,62 @@
                     }
                 });
 
+                // Home location: Use current location button
+                document.getElementById('setCurrentLocationBtn').addEventListener('click', function() {
+                    if ('geolocation' in navigator) {
+                        const btn = this;
+                        const originalHtml = btn.innerHTML;
+
+                        // Show loading state
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Getting location...';
+                        btn.disabled = true;
+
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                // Set latitude and longitude
+                                document.getElementById('homeLatitude').value = position.coords.latitude.toFixed(6);
+                                document.getElementById('homeLongitude').value = position.coords.longitude.toFixed(6);
+                                // Set default zoom if not set
+                                if (!document.getElementById('homeZoom').value) {
+                                    document.getElementById('homeZoom').value = 13;
+                                }
+
+                                // Restore button
+                                btn.innerHTML = originalHtml;
+                                btn.disabled = false;
+
+                                // Show success feedback
+                                FitPub.showAlert('success', 'Current location set successfully!');
+                            },
+                            function(error) {
+                                console.error('Geolocation error:', error);
+                                btn.innerHTML = originalHtml;
+                                btn.disabled = false;
+
+                                let errorMsg = 'Unable to get current location. ';
+                                if (error.code === error.PERMISSION_DENIED) {
+                                    errorMsg += 'Please allow location access.';
+                                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                                    errorMsg += 'Location information unavailable.';
+                                } else {
+                                    errorMsg += 'Location request timed out.';
+                                }
+                                FitPub.showAlert('danger', errorMsg);
+                            }
+                        );
+                    } else {
+                        FitPub.showAlert('danger', 'Geolocation is not supported by your browser.');
+                    }
+                });
+
+                // Home location: Clear button
+                document.getElementById('clearHomeLocationBtn').addEventListener('click', function() {
+                    document.getElementById('homeLatitude').value = '';
+                    document.getElementById('homeLongitude').value = '';
+                    document.getElementById('homeZoom').value = '';
+                    FitPub.showAlert('info', 'Home location cleared. Save to apply changes.');
+                });
+
                 // Form submission
                 form.addEventListener('submit', async function(e) {
                     e.preventDefault();
@@ -160,7 +254,10 @@
                         const formData = {
                             displayName: document.getElementById('displayName').value.trim(),
                             bio: document.getElementById('bio').value.trim(),
-                            avatarUrl: document.getElementById('avatarUrl').value.trim()
+                            avatarUrl: document.getElementById('avatarUrl').value.trim(),
+                            homeLatitude: document.getElementById('homeLatitude').value ? parseFloat(document.getElementById('homeLatitude').value) : null,
+                            homeLongitude: document.getElementById('homeLongitude').value ? parseFloat(document.getElementById('homeLongitude').value) : null,
+                            homeZoom: document.getElementById('homeZoom').value ? parseInt(document.getElementById('homeZoom').value) : null
                         };
 
                         const response = await FitPubAuth.authenticatedFetch('/api/users/me', {
@@ -226,6 +323,11 @@
                     document.getElementById('avatarUrl').value = user.avatarUrl || '';
                     document.getElementById('email').value = user.email || '';
                     document.getElementById('username').value = user.username || '';
+
+                    // Populate home location fields
+                    document.getElementById('homeLatitude').value = user.homeLatitude || '';
+                    document.getElementById('homeLongitude').value = user.homeLongitude || '';
+                    document.getElementById('homeZoom').value = user.homeZoom || '';
 
                     // Update character count
                     bioCharCount.textContent = (user.bio || '').length;
