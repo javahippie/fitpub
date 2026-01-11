@@ -54,6 +54,11 @@ public class ActivityDTO {
     private List<Map<String, Object>> trackPoints; // Full track points from JSONB
     private Boolean hasGpsTrack; // True if activity has GPS data (outdoor), false for indoor activities
 
+    // Indoor activity detection
+    private Boolean indoor; // True if activity was performed indoors
+    private String subSport; // SubSport field from FIT file (e.g., INDOOR_CYCLING, TREADMILL)
+    private String indoorDetectionMethod; // How indoor flag was determined
+
     // Social interaction counts (populated separately)
     private Long likesCount;
     private Long commentsCount;
@@ -141,6 +146,11 @@ public class ActivityDTO {
             builder.trackPoints(parseTrackPoints(activity.getTrackPointsJson()));
         }
 
+        // Indoor activity detection fields
+        builder.indoor(activity.getIndoor() != null ? activity.getIndoor() : false);
+        builder.subSport(activity.getSubSport());
+        builder.indoorDetectionMethod(activity.getIndoorDetectionMethod());
+
         return builder.build();
     }
 
@@ -219,6 +229,9 @@ public class ActivityDTO {
                 .createdAt(activity.getCreatedAt())
                 .updatedAt(activity.getUpdatedAt())
                 .hasGpsTrack(false) // Mark as no GPS data available
+                .indoor(activity.getIndoor() != null ? activity.getIndoor() : false)
+                .subSport(activity.getSubSport())
+                .indoorDetectionMethod(activity.getIndoorDetectionMethod())
                 .build();
         }
 
@@ -258,6 +271,11 @@ public class ActivityDTO {
         if (filteredTrackPointsJson != null) {
             builder.trackPoints(parseTrackPoints(filteredTrackPointsJson));
         }
+
+        // Indoor activity detection fields
+        builder.indoor(activity.getIndoor() != null ? activity.getIndoor() : false);
+        builder.subSport(activity.getSubSport());
+        builder.indoorDetectionMethod(activity.getIndoorDetectionMethod());
 
         return builder.build();
     }
