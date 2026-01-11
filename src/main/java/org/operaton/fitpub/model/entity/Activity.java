@@ -107,6 +107,29 @@ public class Activity {
     @Column(name = "source_file_format", nullable = false, length = 10)
     private String sourceFileFormat;
 
+    /**
+     * Indicates if this is an indoor activity (e.g., virtual rides, indoor trainer sessions).
+     * Indoor activities are displayed in timeline but excluded from heatmap generation.
+     */
+    @Column(name = "indoor", nullable = false)
+    @Builder.Default
+    private Boolean indoor = false;
+
+    /**
+     * SubSport from FIT file (e.g., INDOOR_CYCLING, TREADMILL, ROAD, MOUNTAIN, TRAIL).
+     * NULL for GPX files or if not available.
+     */
+    @Column(name = "sub_sport", length = 50)
+    private String subSport;
+
+    /**
+     * Method used to determine the indoor flag.
+     * Values: FIT_SUBSPORT, GPX_EXTENSION, HEURISTIC_NO_GPS, HEURISTIC_STATIONARY, MANUAL
+     * NULL for legacy activities uploaded before this feature.
+     */
+    @Column(name = "indoor_detection_method", length = 20)
+    private String indoorDetectionMethod;
+
     @OneToOne(mappedBy = "activity", cascade = CascadeType.ALL, orphanRemoval = true)
     private ActivityMetrics metrics;
 
@@ -159,5 +182,21 @@ public class Activity {
         PUBLIC,
         FOLLOWERS,
         PRIVATE
+    }
+
+    /**
+     * Methods for detecting indoor activities
+     */
+    public enum IndoorDetectionMethod {
+        /** Detected from FIT file SubSport field (most accurate) */
+        FIT_SUBSPORT,
+        /** Detected from GPX file extension fields */
+        GPX_EXTENSION,
+        /** Heuristic: No GPS track data present */
+        HEURISTIC_NO_GPS,
+        /** Heuristic: GPS track exists but all points are stationary (within 50m radius) */
+        HEURISTIC_STATIONARY,
+        /** Manually set by user */
+        MANUAL
     }
 }

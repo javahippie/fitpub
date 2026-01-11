@@ -93,8 +93,11 @@ public class GpxParser {
             // Apply speed smoothing
             smoothSpeedData(parsedData);
 
-            log.info("Successfully parsed GPX file: {} track points, activity type: {}, timezone: {}",
-                parsedData.getTrackPoints().size(), parsedData.getActivityType(), parsedData.getTimezone());
+            // Detect indoor activities (GPX files use heuristic detection)
+            detectIndoorActivity(parsedData);
+
+            log.info("Successfully parsed GPX file: {} track points, activity type: {}, timezone: {}, indoor: {}",
+                parsedData.getTrackPoints().size(), parsedData.getActivityType(), parsedData.getTimezone(), parsedData.getIndoor());
 
             return parsedData;
         } catch (GpxFileProcessingException e) {
@@ -613,5 +616,79 @@ public class GpxParser {
             .average()
             .orElse(0);
         return (int) Math.round(sum);
+    }
+
+    /**
+     * Detects indoor activities using heuristics.
+     * GPX files don't have SubSport field, so we use GPS movement analysis.
+     *
+     * Heuristic: If all GPS points are within 50 meters of each other, it's likely indoor.
+     */
+    private void detectIndoorActivity(ParsedActivityData parsedData) {
+        List<TrackPointData> points = parsedData.getTrackPoints();
+
+        if (points.isEmpty()) {
+            // No GPS data - likely indoor
+            parsedData.setIndoor(true);
+            parsedData.setIndoorDetectionMethod(Activity.IndoorDetectionMethod.HEURISTIC_NO_GPS);
+            return;
+        }
+
+        // Check if all points are within a small radius (stationary GPS)
+        if (isStationaryGps(points)) {
+            parsedData.setIndoor(true);
+            parsedData.setIndoorDetectionMethod(Activity.IndoorDetectionMethod.HEURISTIC_STATIONARY);
+            log.debug("Detected indoor activity: GPS track is stationary (all points within 50m radius)");
+        }
+    }
+
+    /**
+     * Checks if GPS track is stationary (all points within 50 meters of first point).
+     * Used to detect indoor activities like treadmill runs or trainer rides with GPS enabled.
+     */
+    private boolean isStationaryGps(List<TrackPointData> points) {
+        if (points.size() < 10) {
+            // Too few points to determine - assume outdoor
+            return false;
+        }
+
+        TrackPointData firstPoint = points.get(0);
+        double firstLat = firstPoint.getLatitude();
+        double firstLon = firstPoint.getLongitude();
+
+        // Check if all points are within 50 meters of the first point
+        final double MAX_RADIUS_METERS = 50.0;
+
+        for (TrackPointData point : points) {
+            double distance = haversineDistance(firstLat, firstLon, point.getLatitude(), point.getLongitude());
+            if (distance > MAX_RADIUS_METERS) {
+                // Found a point outside the radius - not stationary
+                return false;
+            }
+        }
+
+        // All points within 50m radius - likely indoor activity
+        log.debug("GPS track is stationary: {} points all within {}m radius", points.size(), MAX_RADIUS_METERS);
+        return true;
+    }
+
+    /**
+     * Calculates distance between two GPS coordinates using Haversine formula.
+     *
+     * @return distance in meters
+     */
+    private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+        final double EARTH_RADIUS = 6371000; // meters
+
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                   Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS * c;
     }
 }

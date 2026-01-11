@@ -366,6 +366,51 @@ public class FederationService {
     }
 
     /**
+     * Send Undo Follow activity to remote actor's inbox.
+     * This notifies the remote server that we're unfollowing them.
+     *
+     * @param remoteActorUri the actor URI being unfollowed
+     * @param localUser the local user who is unfollowing
+     * @param originalFollowActivityId the ID of the original Follow activity
+     */
+    public void sendUndoFollowActivity(String remoteActorUri, User localUser, String originalFollowActivityId) {
+        try {
+            log.info("Sending Undo Follow activity from {} to {}", localUser.getUsername(), remoteActorUri);
+
+            // 1. Fetch remote actor to get inbox URL
+            RemoteActor remoteActor = fetchRemoteActor(remoteActorUri);
+
+            // 2. Reconstruct the original Follow activity
+            String actorUri = baseUrl + "/users/" + localUser.getUsername();
+            Map<String, Object> followActivity = new HashMap<>();
+            followActivity.put("@context", "https://www.w3.org/ns/activitystreams");
+            followActivity.put("type", "Follow");
+            followActivity.put("id", originalFollowActivityId);
+            followActivity.put("actor", actorUri);
+            followActivity.put("object", remoteActorUri);
+
+            // 3. Create Undo activity wrapping the Follow
+            String undoId = baseUrl + "/activities/undo/" + UUID.randomUUID();
+            Map<String, Object> undoActivity = new HashMap<>();
+            undoActivity.put("@context", "https://www.w3.org/ns/activitystreams");
+            undoActivity.put("type", "Undo");
+            undoActivity.put("id", undoId);
+            undoActivity.put("actor", actorUri);
+            undoActivity.put("object", followActivity);
+            undoActivity.put("published", Instant.now().toString());
+
+            // 4. Send to remote actor's inbox (HTTP-signed)
+            sendActivity(remoteActor.getInboxUrl(), undoActivity, localUser);
+
+            log.info("Undo Follow activity sent successfully: {} -> {}", localUser.getUsername(), remoteActorUri);
+
+        } catch (Exception e) {
+            log.error("Failed to send Undo Follow activity from {} to {}", localUser.getUsername(), remoteActorUri, e);
+            // Don't throw exception - we still want to delete the local follow even if federation fails
+        }
+    }
+
+    /**
      * Send an Undo activity (for unlike, unfollow, etc.).
      *
      * @param originalActivityId the ID of the activity being undone

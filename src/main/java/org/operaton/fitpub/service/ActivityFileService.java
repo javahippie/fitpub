@@ -261,6 +261,10 @@ public class ActivityFileService {
             .elevationLoss(parsedData.getElevationLoss())
             .rawActivityFile(rawFile)
             .sourceFileFormat(parsedData.getSourceFormat())
+            .indoor(parsedData.getIndoor() != null ? parsedData.getIndoor() : false)
+            .subSport(parsedData.getSubSport())
+            .indoorDetectionMethod(parsedData.getIndoorDetectionMethod() != null ?
+                parsedData.getIndoorDetectionMethod().name() : null)
             .build();
 
         // Convert track points to JSONB

@@ -38,4 +38,10 @@ public class RegisterRequest {
 
     @Size(max = 500, message = "Bio must not exceed 500 characters")
     private String bio;
+
+    /**
+     * Optional registration password (invite code) for controlled access.
+     * Only required if configured in fitpub.registration.password property.
+     */
+    private String registrationPassword;
 }

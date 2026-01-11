@@ -78,6 +78,9 @@ fitpub:
   # Registration settings
   registration:
     enabled: ${REGISTRATION_ENABLED:true}
+    # Optional password required for new registrations (soft invite system)
+    # Leave empty to allow open registration
+    password: ${REGISTRATION_PASSWORD:}
 
   # Storage settings
   storage:

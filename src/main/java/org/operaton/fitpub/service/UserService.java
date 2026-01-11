@@ -194,12 +194,15 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // 2. Verify password
+        log.debug("Verifying password for account deletion - user: {}, password provided: {}, hash exists: {}",
+                 user.getUsername(), password != null && !password.isEmpty(), user.getPasswordHash() != null);
+
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            log.warn("Invalid password provided for account deletion: {}", user.getUsername());
+            log.warn("Invalid password provided for account deletion: {} (password matches: false)", user.getUsername());
             throw new BadCredentialsException("Invalid password");
         }
 
-        log.info("Password verified for account deletion: {}", user.getUsername());
+        log.info("Password verified successfully for account deletion: {}", user.getUsername());
 
         // 3. Send Delete activity to followers (best effort)
         try {

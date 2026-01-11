@@ -152,6 +152,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/users/*/follow").authenticated() // Follow user
                 .requestMatchers(HttpMethod.DELETE, "/api/users/*/follow").authenticated() // Unfollow user
 
+                // Protected endpoints - Admin API (data migration, maintenance)
+                .requestMatchers("/api/admin/**").authenticated()
+
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

@@ -62,11 +62,16 @@
         <script th:inline="javascript">
             const targetUsername = /*[[${username}]]*/ '';
 
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', async function() {
                 document.getElementById('usernameDisplay').textContent = targetUsername;
-                loadFollowing();
 
-                async function loadFollowing() {
+                // Check if viewing own following list
+                const currentUser = FitPubAuth.getCurrentUser();
+                const isOwnProfile = currentUser && currentUser.username === targetUsername;
+
+                loadFollowing(isOwnProfile);
+
+                async function loadFollowing(isOwnProfile) {
                     try {
                         const response = await fetch(`/api/users/${targetUsername}/following`);
 
@@ -81,7 +86,7 @@
                         document.getElementById('followingContent').classList.remove('d-none');
 
                         if (following.length > 0) {
-                            renderFollowing(following);
+                            renderFollowing(following, isOwnProfile);
                         } else {
                             document.getElementById('followingEmpty').classList.remove('d-none');
                         }
@@ -93,7 +98,44 @@
                     }
                 }
 
-                function renderFollowing(following) {
+                async function handleUnfollow(username, button) {
+                    if (!confirm(`Are you sure you want to unfollow @${username}?`)) {
+                        return;
+                    }
+
+                    const originalText = button.innerHTML;
+                    button.disabled = true;
+                    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Unfollowing...';
+
+                    try {
+                        const response = await FitPubAuth.authenticatedFetch(`/api/users/${username}/follow`, {
+                            method: 'DELETE'
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.error || 'Failed to unfollow');
+                        }
+
+                        // Remove the user from the list
+                        button.closest('.border-bottom').remove();
+
+                        // Check if list is now empty
+                        const list = document.getElementById('followingList');
+                        if (list.children.length === 0) {
+                            document.getElementById('followingEmpty').classList.remove('d-none');
+                        }
+
+                        FitPub.showAlert('success', `Successfully unfollowed @${username}`);
+                    } catch (error) {
+                        console.error('Unfollow error:', error);
+                        FitPub.showAlert('danger', error.message || 'Failed to unfollow user');
+                        button.disabled = false;
+                        button.innerHTML = originalText;
+                    }
+                }
+
+                function renderFollowing(following, isOwnProfile) {
                     const list = document.getElementById('followingList');
                     list.innerHTML = following.map(user => `
                         <div class="d-flex align-items-center py-3 border-bottom">
@@ -107,7 +149,7 @@
                             </div>
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-start">
-                                    <div>
+                                    <div class="flex-grow-1">
                                         <h6 class="mb-0">
                                             ${user.local ?
                                                 `<a href="/profile/${escapeHtml(user.username)}" class="text-decoration-none">${escapeHtml(user.displayName || user.username)}</a>` :
@@ -120,6 +162,14 @@
                                         </p>
                                         ${user.bio ? `<p class="small mt-1 mb-0 text-muted">${sanitizeHtml(user.bio)}</p>` : ''}
                                     </div>
+                                    ${isOwnProfile ? `
+                                    <div class="ms-3">
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="handleUnfollow('${escapeHtml(user.username || user.handle)}', this)">
+                                            <i class="bi bi-person-dash"></i> Unfollow
+                                        </button>
+                                    </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>

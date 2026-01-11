@@ -321,4 +321,14 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
                                                     @Param("visibilities") List<String> visibilities,
                                                     @Param("currentUserId") UUID currentUserId,
                                                     Pageable pageable);
+
+    /**
+     * Find activities by source file format where raw activity file is present.
+     * Used for retroactive data migration.
+     *
+     * @param sourceFileFormat the file format (e.g., "FIT", "GPX")
+     * @return list of activities with raw files
+     */
+    @Query("SELECT a FROM Activity a WHERE a.sourceFileFormat = :sourceFileFormat AND a.rawActivityFile IS NOT NULL")
+    List<Activity> findBySourceFileFormatAndRawActivityFileNotNull(@Param("sourceFileFormat") String sourceFileFormat);
 }

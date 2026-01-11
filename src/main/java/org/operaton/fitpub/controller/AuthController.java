@@ -30,6 +30,9 @@ public class AuthController {
     @Value("${fitpub.registration.enabled:true}")
     private boolean registrationEnabled;
 
+    @Value("${fitpub.registration.password:#{null}}")
+    private String configuredRegistrationPassword;
+
     /**
      * Register a new user account.
      *
@@ -46,6 +49,24 @@ public class AuthController {
             log.warn("Registration attempt blocked - registration is disabled");
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(null);
+        }
+
+        // Check registration password if configured
+        // Check for both null and blank (empty or whitespace-only strings)
+        log.debug("Registration password check - configured: '{}', provided: '{}'",
+                 configuredRegistrationPassword, request.getRegistrationPassword());
+
+        if (configuredRegistrationPassword != null && !configuredRegistrationPassword.trim().isEmpty()) {
+            String providedPassword = request.getRegistrationPassword();
+            if (providedPassword == null || providedPassword.trim().isEmpty() ||
+                !configuredRegistrationPassword.equals(providedPassword)) {
+                log.warn("Registration attempt with invalid registration password for username: {} (expected: '{}', got: '{}')",
+                         request.getUsername(), configuredRegistrationPassword, providedPassword);
+                throw new IllegalArgumentException("Invalid registration password");
+            }
+            log.info("Registration password validated successfully for username: {}", request.getUsername());
+        } else {
+            log.info("No registration password configured - allowing open registration for username: {}", request.getUsername());
         }
 
         log.info("Registration request received for username: {}", request.getUsername());

@@ -81,6 +81,61 @@
         .btn-back:hover {
             color: #f093fb;
         }
+
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            .error-container {
+                background: linear-gradient(135deg, #2d0052 0%, #1a0033 100%);
+            }
+
+            .error-card {
+                background: #251040;
+                color: #e8e8f0;
+                border: 3px solid #ff1493;
+            }
+
+            .error-title {
+                color: #e8e8f0;
+            }
+
+            .error-subtitle {
+                color: #a8a8c0;
+            }
+
+            .error-message {
+                color: #a8a8c0;
+            }
+
+            .error-code {
+                background: #1a0a30;
+                border: 2px solid #00ffff;
+            }
+
+            .error-code strong {
+                color: #ff1493;
+            }
+
+            .error-code div {
+                color: #a8a8c0;
+            }
+
+            .btn-home {
+                background: linear-gradient(135deg, #ff1493 0%, #9d00ff 100%);
+                border-color: #ff1493;
+            }
+
+            .btn-home:hover {
+                box-shadow: 0 10px 25px rgba(255, 20, 147, 0.4);
+            }
+
+            .btn-back {
+                color: #00ffff;
+            }
+
+            .btn-back:hover {
+                color: #ff1493;
+            }
+        }
     </style>
 </head>
 <body>

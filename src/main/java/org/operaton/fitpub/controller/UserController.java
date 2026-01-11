@@ -500,9 +500,9 @@ public class UserController {
     }
 
     /**
-     * Unfollow a user.
+     * Unfollow a user (local or remote).
      *
-     * @param username the username to unfollow
+     * @param username the username to unfollow (local username or @username@domain format)
      * @param userDetails the authenticated user
      * @return success response
      */
@@ -517,11 +517,25 @@ public class UserController {
         User currentUser = userRepository.findByUsername(userDetails.getUsername())
             .orElseThrow(() -> new UsernameNotFoundException("Current user not found"));
 
-        // Get the user to unfollow
-        User userToUnfollow = userRepository.findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        String followingActorUri;
+        boolean isRemoteUser = username.contains("@") && username.indexOf("@") > 0;
 
-        String followingActorUri = userToUnfollow.getActorUri(baseUrl);
+        if (isRemoteUser) {
+            // Remote user - discover actor URI via WebFinger
+            try {
+                followingActorUri = webFingerClient.discoverActor(username);
+                log.debug("Resolved remote user {} to actor URI: {}", username, followingActorUri);
+            } catch (Exception e) {
+                log.error("Failed to discover remote actor: {}", username, e);
+                return ResponseEntity.status(404)
+                    .body(Map.of("error", "Could not find remote user: " + username));
+            }
+        } else {
+            // Local user
+            User userToUnfollow = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+            followingActorUri = userToUnfollow.getActorUri(baseUrl);
+        }
 
         // Find the follow relationship
         Optional<Follow> follow = followRepository.findByFollowerIdAndFollowingActorUri(
@@ -533,7 +547,22 @@ public class UserController {
                 .body(Map.of("error", "Not following this user"));
         }
 
-        // Delete the follow relationship
+        // Send Undo Follow activity to remote server (mandatory for proper federation)
+        if (isRemoteUser) {
+            try {
+                federationService.sendUndoFollowActivity(
+                    followingActorUri,
+                    currentUser,
+                    follow.get().getActivityId()
+                );
+                log.info("Sent Undo Follow activity to remote server for {}", username);
+            } catch (Exception e) {
+                log.warn("Failed to send Undo Follow activity to {}, but continuing with local deletion", username, e);
+                // Continue with local deletion even if federation fails
+            }
+        }
+
+        // Delete the local follow relationship
         followRepository.delete(follow.get());
         log.info("Deleted follow: {} -> {}", currentUser.getUsername(), username);
 

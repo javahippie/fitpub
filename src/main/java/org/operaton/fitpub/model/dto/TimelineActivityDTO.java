@@ -58,6 +58,11 @@ public class TimelineActivityDTO {
     // GPS track availability
     private Boolean hasGpsTrack;  // True if activity has GPS data
 
+    // Indoor activity flag
+    private Boolean indoor;  // True if activity was performed indoors
+    private String subSport;  // SubSport field from FIT file (e.g., INDOOR_CYCLING, TREADMILL)
+    private String indoorDetectionMethod;  // How indoor flag was determined
+
     // Metrics summary
     private ActivityMetricsSummary metrics;
 
@@ -85,6 +90,9 @@ public class TimelineActivityDTO {
             .avatarUrl(avatarUrl)
             .isLocal(true)
             .hasGpsTrack(activity.getSimplifiedTrack() != null)
+            .indoor(activity.getIndoor() != null ? activity.getIndoor() : false)
+            .subSport(activity.getSubSport())
+            .indoorDetectionMethod(activity.getIndoorDetectionMethod())
             .metrics(activity.getMetrics() != null ? ActivityMetricsSummary.fromMetrics(activity.getMetrics()) : null)
             .build();
     }

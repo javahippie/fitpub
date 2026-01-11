@@ -112,6 +112,12 @@ public class FitParser {
                 log.info("No GPS track points found in FIT file - likely an indoor activity");
                 // Default to UTC timezone for indoor activities
                 parsedData.setTimezone("UTC");
+
+                // Mark as indoor if not already detected from SubSport
+                if (!parsedData.getIndoor()) {
+                    parsedData.setIndoor(true);
+                    parsedData.setIndoorDetectionMethod(Activity.IndoorDetectionMethod.HEURISTIC_NO_GPS);
+                }
             } else {
                 // Determine timezone from first GPS coordinate
                 determineTimezone(parsedData);
@@ -327,6 +333,24 @@ public class FitParser {
         // Determine activity type
         if (session.getSport() != null) {
             parsedData.setActivityType(mapSportToActivityType(session.getSport()));
+        }
+
+        // Extract SubSport and detect indoor activities
+        if (session.getSubSport() != null) {
+            String subSportStr = session.getSubSport().toString();
+            parsedData.setSubSport(subSportStr);
+
+            // Detect indoor activities from SubSport field
+            String subSportUpper = subSportStr.toUpperCase();
+            boolean isIndoor = subSportUpper.contains("INDOOR") ||
+                             subSportUpper.contains("TREADMILL") ||
+                             subSportUpper.contains("VIRTUAL") ||
+                             subSportUpper.contains("TRAINER");
+            if (isIndoor) {
+                parsedData.setIndoor(true);
+                parsedData.setIndoorDetectionMethod(Activity.IndoorDetectionMethod.FIT_SUBSPORT);
+                log.debug("Detected indoor activity from SubSport: {}", subSportStr);
+            }
         }
     }
 

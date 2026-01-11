@@ -32,6 +32,9 @@ public class ParsedActivityData {
     private Activity.ActivityType activityType = Activity.ActivityType.OTHER;
     private ActivityMetricsData metrics;
     private String sourceFormat; // "FIT" or "GPX"
+    private Boolean indoor = false; // Indicates if this is an indoor activity
+    private String subSport; // SubSport from FIT file (e.g., INDOOR_CYCLING, TREADMILL, ROAD)
+    private Activity.IndoorDetectionMethod indoorDetectionMethod; // How indoor flag was determined
 
     /**
      * Data class for track point information.

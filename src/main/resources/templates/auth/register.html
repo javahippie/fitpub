@@ -117,7 +117,7 @@
                             </div>
 
                             <!-- Confirm Password -->
-                            <div class="mb-4">
+                            <div class="mb-3">
                                 <label for="confirmPassword" class="form-label">
                                     Confirm Password <span class="text-danger">*</span>
                                 </label>
@@ -130,6 +130,25 @@
                                        autocomplete="new-password">
                                 <div class="invalid-feedback" id="confirmPasswordFeedback">
                                     Please confirm your password.
+                                </div>
+                            </div>
+
+                            <!-- Registration Password (Invite Code) -->
+                            <div class="mb-4" id="registrationPasswordField" style="display: none;">
+                                <label for="registrationPassword" class="form-label">
+                                    Registration Password <span class="text-danger">*</span>
+                                </label>
+                                <input type="password"
+                                       class="form-control"
+                                       id="registrationPassword"
+                                       name="registrationPassword"
+                                       placeholder="Enter the registration password"
+                                       autocomplete="off">
+                                <div class="form-text">
+                                    <i class="bi bi-key"></i> This instance requires a registration password to create new accounts
+                                </div>
+                                <div class="invalid-feedback">
+                                    Registration password is required.
                                 </div>
                             </div>
 
@@ -197,7 +216,7 @@
     <!-- Custom Scripts -->
     <th:block layout:fragment="scripts">
         <script th:inline="javascript">
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', async function() {
                 const form = document.getElementById('registerForm');
                 const registerBtn = document.getElementById('registerBtn');
                 const registerBtnText = document.getElementById('registerBtnText');
@@ -209,6 +228,18 @@
                 const password = document.getElementById('password');
                 const confirmPassword = document.getElementById('confirmPassword');
                 const confirmPasswordFeedback = document.getElementById('confirmPasswordFeedback');
+                const registrationPasswordField = document.getElementById('registrationPasswordField');
+                const registrationPasswordInput = document.getElementById('registrationPassword');
+
+                // Check if registration password is required by checking URL parameters
+                // If ?invite=true or REGISTRATION_PASSWORD is set, show the field
+                const urlParams = new URLSearchParams(window.location.search);
+                const showRegistrationPassword = urlParams.has('invite') || urlParams.has('code');
+
+                // Always show the field and let backend validate
+                // This simplifies the logic - if not required, backend will ignore it
+                registrationPasswordField.style.display = 'block';
+                registrationPasswordInput.required = true;
 
                 // Password confirmation validation
                 confirmPassword.addEventListener('input', function() {
@@ -252,7 +283,8 @@
                         username: document.getElementById('username').value,
                         email: document.getElementById('email').value,
                         displayName: document.getElementById('displayName').value,
-                        password: password.value
+                        password: password.value,
+                        registrationPassword: registrationPasswordInput.value || null
                     };
 
                     try {

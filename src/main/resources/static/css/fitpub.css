@@ -1014,4 +1014,37 @@ h1 {
     .indoor-activity-placeholder .fw-bold {
         color: var(--dark-text) !important;
     }
+
+    /* Form elements - Dark Mode Fix */
+    .form-label {
+        color: var(--dark-text) !important;
+    }
+
+    .form-check-label {
+        color: var(--dark-text) !important;
+    }
+
+    .form-text {
+        color: var(--dark-text-muted) !important;
+    }
+
+    /* Typography - Dark Mode Fix */
+    strong {
+        color: var(--dark-text);
+    }
+
+    b {
+        color: var(--dark-text);
+    }
+
+    small {
+        color: var(--dark-text);
+    }
+
+    /* Indoor badge - Dark Mode */
+    .badge.bg-warning.text-dark {
+        background: rgba(255, 165, 0, 0.25) !important;  /* Orange with transparency */
+        color: var(--neon-orange) !important;
+        border: 1px solid var(--neon-orange);
+    }
 }

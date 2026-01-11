@@ -131,6 +131,12 @@ const FitPubTimeline = {
                                 <span class="activity-type-badge activity-type-${activity.activityType.toLowerCase()}">
                                     ${activity.activityType}
                                 </span>
+                                ${activity.indoor
+                                    ? `<span class="badge bg-warning text-dark ms-2" title="${activity.indoorDetectionMethod ? 'Detected via: ' + activity.indoorDetectionMethod : 'Indoor Activity'}">
+                                        <i class="bi bi-house-door"></i> Indoor
+                                       </span>`
+                                    : ''
+                                }
                             </div>
                         </div>
 

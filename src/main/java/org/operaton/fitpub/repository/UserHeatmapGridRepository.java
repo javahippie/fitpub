@@ -107,6 +107,7 @@ public interface UserHeatmapGridRepository extends JpaRepository<UserHeatmapGrid
             CROSS JOIN LATERAL jsonb_array_elements(CAST(a.track_points_json AS jsonb)) AS point
             WHERE a.id = :activityId
               AND a.track_points_json IS NOT NULL
+              AND a.indoor = FALSE
         ),
         snapped_grid AS (
             SELECT
@@ -149,6 +150,7 @@ public interface UserHeatmapGridRepository extends JpaRepository<UserHeatmapGrid
             CROSS JOIN LATERAL jsonb_array_elements(CAST(a.track_points_json AS jsonb)) AS point
             WHERE a.user_id = :userId
               AND a.track_points_json IS NOT NULL
+              AND a.indoor = FALSE
         ),
         snapped_grid AS (
             SELECT

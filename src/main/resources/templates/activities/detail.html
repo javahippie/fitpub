@@ -34,6 +34,9 @@
                             <h2 id="activityTitle">Activity Title</h2>
                             <p class="text-muted mb-2">
                                 <span id="activityType" class="activity-type-badge"></span>
+                                <span id="indoorBadge" class="badge bg-warning text-dark ms-2" style="display: none;">
+                                    <i class="bi bi-house-door"></i> Indoor
+                                </span>
                                 <span class="ms-2">
                                     <i class="bi bi-calendar"></i>
                                     <span id="activityDate"></span>
@@ -506,6 +509,17 @@
                     const visIcon = getVisibilityIcon(activity.visibility);
                     document.querySelector('#visibilityBadge i').className = `bi bi-${visIcon}`;
                     document.getElementById('visibilityBadge').className = `ms-2 visibility-${activity.visibility.toLowerCase()}`;
+
+                    // Indoor badge
+                    const indoorBadge = document.getElementById('indoorBadge');
+                    if (activity.indoor === true) {
+                        indoorBadge.style.display = 'inline-block';
+                        if (activity.indoorDetectionMethod) {
+                            indoorBadge.title = `Detected via: ${activity.indoorDetectionMethod}`;
+                        }
+                    } else {
+                        indoorBadge.style.display = 'none';
+                    }
 
                     // Description
                     if (activity.description) {
