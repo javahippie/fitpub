@@ -91,7 +91,8 @@ public class AuthController {
      */
     @GetMapping("/registration-status")
     public ResponseEntity<RegistrationStatusResponse> getRegistrationStatus() {
-        return ResponseEntity.ok(new RegistrationStatusResponse(registrationEnabled));
+        boolean passwordRequired = configuredRegistrationPassword != null && !configuredRegistrationPassword.trim().isEmpty();
+        return ResponseEntity.ok(new RegistrationStatusResponse(registrationEnabled, passwordRequired));
     }
 
     /**
@@ -183,5 +184,5 @@ public class AuthController {
     /**
      * Registration status response DTO.
      */
-    record RegistrationStatusResponse(boolean enabled) {}
+    record RegistrationStatusResponse(boolean enabled, boolean passwordRequired) {}
 }

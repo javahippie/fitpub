@@ -231,15 +231,26 @@
                 const registrationPasswordField = document.getElementById('registrationPasswordField');
                 const registrationPasswordInput = document.getElementById('registrationPassword');
 
-                // Check if registration password is required by checking URL parameters
-                // If ?invite=true or REGISTRATION_PASSWORD is set, show the field
-                const urlParams = new URLSearchParams(window.location.search);
-                const showRegistrationPassword = urlParams.has('invite') || urlParams.has('code');
+                // Fetch registration status from API
+                try {
+                    const response = await fetch('/api/auth/registration-status');
+                    const data = await response.json();
 
-                // Always show the field and let backend validate
-                // This simplifies the logic - if not required, backend will ignore it
-                registrationPasswordField.style.display = 'block';
-                registrationPasswordInput.required = true;
+                    if (data.passwordRequired) {
+                        // Show registration password field if required
+                        registrationPasswordField.style.display = 'block';
+                        registrationPasswordInput.required = true;
+                    } else {
+                        // Hide registration password field if not required
+                        registrationPasswordField.style.display = 'none';
+                        registrationPasswordInput.required = false;
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch registration status:', error);
+                    // On error, assume password is not required
+                    registrationPasswordField.style.display = 'none';
+                    registrationPasswordInput.required = false;
+                }
 
                 // Password confirmation validation
                 confirmPassword.addEventListener('input', function() {

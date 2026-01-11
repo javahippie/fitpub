@@ -123,56 +123,6 @@ WHERE a.user_id = :userId
 
 ---
 
-## Retroactive Migration
-
-### For Activities Uploaded BEFORE This Feature
-
-**Run once** to populate indoor flags for existing data:
-
-```bash
-POST /api/admin/migrate-indoor-flags
-Authorization: Bearer <your-jwt-token>
-```
-
-This endpoint:
-1. Fetches all FIT activities with stored raw files
-2. Re-parses FIT files to extract SubSport
-3. Updates `indoor`, `sub_sport`, and `indoor_detection_method`
-4. Only saves if values changed (idempotent)
-
-**Response**:
-```json
-{
-  "message": "Indoor activity flag migration complete",
-  "activitiesUpdated": 15
-}
-```
-
-### How to Run Migration
-
-#### Option 1: Using Browser DevTools
-1. Login to FitPub
-2. Open DevTools (F12) → Application → Local Storage
-3. Copy `jwt_token` value
-4. Use browser fetch or Postman:
-```javascript
-fetch('http://localhost:8080/api/admin/migrate-indoor-flags', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_TOKEN_HERE'
-  }
-}).then(r => r.json()).then(console.log);
-```
-
-#### Option 2: Using curl
-```bash
-curl -X POST \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  http://localhost:8080/api/admin/migrate-indoor-flags
-```
-
----
-
 ## Code Structure
 
 ### Key Files Modified
@@ -192,15 +142,9 @@ curl -X POST \
 
 4. **Service**:
    - `ActivityFileService.java` - Save SubSport & detection method to database
-   - `IndoorActivityMigrationService.java` - Retroactive migration logic
 
 5. **Repository**:
    - `UserHeatmapGridRepository.java` - Exclude indoor activities from heatmap queries
-   - `ActivityRepository.java` - Added query method for migration
-
-6. **Controller**:
-   - `AdminController.java` - Migration endpoint
-   - `SecurityConfig.java` - Added `/api/admin/**` route (authenticated)
 
 ---
 
@@ -241,7 +185,6 @@ Expected:
 - **New uploads**: SubSport extracted during normal parsing (no overhead)
 - **Timeline loading**: Simple column read (instant)
 - **Heatmap queries**: Added `AND indoor = FALSE` filter (uses index)
-- **Migration**: One-time operation, only re-parses FIT files with raw data
 
 ---
 
@@ -286,7 +229,7 @@ GROUP BY indoor_detection_method;
 
 ✅ **Fully implemented** multi-format indoor detection
 ✅ **Backward compatible** - existing activities default to outdoor
-✅ **Retroactive migration** endpoint for old data
+✅ **Automatic detection** on upload for new activities
 ✅ **Heatmap exclusion** automatic via SQL filters
 ✅ **Timeline display** includes all activities
 ✅ **Works for FIT and GPX** files with different detection strategies
