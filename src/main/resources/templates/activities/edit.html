@@ -105,6 +105,19 @@
                                 </div>
                             </div>
 
+                            <!-- Race Flag -->
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="race" name="race">
+                                    <label class="form-check-label" for="race">
+                                        <i class="bi bi-flag-fill"></i> This is a race/competition
+                                    </label>
+                                </div>
+                                <div class="form-text">
+                                    Race activities use total time for pace calculation instead of moving time
+                                </div>
+                            </div>
+
                             <!-- Activity Summary (Read-only) -->
                             <div class="alert alert-info">
                                 <h6><i class="bi bi-info-circle"></i> Activity Summary</h6>
@@ -202,6 +215,7 @@
                     document.getElementById('activityType').value = activity.activityType || 'OTHER';
                     document.getElementById('description').value = activity.description || '';
                     document.getElementById('visibility').value = activity.visibility || 'PUBLIC';
+                    document.getElementById('race').checked = activity.race || false;
 
                     // Update character count
                     descCharCount.textContent = (activity.description || '').length;
@@ -259,7 +273,8 @@
                         title: document.getElementById('title').value,
                         activityType: document.getElementById('activityType').value,
                         description: document.getElementById('description').value,
-                        visibility: document.getElementById('visibility').value
+                        visibility: document.getElementById('visibility').value,
+                        race: document.getElementById('race').checked
                     };
 
                     try {

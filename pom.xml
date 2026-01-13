@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>org.operaton</groupId>
+    <groupId>net.javahippie</groupId>
     <artifactId>feditrack</artifactId>
     <version>1.0-SNAPSHOT</version>
     <name>FitPub</name>
@@ -23,6 +23,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
         <jjwt.version>0.12.3</jjwt.version>
+        <testcontainers.version>2.0.3</testcontainers.version>
     </properties>
 
     <dependencies>
@@ -77,16 +78,6 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
 
-        <!-- Testcontainers for Dev Services -->
-        <!-- These are excluded from production builds via Maven profile -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-testcontainers</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
-        </dependency>
         <dependency>
             <groupId>io.hypersistence</groupId>
             <artifactId>hypersistence-utils-hibernate-63</artifactId>
@@ -155,6 +146,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
@@ -168,45 +160,29 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
-    </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                        <!-- Exclude Testcontainers from production JAR -->
-                        <exclude>
-                            <groupId>org.springframework.boot</groupId>
-                            <artifactId>spring-boot-testcontainers</artifactId>
-                        </exclude>
-                        <exclude>
-                            <groupId>org.testcontainers</groupId>
-                            <artifactId>testcontainers</artifactId>
-                        </exclude>
-                        <exclude>
-                            <groupId>org.testcontainers</groupId>
-                            <artifactId>postgresql</artifactId>
-                        </exclude>
-                        <exclude>
-                            <groupId>org.testcontainers</groupId>
-                            <artifactId>jdbc</artifactId>
-                        </exclude>
-                        <exclude>
-                            <groupId>org.testcontainers</groupId>
-                            <artifactId>database-commons</artifactId>
-                        </exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <version>2.0.2</version>
+            <scope>test</scope>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <version>2.0.1</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
 
     <profiles>
         <!-- Profile to skip integration tests (useful when Docker is not available) -->

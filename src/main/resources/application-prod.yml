@@ -59,7 +59,7 @@ fitpub:
 logging:
   level:
     root: WARN
-    org.operaton.fitpub: INFO
+    net.javahippie.fitpub: INFO
     org.hibernate.SQL: WARN
     org.springframework.security: WARN
     org.springframework.web: WARN

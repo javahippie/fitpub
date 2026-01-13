@@ -2,11 +2,15 @@ spring:
   application:
     name: fitpub-test
 
-  # Testcontainers will automatically configure the datasource
-  datasource:
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
-    url: jdbc:tc:postgis:13-3.1:///testdb?TC_INITSCRIPT=file:src/test/resources/init-test-db.sql
+  # Datasource automatically configured via @ServiceConnection in TestcontainersConfiguration
+  # The PostgreSQL container with PostGIS is started as a standard PostgreSQL container
 
+  datasource:
+    # For dev: Start PostgreSQL with: docker run -d --name fitpub-postgres -p 5432:5432 -e POSTGRES_DB=fitpub -e POSTGRES_USER=fitpub -e POSTGRES_PASSWORD=change_me_in_production postgis/postgis:16-3.4
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fitpub}
+    username: ${SPRING_DATASOURCE_USERNAME:fitpub}
+    password: ${SPRING_DATASOURCE_PASSWORD:change_me_in_production}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -46,7 +50,7 @@ fitpub:
 
 logging:
   level:
-    org.operaton.fitpub: DEBUG
+    net.javahippie.fitpub: DEBUG
     org.springframework: WARN
     org.hibernate: WARN
     org.testcontainers: INFO

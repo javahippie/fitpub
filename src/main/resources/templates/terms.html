@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Terms &amp; Privacy</title>
+</head>
+
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-file-text text-primary" style="font-size: 3rem;"></i>
+                        <h1 class="mt-3">Terms &amp; Privacy</h1>
+                        <p class="text-muted">Last updated: January 2026</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <h2 class="h4 mb-3">The Honest Truth</h2>
+                        <p>
+                            I built FitPub primarily for myself to track my fitness activities and share them on the Fediverse.
+                            I'm making it available for others to use, but please understand what you're getting into.
+                        </p>
+
+                        <h2 class="h4 mb-3 mt-4">No Guarantees</h2>
+                        <p>
+                            <strong>This is a hobby project.</strong> I make no guarantees that:
+                        </p>
+                        <ul>
+                            <li>All features will work as expected (or at all)</li>
+                            <li>Your data won't be lost due to bugs, hardware failures, or cosmic rays</li>
+                            <li>This instance will still be running in a year, a month, or even next week</li>
+                            <li>The service will be available 24/7 without interruptions</li>
+                            <li>New features will be added, or that existing bugs will be fixed</li>
+                        </ul>
+
+                        <h2 class="h4 mb-3 mt-4">Use at Your Own Risk</h2>
+                        <p>
+                            By using FitPub, you acknowledge and accept that:
+                        </p>
+                        <ul>
+                            <li>You use this service entirely at your own risk</li>
+                            <li>I am not liable for any data loss, privacy breaches, or other issues that may occur</li>
+                            <li>You should keep backups of your important fitness data elsewhere</li>
+                            <li>The service may be shut down at any time without notice (though I'll try to give a heads up)</li>
+                            <li>I may modify, suspend, or discontinue any part of the service at any time</li>
+                        </ul>
+
+                        <h2 class="h4 mb-3 mt-4">Privacy & Data</h2>
+                        <p>
+                            I respect your privacy, but remember:
+                        </p>
+                        <ul>
+                            <li>Activities marked as "Public" are federated across the Fediverse and may be seen by anyone</li>
+                            <li>GPS tracks include exact location data - be careful what you share publicly</li>
+                            <li>I don't sell your data because, honestly, who would want to buy it?</li>
+                            <li>The server logs may contain your IP address and activity data for debugging purposes</li>
+                            <li>If you want your data deleted, just ask - I'll do my best to help</li>
+                        </ul>
+
+                        <h2 class="h4 mb-3 mt-4">User Conduct</h2>
+                        <p>
+                            Please be a decent human being:
+                        </p>
+                        <ul>
+                            <li>Don't abuse the service or try to break it on purpose</li>
+                            <li>Don't upload illegal content or content that violates others' rights</li>
+                            <li>Don't spam, harass, or otherwise annoy other users</li>
+                            <li>Don't try to access other users' private data</li>
+                            <li>If you find a security issue, please let me know instead of exploiting it</li>
+                        </ul>
+
+                        <h2 class="h4 mb-3 mt-4">Federation & ActivityPub</h2>
+                        <p>
+                            FitPub federates with other ActivityPub-compatible services:
+                        </p>
+                        <ul>
+                            <li>When you post a public activity, it gets sent to your followers' servers</li>
+                            <li>I have no control over what other servers do with your data once it's federated</li>
+                            <li>I may block or limit federation with specific servers for any reason</li>
+                            <li>Once data is federated, deleting it here doesn't guarantee deletion elsewhere</li>
+                        </ul>
+
+                        <h2 class="h4 mb-3 mt-4">Open Source</h2>
+                        <p>
+                            FitPub is open source software. You can:
+                        </p>
+                        <ul>
+                            <li>Review the code to see what it does</li>
+                            <li>Run your own instance if you want more control</li>
+                            <li>Contribute improvements if you're feeling generous</li>
+                            <li>Fork it and make something better</li>
+                        </ul>
+
+                        <h2 class="h4 mb-3 mt-4">Changes to These Terms</h2>
+                        <p>
+                            I may update these terms occasionally. I'll try to notify users of significant changes,
+                            but let's be honest - you probably won't read them anyway.
+                        </p>
+
+                        <h2 class="h4 mb-3 mt-4">The Bottom Line</h2>
+                        <p>
+                            FitPub is a passion project that I'm sharing with the community. It's free to use,
+                            but comes with no warranties or guarantees. If you need enterprise-grade reliability
+                            and support, this probably isn't the right service for you. But if you're okay with
+                            a scrappy, independent fitness tracking platform that federates with the open web,
+                            then welcome aboard!
+                        </p>
+
+                        <div class="alert alert-info mt-4">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Questions or concerns?</strong>
+                            Feel free to reach out, but remember - I'm just one person doing this in my spare time.
+                            I'll help if I can, but I can't promise anything.
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <a th:href="@{/}" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> I Understand, Take Me Back
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

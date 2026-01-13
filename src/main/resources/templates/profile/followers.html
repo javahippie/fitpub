@@ -110,7 +110,7 @@
                                     <div>
                                         <h6 class="mb-0">
                                             ${follower.local ?
-                                                `<a href="/profile/${escapeHtml(follower.username)}" class="text-decoration-none">${escapeHtml(follower.displayName || follower.username)}</a>` :
+                                                `<a href="/users/${escapeHtml(follower.username)}" class="text-decoration-none">${escapeHtml(follower.displayName || follower.username)}</a>` :
                                                 `<span>${escapeHtml(follower.displayName || follower.username)}</span>`
                                             }
                                             ${!follower.local ? '<i class="bi bi-globe text-muted small" title="Remote user"></i>' : ''}

@@ -1047,4 +1047,316 @@ h1 {
         color: var(--neon-orange) !important;
         border: 1px solid var(--neon-orange);
     }
+
+    /* Race badge - Dark Mode - Use standard colors */
+    .race-badge {
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%) !important;
+        color: #ffffff !important;
+        border: 2px solid var(--neon-pink) !important;
+        text-shadow: 0 0 10px rgba(255, 20, 147, 0.8) !important;
+        box-shadow: 0 0 12px rgba(255, 20, 147, 0.4) !important;
+    }
+
+    /* Race activity card - Dark Mode */
+    .timeline-card.race-card {
+        background: linear-gradient(135deg, rgba(255, 20, 147, 0.08) 0%, rgba(157, 0, 255, 0.08) 100%);
+        border: 3px solid var(--neon-pink) !important;
+        border-top-width: 15px !important;
+        box-shadow: 0 0 25px rgba(255, 20, 147, 0.4);
+    }
+
+    .timeline-card.race-card::before {
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%) !important;
+        text-shadow: 0 0 15px rgba(255, 20, 147, 1) !important;
+        box-shadow: 0 2px 10px rgba(255, 20, 147, 0.6) !important;
+    }
+
+    .timeline-card.race-card::after {
+        color: var(--neon-pink) !important;
+        opacity: 0.05 !important;
+    }
+
+    /* Race Detail Page - Dark Mode - Use standard colors */
+    #activityContent.race-detail h2 {
+        border-image-source: repeating-linear-gradient(
+            0deg,
+            #1a0033 0px,
+            #1a0033 15px,
+            var(--neon-pink) 15px,
+            var(--neon-pink) 30px
+        ) !important;
+    }
+
+    #activityContent.race-detail .card.race-metrics {
+        border: 4px solid var(--neon-pink) !important;
+        background:
+            linear-gradient(#1a0033, #1a0033) padding-box,
+            repeating-linear-gradient(
+                45deg,
+                #1a0033 0px,
+                #1a0033 10px,
+                var(--neon-pink) 10px,
+                var(--neon-pink) 20px
+            ) border-box !important;
+        box-shadow: 0 0 25px rgba(255, 20, 147, 0.3) !important;
+    }
+
+    #activityContent.race-detail .card.race-metrics::before {
+        color: var(--neon-pink) !important;
+        opacity: 0.08 !important;
+    }
+
+    #activityContent.race-detail .card-header {
+        background:
+            repeating-conic-gradient(
+                #1a0033 0% 25%,
+                var(--neon-pink) 0% 50%
+            ) 0 0 / 12px 12px !important;
+        border-bottom-color: var(--neon-pink) !important;
+        border-top-color: var(--neon-pink) !important;
+    }
+
+    #activityContent.race-detail .card-header::before {
+        background: rgba(26, 0, 51, 0.5) !important;
+    }
+
+    #activityContent.race-detail .card-header h5,
+    #activityContent.race-detail .card-header h6 {
+        color: var(--neon-pink) !important;
+        text-shadow:
+            0 0 8px rgba(26, 0, 51, 0.9),
+            1px 1px 2px rgba(26, 0, 51, 1),
+            0 0 10px rgba(255, 20, 147, 0.5) !important;
+    }
+
+    #activityContent.race-detail .card-header i {
+        color: var(--neon-pink) !important;
+        filter: drop-shadow(0 0 3px rgba(26, 0, 51, 0.9)) drop-shadow(0 0 5px rgba(255, 20, 147, 0.5)) !important;
+    }
+
+    #activityContent.race-detail #mapSection .card {
+        border: 3px solid var(--neon-pink) !important;
+        box-shadow: 0 0 20px rgba(255, 20, 147, 0.3) !important;
+    }
+
+    .activity-type-badge.race-activity {
+        background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%) !important;
+        color: #ffffff !important;
+        border: 2px solid var(--neon-pink) !important;
+        box-shadow: 0 0 10px rgba(255, 20, 147, 0.3) !important;
+    }
+
+    /* Race Activity List Card - Dark Mode */
+    .activity-card.race-list-card {
+        border: 3px solid var(--neon-pink) !important;
+        background: linear-gradient(135deg, rgba(255, 20, 147, 0.05) 0%, rgba(157, 0, 255, 0.05) 100%);
+        box-shadow: 0 0 20px rgba(255, 20, 147, 0.2);
+    }
+
+    .activity-card.race-list-card::before {
+        color: var(--neon-pink) !important;
+    }
+
+    .activity-card.race-list-card .card-title a {
+        color: var(--neon-cyan) !important;
+        font-weight: 900;
+    }
+}
+
+/* Race Badge Styling - Matches activity type badge exactly */
+.race-badge {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+    color: #ffffff;
+    border: 2px solid currentColor;
+    vertical-align: baseline;
+}
+
+/* Race Activity Type Badge - Uses standard pink/purple gradient */
+.activity-type-badge.race-activity {
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-purple) 100%);
+    color: #ffffff;
+    border: 2px solid currentColor;
+    font-weight: 900;
+}
+
+/* Race Timeline Card - Special Styling with Checkered Top Border */
+.timeline-card.race-card {
+    background: linear-gradient(135deg, rgba(255, 20, 147, 0.05) 0%, rgba(157, 0, 255, 0.05) 100%);
+    border: 3px solid var(--neon-pink);
+    border-top-width: 15px;
+    border-top-style: solid;
+    border-image: repeating-linear-gradient(
+        90deg,
+        var(--neon-pink) 0px,
+        var(--neon-pink) 20px,
+        var(--neon-purple) 20px,
+        var(--neon-purple) 40px
+    ) 15 3 3 3;
+    box-shadow: 0 4px 20px rgba(255, 20, 147, 0.3);
+    position: relative;
+}
+
+.timeline-card.race-card::before {
+    content: '\F277 RACE';  /* Bootstrap Icons flag-checkered + text */
+    font-family: 'bootstrap-icons', 'Arial Black', sans-serif;
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1rem;
+    font-weight: 900;
+    color: #ffffff;
+    background: var(--neon-pink);
+    padding: 0.25rem 1rem;
+    border-radius: 0 0 0.5rem 0.5rem;
+    text-shadow: 0 0 10px rgba(255, 20, 147, 0.8);
+    box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
+    z-index: 10;
+    letter-spacing: 0.15em;
+}
+
+.timeline-card.race-card::after {
+    content: '\F277';  /* Bootstrap Icons flag-checkered watermark */
+    font-family: 'bootstrap-icons';
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    font-size: 8rem;
+    opacity: 0.03;
+    color: var(--neon-pink);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.timeline-card.race-card .card-body {
+    padding-top: 1.5rem;
+}
+
+/* Race Activity Detail Page - Complete Theme */
+#activityContent.race-detail {
+    position: relative;
+}
+
+/* Race Title - Readable with checkered flag accent */
+#activityContent.race-detail h2 {
+    border-left: 8px solid transparent;
+    border-image: repeating-linear-gradient(
+        0deg,
+        var(--neon-pink) 0px,
+        var(--neon-pink) 15px,
+        var(--neon-purple) 15px,
+        var(--neon-purple) 30px
+    ) 8;
+    padding-left: 1rem;
+    position: relative;
+}
+
+/* Race Metrics Card with Border */
+#activityContent.race-detail .card.race-metrics {
+    border: 4px solid var(--neon-pink);
+    box-shadow: 0 4px 20px rgba(255, 20, 147, 0.3);
+    position: relative;
+}
+
+#activityContent.race-detail .card.race-metrics::before {
+    content: '\F277';  /* Bootstrap Icons flag-checkered */
+    font-family: 'bootstrap-icons';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 4rem;
+    opacity: 0.05;
+    color: var(--neon-pink);
+    z-index: 0;
+}
+
+#activityContent.race-detail .card.race-metrics .card-body {
+    position: relative;
+    z-index: 1;
+}
+
+/* Race Card Headers with Checkered Flag Pattern */
+#activityContent.race-detail .card-header {
+    background:
+        repeating-conic-gradient(
+            #1a0033 0% 25%,
+            var(--neon-pink) 0% 50%
+        ) 0 0 / 12px 12px !important;
+    border-bottom: 3px solid var(--neon-pink) !important;
+    border-top: 3px solid var(--neon-pink) !important;
+    position: relative;
+}
+
+#activityContent.race-detail .card-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(26, 0, 51, 0.5) !important;
+    z-index: 0;
+}
+
+#activityContent.race-detail .card-header h5,
+#activityContent.race-detail .card-header h6 {
+    color: var(--neon-pink) !important;
+    font-weight: 900;
+    position: relative;
+    z-index: 1;
+    text-shadow:
+        0 0 8px rgba(26, 0, 51, 0.9),
+        1px 1px 2px rgba(26, 0, 51, 1),
+        0 0 10px rgba(255, 20, 147, 0.3) !important;
+}
+
+#activityContent.race-detail .card-header i {
+    color: var(--neon-pink) !important;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 3px rgba(26, 0, 51, 0.9)) drop-shadow(0 0 5px rgba(255, 20, 147, 0.3)) !important;
+}
+
+/* Race Map Section Border */
+#activityContent.race-detail #mapSection .card {
+    border: 3px solid var(--neon-pink);
+    box-shadow: 0 4px 15px rgba(255, 20, 147, 0.3);
+}
+
+/* Race Activity List Card */
+.activity-card.race-list-card {
+    border: 3px solid var(--neon-pink);
+    background: linear-gradient(135deg, rgba(255, 20, 147, 0.05) 0%, rgba(157, 0, 255, 0.05) 100%);
+    box-shadow: 0 4px 15px rgba(255, 20, 147, 0.2);
+    position: relative;
+}
+
+.activity-card.race-list-card::before {
+    content: '\F277';  /* Bootstrap Icons flag-checkered */
+    font-family: 'bootstrap-icons';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 3rem;
+    opacity: 0.06;
+    color: var(--neon-pink);
+    z-index: 0;
+}
+
+.activity-card.race-list-card .card-body {
+    position: relative;
+    z-index: 1;
+}
+
+.activity-card.race-list-card .card-title a {
+    color: #000000;
+    font-weight: 900;
 }

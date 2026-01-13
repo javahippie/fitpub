@@ -103,7 +103,7 @@ const FitPubTimeline = {
             const mapId = `map-${activity.id}`;
 
             return `
-                <div class="timeline-card card mb-4">
+                <div class="timeline-card card mb-4${activity.race ? ' race-card' : ''}">
                     <div class="card-body">
                         <!-- User Info -->
                         <div class="d-flex align-items-center mb-3">
@@ -128,9 +128,15 @@ const FitPubTimeline = {
                                 </div>
                             </div>
                             <div>
-                                <span class="activity-type-badge activity-type-${activity.activityType.toLowerCase()}">
+                                <span class="activity-type-badge activity-type-${activity.activityType.toLowerCase()}${activity.race ? ' race-activity' : ''}">
                                     ${activity.activityType}
                                 </span>
+                                ${activity.race
+                                    ? `<span class="badge race-badge ms-2" title="Race/Competition">
+                                        <i class="bi bi-flag-checkered"></i> Race
+                                       </span>`
+                                    : ''
+                                }
                                 ${activity.indoor
                                     ? `<span class="badge bg-warning text-dark ms-2" title="${activity.indoorDetectionMethod ? 'Detected via: ' + activity.indoorDetectionMethod : 'Indoor Activity'}">
                                         <i class="bi bi-house-door"></i> Indoor

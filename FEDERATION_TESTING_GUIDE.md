@@ -237,7 +237,7 @@ fitpub:
 
 logging:
   level:
-    org.operaton.fitpub: DEBUG
+    net.javahippie.fitpub: DEBUG
 ```
 
 #### `application-instance2.yml`
@@ -261,7 +261,7 @@ fitpub:
 
 logging:
   level:
-    org.operaton.fitpub: DEBUG
+    net.javahippie.fitpub: DEBUG
 ```
 
 ### Step 3: Build the Application

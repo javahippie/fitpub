@@ -34,6 +34,9 @@
                             <h2 id="activityTitle">Activity Title</h2>
                             <p class="text-muted mb-2">
                                 <span id="activityType" class="activity-type-badge"></span>
+                                <span id="raceBadge" class="badge race-badge ms-2" style="display: none;">
+                                    <i class="bi bi-flag-checkered"></i> Race
+                                </span>
                                 <span id="indoorBadge" class="badge bg-warning text-dark ms-2" style="display: none;">
                                     <i class="bi bi-house-door"></i> Indoor
                                 </span>
@@ -509,6 +512,28 @@
                     const visIcon = getVisibilityIcon(activity.visibility);
                     document.querySelector('#visibilityBadge i').className = `bi bi-${visIcon}`;
                     document.getElementById('visibilityBadge').className = `ms-2 visibility-${activity.visibility.toLowerCase()}`;
+
+                    // Race badge and styling
+                    const raceBadge = document.getElementById('raceBadge');
+                    const activityTypeSpan = document.getElementById('activityType');
+                    const activityContent = document.getElementById('activityContent');
+                    const metricsCard = document.querySelector('#activityContent .card.border');
+
+                    if (activity.race === true) {
+                        raceBadge.style.display = 'inline-block';
+                        activityTypeSpan.classList.add('race-activity');
+                        activityContent.classList.add('race-detail');
+                        if (metricsCard) {
+                            metricsCard.classList.add('race-metrics');
+                        }
+                    } else {
+                        raceBadge.style.display = 'none';
+                        activityTypeSpan.classList.remove('race-activity');
+                        activityContent.classList.remove('race-detail');
+                        if (metricsCard) {
+                            metricsCard.classList.remove('race-metrics');
+                        }
+                    }
 
                     // Indoor badge
                     const indoorBadge = document.getElementById('indoorBadge');

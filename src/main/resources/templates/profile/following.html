@@ -66,8 +66,8 @@
                 document.getElementById('usernameDisplay').textContent = targetUsername;
 
                 // Check if viewing own following list
-                const currentUser = FitPubAuth.getCurrentUser();
-                const isOwnProfile = currentUser && currentUser.username === targetUsername;
+                const currentUsername = FitPubAuth.getUsername();
+                const isOwnProfile = currentUsername && currentUsername === targetUsername;
 
                 loadFollowing(isOwnProfile);
 
@@ -152,7 +152,7 @@
                                     <div class="flex-grow-1">
                                         <h6 class="mb-0">
                                             ${user.local ?
-                                                `<a href="/profile/${escapeHtml(user.username)}" class="text-decoration-none">${escapeHtml(user.displayName || user.username)}</a>` :
+                                                `<a href="/users/${escapeHtml(user.username)}" class="text-decoration-none">${escapeHtml(user.displayName || user.username)}</a>` :
                                                 `<span>${escapeHtml(user.displayName || user.username)}</span>`
                                             }
                                             ${!user.local ? '<i class="bi bi-globe text-muted small" title="Remote user"></i>' : ''}
