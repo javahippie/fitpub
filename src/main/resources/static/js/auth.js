@@ -323,7 +323,11 @@ const FitPubAuth = {
             return;
         }
 
-        // Check if authenticated
+        if (currentPath.startsWith('/terms')) {
+            return;
+        }
+
+            // Check if authenticated
         if (!this.isAuthenticated()) {
             // Redirect to login for protected pages
             window.location.href = '/login?redirect=' + encodeURIComponent(currentPath);
