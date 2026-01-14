@@ -605,10 +605,10 @@
                     }
 
                     // Render map or indoor placeholder
-                    if (hasGpsTrack && activity.simplifiedTrack) {
+                    if (hasGpsTrack && activity.trackPoints.length > 0) {
                         document.getElementById('mapSection').style.display = 'block';
                         document.getElementById('indoorPlaceholder').style.display = 'none';
-                        renderMap(activity.simplifiedTrack, activity);
+                        renderMap(activity.trackPoints, activity);
                     } else {
                         // Show indoor activity placeholder
                         document.getElementById('mapSection').style.display = 'none';
@@ -749,11 +749,15 @@
                     }
                 }
 
-                function renderMap(simplifiedTrack, activity) {
+                function flattenTrackPoints(trackPoints) {
+                    return trackPoints.map(coordinates => ([coordinates.longitude, coordinates.latitude]));
+                }
+
+                function renderMap(trackPoints, activity) {
                     // Parse GeoJSON from simplifiedTrack
                     const geoJson = {
                         type: 'LineString',
-                        coordinates: simplifiedTrack.coordinates
+                        coordinates: flattenTrackPoints(trackPoints)
                     };
 
                     // Create map (needs to be done after container is visible)

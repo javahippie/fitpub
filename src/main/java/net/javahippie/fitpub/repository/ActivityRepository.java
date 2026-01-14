@@ -331,4 +331,144 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
      */
     @Query("SELECT a FROM Activity a WHERE a.sourceFileFormat = :sourceFileFormat AND a.rawActivityFile IS NOT NULL")
     List<Activity> findBySourceFileFormatAndRawActivityFileNotNull(@Param("sourceFileFormat") String sourceFileFormat);
+
+    /**
+     * Search public timeline with text and date filters.
+     * OPTIMIZED: Single query with JOINs and WHERE conditions for search.
+     *
+     * @param visibility the visibility level
+     * @param searchText search text for title/description (use null to skip)
+     * @param currentUserId the current user ID (for liked status, can be null)
+     * @param pageable pagination parameters
+     * @return page of Object[] results (same structure as findPublicTimelineWithStats)
+     */
+    @Query(value = """
+        SELECT
+            a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+            a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+            a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+            u.username, u.display_name, u.avatar_url,
+            COUNT(DISTINCT l.id) AS likes_count,
+            COUNT(DISTINCT c.id) AS comments_count,
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+        FROM activities a
+        INNER JOIN users u ON a.user_id = u.id
+        LEFT JOIN likes l ON a.id = l.activity_id
+        LEFT JOIN comments c ON a.id = c.activity_id AND c.deleted = false
+        LEFT JOIN likes ul ON a.id = ul.activity_id AND ul.user_id = CAST(:currentUserId AS uuid)
+        WHERE a.visibility = :visibility
+          AND (:searchText IS NULL OR (
+              LOWER(a.title) LIKE LOWER(CONCAT('%', :searchText, '%'))
+              OR LOWER(a.description) LIKE LOWER(CONCAT('%', :searchText, '%'))
+          ))
+        GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+                 a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+                 a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+                 u.username, u.display_name, u.avatar_url, ul.id
+        ORDER BY a.started_at DESC
+        """, nativeQuery = true)
+    Page<Object[]> searchPublicTimeline(@Param("visibility") String visibility,
+                                         @Param("searchText") String searchText,
+                                         @Param("currentUserId") UUID currentUserId,
+                                         Pageable pageable);
+
+    /**
+     * Search user timeline with text and date filters.
+     * OPTIMIZED: Single query with JOINs and WHERE conditions for search.
+     *
+     * @param userId the user ID
+     * @param searchText search text for title/description (use null to skip)
+     * @param currentUserId the current user ID (for liked status, usually same as userId)
+     * @param pageable pagination parameters
+     * @return page of Object[] results (same structure as findPublicTimelineWithStats)
+     */
+    @Query(value = """
+        SELECT
+            a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+            a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+            a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+            u.username, u.display_name, u.avatar_url,
+            COUNT(DISTINCT l.id) AS likes_count,
+            COUNT(DISTINCT c.id) AS comments_count,
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+        FROM activities a
+        INNER JOIN users u ON a.user_id = u.id
+        LEFT JOIN likes l ON a.id = l.activity_id
+        LEFT JOIN comments c ON a.id = c.activity_id AND c.deleted = false
+        LEFT JOIN likes ul ON a.id = ul.activity_id AND ul.user_id = CAST(:currentUserId AS uuid)
+        WHERE a.user_id = CAST(:userId AS uuid)
+          AND (:searchText IS NULL OR (
+              LOWER(a.title) LIKE LOWER(CONCAT('%', :searchText, '%'))
+              OR LOWER(a.description) LIKE LOWER(CONCAT('%', :searchText, '%'))
+          ))
+        GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+                 a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+                 a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+                 u.username, u.display_name, u.avatar_url, ul.id
+        ORDER BY a.started_at DESC
+        """, nativeQuery = true)
+    Page<Object[]> searchUserTimeline(@Param("userId") UUID userId,
+                                       @Param("searchText") String searchText,
+                                       @Param("currentUserId") UUID currentUserId,
+                                       Pageable pageable);
+
+    /**
+     * Search federated timeline with text and date filters.
+     * OPTIMIZED: Single query with JOINs and WHERE conditions for search.
+     *
+     * @param userIds list of user IDs to include
+     * @param visibilities list of visibility levels
+     * @param searchText search text for title/description (use null to skip)
+     * @param currentUserId the current user ID (for liked status)
+     * @param pageable pagination parameters
+     * @return page of Object[] results (same structure as findPublicTimelineWithStats)
+     */
+    @Query(value = """
+        SELECT
+            a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+            a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+            a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+            u.username, u.display_name, u.avatar_url,
+            COUNT(DISTINCT l.id) AS likes_count,
+            COUNT(DISTINCT c.id) AS comments_count,
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+        FROM activities a
+        INNER JOIN users u ON a.user_id = u.id
+        LEFT JOIN likes l ON a.id = l.activity_id
+        LEFT JOIN comments c ON a.id = c.activity_id AND c.deleted = false
+        LEFT JOIN likes ul ON a.id = ul.activity_id AND ul.user_id = CAST(:currentUserId AS uuid)
+        WHERE a.user_id IN (:userIds)
+          AND a.visibility IN (:visibilities)
+          AND (:searchText IS NULL OR (
+              LOWER(a.title) LIKE LOWER(CONCAT('%', :searchText, '%'))
+              OR LOWER(a.description) LIKE LOWER(CONCAT('%', :searchText, '%'))
+          ))
+        GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
+                 a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
+                 a.simplified_track, a.track_points_json, a.created_at, a.updated_at,
+                 u.username, u.display_name, u.avatar_url, ul.id
+        ORDER BY a.started_at DESC
+        """, nativeQuery = true)
+    Page<Object[]> searchFederatedTimeline(@Param("userIds") List<UUID> userIds,
+                                            @Param("visibilities") List<String> visibilities,
+                                            @Param("searchText") String searchText,
+                                            @Param("currentUserId") UUID currentUserId,
+                                            Pageable pageable);
+
+    /**
+     * Search user's own activities with text and date filters.
+     * Simpler JPQL query for "My Activities" page.
+     *
+     * @param userId the user ID
+     * @param searchText search text for title/description (use null to skip)
+     * @param pageable pagination parameters
+     * @return page of activities
+     */
+    @Query("SELECT a FROM Activity a WHERE a.userId = :userId " +
+           "AND (:searchText IS NULL OR " +
+           "     LOWER(a.title) LIKE LOWER(CONCAT('%', :searchText, '%')) OR " +
+           "     LOWER(a.description) LIKE LOWER(CONCAT('%', :searchText, '%')))")
+    Page<Activity> searchByUserIdAndFilters(@Param("userId") UUID userId,
+                                             @Param("searchText") String searchText,
+                                             Pageable pageable);
 }

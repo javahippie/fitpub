@@ -1,6 +1,8 @@
 package net.javahippie.fitpub.controller;
 
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javahippie.fitpub.model.dto.ActivityDTO;
@@ -27,6 +29,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -200,25 +205,37 @@ public class ActivityController {
     }
 
     /**
-     * Lists all activities for the authenticated user with pagination.
+     * Lists all activities for the authenticated user with pagination and optional filters.
      *
      * @param userDetails the authenticated user
      * @param page page number (default: 0)
      * @param size page size (default: 10)
+     * @param search optional search text for title/description
+     * @param date optional date filter (formats: dd.mm.yyyy, yyyy-mm-dd, or yyyy)
      * @return page of activities
      */
     @GetMapping
     public ResponseEntity<?> getUserActivities(
         @AuthenticationPrincipal UserDetails userDetails,
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "10") int size
+        @RequestParam(defaultValue = "10") int size,
+        @RequestParam(required = false) String search,
+        @RequestParam(required = false) String date
     ) {
-        log.info("User {} retrieving activities (page: {}, size: {})", userDetails.getUsername(), page, size);
+        log.info("User {} retrieving activities (page: {}, size: {}, search: {}, date: {})",
+                 userDetails.getUsername(), page, size, search, date);
 
         UUID userId = getUserId(userDetails);
 
-        org.springframework.data.domain.Page<Activity> activityPage =
-            fitFileService.getUserActivitiesPaginated(userId, page, size);
+        // Use search if filters provided, otherwise use standard method
+        org.springframework.data.domain.Page<Activity> activityPage;
+        if (search != null ) {
+            activityPage = fitFileService.searchUserActivities(
+                userId, search, page, size
+            );
+        } else {
+            activityPage = fitFileService.getUserActivitiesPaginated(userId, page, size);
+        }
 
         // Convert to DTOs
         org.springframework.data.domain.Page<ActivityDTO> dtoPage = activityPage.map(ActivityDTO::fromEntity);
@@ -528,5 +545,63 @@ public class ActivityController {
             log.error("Error retrieving weather data for activity {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    /**
+     * Parse date filter string into date range.
+     * Supports formats: dd.mm.yyyy, yyyy-mm-dd, yyyy
+     *
+     * @param dateStr the date string to parse
+     * @return DateRange with start and end times, or null values if invalid/empty
+     */
+    private DateRange parseDateFilter(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return new DateRange(null, null);
+        }
+
+        try {
+            // Year only (yyyy)
+            if (dateStr.matches("^\\d{4}$")) {
+                int year = Integer.parseInt(dateStr);
+                LocalDateTime start = LocalDateTime.of(year, 1, 1, 0, 0, 0);
+                LocalDateTime end = LocalDateTime.of(year, 12, 31, 23, 59, 59);
+                return new DateRange(start, end);
+            }
+
+            // dd.mm.yyyy format
+            if (dateStr.matches("^\\d{2}\\.\\d{2}\\.\\d{4}$")) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+                LocalDate date = LocalDate.parse(dateStr, formatter);
+                return new DateRange(
+                    date.atStartOfDay(),
+                    date.atTime(23, 59, 59)
+                );
+            }
+
+            // yyyy-mm-dd format
+            if (dateStr.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                LocalDate date = LocalDate.parse(dateStr);
+                return new DateRange(
+                    date.atStartOfDay(),
+                    date.atTime(23, 59, 59)
+                );
+            }
+
+            log.warn("Invalid date format: {}", dateStr);
+            return new DateRange(null, null);
+        } catch (Exception e) {
+            log.error("Error parsing date filter: {}", dateStr, e);
+            return new DateRange(null, null);
+        }
+    }
+
+    /**
+     * Helper class to hold date range for filtering.
+     */
+    @Getter
+    @AllArgsConstructor
+    private static class DateRange {
+        private final LocalDateTime start;
+        private final LocalDateTime end;
     }
 }

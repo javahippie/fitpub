@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -198,6 +199,134 @@ public class TimelineService {
             .collect(Collectors.toList());
 
         log.debug("Fetched {} activities in single optimized query", timelineActivities.size());
+
+        return new PageImpl<>(timelineActivities, pageable, results.getTotalElements());
+    }
+
+    /**
+     * Search public timeline with text and date filters.
+     * OPTIMIZED: Uses single query with JOINs to fetch all data
+     *
+     * @param userId optional user ID for checking liked status (null for unauthenticated)
+     * @param searchText text to search in title and description (null to skip)
+     * @param pageable pagination parameters
+     * @return page of timeline activities
+     */
+    @Transactional(readOnly = true)
+    public Page<TimelineActivityDTO> searchPublicTimeline(
+        UUID userId,
+        String searchText,
+        Pageable pageable
+    ) {
+        log.debug("Searching public timeline (userId: {}, search: {})",
+                  userId, searchText);
+
+        // Create unsorted Pageable since ORDER BY is already in the native query
+        Pageable unsortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
+        // Use optimized search query with JOINs and WHERE conditions
+        Page<Object[]> results = activityRepository.searchPublicTimeline(
+            Activity.Visibility.PUBLIC.name(),
+            searchText,
+            userId,
+            unsortedPageable
+        );
+
+        // Map results using TimelineResultMapper
+        List<TimelineActivityDTO> timelineActivities = results.getContent().stream()
+            .map(timelineResultMapper::mapToTimelineActivityDTO)
+            .collect(Collectors.toList());
+
+        log.debug("Found {} activities matching search criteria", timelineActivities.size());
+
+        return new PageImpl<>(timelineActivities, pageable, results.getTotalElements());
+    }
+
+    /**
+     * Search user's own timeline with text and date filters.
+     * OPTIMIZED: Uses single query with JOINs to fetch all data
+     *
+     * @param userId the user's ID
+     * @param searchText text to search in title and description (null to skip)
+     * @param pageable pagination parameters
+     * @return page of timeline activities
+     */
+    @Transactional(readOnly = true)
+    public Page<TimelineActivityDTO> searchUserTimeline(
+        UUID userId,
+        String searchText,
+        Pageable pageable
+    ) {
+        log.debug("Searching user timeline (userId: {}, search: {})",
+                  userId, searchText);
+
+        // Create unsorted Pageable since ORDER BY is already in the native query
+        Pageable unsortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
+        // Use optimized search query with JOINs and WHERE conditions
+        Page<Object[]> results = activityRepository.searchUserTimeline(
+            userId,
+            searchText,
+            userId,  // currentUserId same as userId for user's own timeline
+            unsortedPageable
+        );
+
+        // Map results using TimelineResultMapper
+        List<TimelineActivityDTO> timelineActivities = results.getContent().stream()
+            .map(timelineResultMapper::mapToTimelineActivityDTO)
+            .collect(Collectors.toList());
+
+        log.debug("Found {} activities matching search criteria", timelineActivities.size());
+
+        return new PageImpl<>(timelineActivities, pageable, results.getTotalElements());
+    }
+
+    /**
+     * Search federated timeline with text and date filters.
+     * Includes activities from followed users that match the search criteria.
+     *
+     * NOTE: This is a simplified implementation that searches local activities only.
+     * Remote activities are not included in search results.
+     *
+     * @param userId the authenticated user's ID
+     * @param searchText text to search in title and description (null to skip)
+     * @param pageable pagination parameters
+     * @return page of timeline activities
+     */
+    @Transactional(readOnly = true)
+    public Page<TimelineActivityDTO> searchFederatedTimeline(
+        UUID userId,
+        String searchText,
+        Pageable pageable
+    ) {
+        log.debug("Searching federated timeline (userId: {}, search: {})",
+                  userId, searchText);
+
+        User currentUser = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+        // Get followed local user IDs
+        List<UUID> followedUserIds = getFollowedLocalUserIds(userId);
+        followedUserIds.add(userId); // Include the current user's own activities
+
+        // Create unsorted Pageable since ORDER BY is already in the native query
+        Pageable unsortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
+        // Use optimized search query with JOINs and WHERE conditions
+        Page<Object[]> results = activityRepository.searchFederatedTimeline(
+            followedUserIds,
+            List.of(Activity.Visibility.PUBLIC.name(), Activity.Visibility.FOLLOWERS.name()),
+            searchText,
+            userId,
+            unsortedPageable
+        );
+
+        // Map results using TimelineResultMapper
+        List<TimelineActivityDTO> timelineActivities = results.getContent().stream()
+            .map(timelineResultMapper::mapToTimelineActivityDTO)
+            .collect(Collectors.toList());
+
+        log.debug("Found {} activities matching search criteria", timelineActivities.size());
 
         return new PageImpl<>(timelineActivities, pageable, results.getTotalElements());
     }

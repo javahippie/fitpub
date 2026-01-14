@@ -7,6 +7,9 @@ const FitPubTimeline = {
     currentPage: 0,
     totalPages: 0,
     timelineType: 'public',
+    searchText: '',
+    dateFilter: '',
+    searchDebounceTimer: null,
 
     /**
      * Initialize the timeline
@@ -14,6 +17,7 @@ const FitPubTimeline = {
      */
     init: function(type) {
         this.timelineType = type;
+        this.setupSearchHandlers();
         this.loadTimeline(0);
     },
 
@@ -59,6 +63,19 @@ const FitPubTimeline = {
                     throw new Error('Invalid timeline type');
             }
 
+            // Append search parameters if present
+            if (this.searchText) {
+                endpoint += `&search=${encodeURIComponent(this.searchText)}`;
+            }
+
+            if (this.dateFilter) {
+                // Only add if valid format
+                const validation = this.validateDateFormat(this.dateFilter);
+                if (validation.valid) {
+                    endpoint += `&date=${encodeURIComponent(this.dateFilter)}`;
+                }
+            }
+
             // Fetch timeline data
             const response = fetchOptions.useAuth
                 ? await FitPubAuth.authenticatedFetch(endpoint)
@@ -76,7 +93,7 @@ const FitPubTimeline = {
                     timelineList.classList.remove('d-none');
                     pagination.classList.remove('d-none');
                 } else {
-                    emptyState.classList.remove('d-none');
+                    this.showEmptyState(emptyState);
                 }
 
                 this.totalPages = data.totalPages;
@@ -362,10 +379,10 @@ const FitPubTimeline = {
 
             // Initialize map
             const map = L.map(mapId, {
-                zoomControl: true,
+                zoomControl: false,
                 scrollWheelZoom: false,
-                dragging: true,
-                touchZoom: true
+                dragging: false,
+                touchZoom: false
             });
 
             // Add tile layer
@@ -604,5 +621,129 @@ const FitPubTimeline = {
             </div>
         `;
         element.style.backgroundColor = '#f8f9fa';
+    },
+
+    /**
+     * Setup search input handlers with debounce
+     */
+    setupSearchHandlers: function() {
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearSearchBtn');
+        const searchHint = document.getElementById('searchHint');
+
+        if (!searchInput) return;
+
+        // Text search with 300ms debounce
+        searchInput.addEventListener('input', (e) => {
+            this.searchText = e.target.value.trim();
+            this.debouncedSearch();
+        });
+
+        // Clear button
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                this.searchText = '';
+                searchHint.textContent = '';
+                this.loadTimeline(0);
+            });
+        }
+    },
+
+    /**
+     * Validate date format and provide feedback
+     * @param {string} dateStr - Date string to validate
+     * @returns {Object} Validation result with valid flag and message
+     */
+    validateDateFormat: function(dateStr) {
+        // Year only (yyyy)
+        if (/^\d{4}$/.test(dateStr)) {
+            const year = parseInt(dateStr);
+            if (year >= 1900 && year <= 2100) {
+                return { valid: true, message: `Searching all activities in ${year}` };
+            }
+            return { valid: false, message: 'Invalid year (must be 1900-2100)' };
+        }
+
+        // dd.mm.yyyy format
+        if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+            const [day, month, year] = dateStr.split('.').map(Number);
+            if (this.isValidDate(year, month, day)) {
+                return { valid: true, message: `Searching activities on ${dateStr}` };
+            }
+            return { valid: false, message: 'Invalid date' };
+        }
+
+        // yyyy-mm-dd format
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            if (this.isValidDate(year, month, day)) {
+                return { valid: true, message: `Searching activities on ${dateStr}` };
+            }
+            return { valid: false, message: 'Invalid date' };
+        }
+
+        // Partial input - don't show error yet
+        if (/^\d{1,4}$/.test(dateStr) || /^\d{2}\.\d{0,2}/.test(dateStr) || /^\d{4}-\d{0,2}/.test(dateStr)) {
+            return { valid: false, message: 'Enter full date: dd.mm.yyyy, yyyy-mm-dd, or yyyy' };
+        }
+
+        return { valid: false, message: 'Use format: dd.mm.yyyy, yyyy-mm-dd, or yyyy' };
+    },
+
+    /**
+     * Check if date is valid
+     * @param {number} year - Year
+     * @param {number} month - Month (1-12)
+     * @param {number} day - Day (1-31)
+     * @returns {boolean} True if valid date
+     */
+    isValidDate: function(year, month, day) {
+        if (month < 1 || month > 12) return false;
+        if (day < 1 || day > 31) return false;
+
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year &&
+               date.getMonth() === month - 1 &&
+               date.getDate() === day;
+    },
+
+    /**
+     * Debounced search with 300ms delay
+     */
+    debouncedSearch: function() {
+        clearTimeout(this.searchDebounceTimer);
+
+        // Show loading hint
+        const searchHint = document.getElementById('searchHint');
+        if ((this.searchText || this.dateFilter) && searchHint && !searchHint.classList.contains('text-danger')) {
+            searchHint.textContent = 'Searching...';
+        }
+
+        this.searchDebounceTimer = setTimeout(() => {
+            this.currentPage = 0; // Reset to first page
+            this.loadTimeline(0)
+                .then(i => searchHint.textContent = '');
+        }, 300);
+    },
+
+    /**
+     * Show appropriate empty state based on search
+     * @param {HTMLElement} emptyState - Empty state element
+     */
+    showEmptyState: function(emptyState) {
+        const emptyTitle = emptyState.querySelector('h4');
+        const emptyMessage = emptyState.querySelector('p.text-muted');
+
+        if (this.searchText || this.dateFilter) {
+            if (emptyTitle) emptyTitle.textContent = 'No Activities Found';
+            if (emptyMessage) emptyMessage.textContent = 'Try adjusting your search filters or date range.';
+        } else {
+            // Original empty state messages
+            if (emptyTitle) emptyTitle.textContent = 'No Activities Yet';
+            if (emptyMessage) emptyMessage.textContent = 'Be the first to share your fitness activities with the community!';
+        }
+
+        emptyState.classList.remove('d-none');
     }
 };

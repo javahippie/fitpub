@@ -48,25 +48,36 @@ public class TimelineController {
      * Get the federated timeline for the authenticated user.
      * Shows activities from users they follow.
      *
-     * GET /api/timeline/federated?page=0&size=20
+     * GET /api/timeline/federated?page=0&size=20&search=morning
      *
      * @param userDetails the authenticated user details
      * @param page page number (default: 0)
      * @param size page size (default: 20)
+     * @param search optional search text for title/description
      * @return page of timeline activities
      */
     @GetMapping("/federated")
     public ResponseEntity<Page<TimelineActivityDTO>> getFederatedTimeline(
         @AuthenticationPrincipal UserDetails userDetails,
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(required = false) String search
     ) {
         UUID userId = getUserId(userDetails);
-        log.debug("Federated timeline request from user: {}", userId);
+        log.debug("Federated timeline request from user: {} (search: {})", userId, search);
 
         // Sort by activity start date descending (latest first)
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt"));
-        Page<TimelineActivityDTO> timeline = timelineService.getFederatedTimeline(userId, pageable);
+
+        // Use search if filters provided, otherwise use standard timeline
+        Page<TimelineActivityDTO> timeline;
+        if (search != null) {
+            timeline = timelineService.searchFederatedTimeline(
+                userId, search, pageable
+            );
+        } else {
+            timeline = timelineService.getFederatedTimeline(userId, pageable);
+        }
 
         return ResponseEntity.ok(timeline);
     }
@@ -76,30 +87,41 @@ public class TimelineController {
      * Shows all public activities from all users.
      * Optionally authenticated - if user is logged in, will show which activities they've liked.
      *
-     * GET /api/timeline/public?page=0&size=20
+     * GET /api/timeline/public?page=0&size=20&search=morning&date=2024
      *
      * @param userDetails the authenticated user details (optional)
      * @param page page number (default: 0)
      * @param size page size (default: 20)
+     * @param search optional search text for title/description
      * @return page of timeline activities
      */
     @GetMapping("/public")
     public ResponseEntity<Page<TimelineActivityDTO>> getPublicTimeline(
         @AuthenticationPrincipal(errorOnInvalidType = false) UserDetails userDetails,
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(required = false) String search
     ) {
         UUID userId = null;
         if (userDetails != null) {
             userId = getUserId(userDetails);
-            log.debug("Public timeline request from authenticated user: {}", userId);
+            log.debug("Public timeline request from authenticated user: {} (search: {})", userId, search);
         } else {
-            log.debug("Public timeline request (unauthenticated)");
+            log.debug("Public timeline request (unauthenticated) (search: {})", search);
         }
 
         // Sort by activity start date descending (latest first)
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt"));
-        Page<TimelineActivityDTO> timeline = timelineService.getPublicTimeline(userId, pageable);
+
+        // Use search if filters provided, otherwise use standard timeline
+        Page<TimelineActivityDTO> timeline;
+        if (search != null) {
+            timeline = timelineService.searchPublicTimeline(
+                userId, search, pageable
+            );
+        } else {
+            timeline = timelineService.getPublicTimeline(userId, pageable);
+        }
 
         return ResponseEntity.ok(timeline);
     }
@@ -108,25 +130,36 @@ public class TimelineController {
      * Get the user's own timeline.
      * Shows only activities by the authenticated user.
      *
-     * GET /api/timeline/user?page=0&size=20
+     * GET /api/timeline/user?page=0&size=20&search=morning
      *
      * @param userDetails the authenticated user details
      * @param page page number (default: 0)
      * @param size page size (default: 20)
+     * @param search optional search text for title/description
      * @return page of timeline activities
      */
     @GetMapping("/user")
     public ResponseEntity<Page<TimelineActivityDTO>> getUserTimeline(
         @AuthenticationPrincipal UserDetails userDetails,
         @RequestParam(defaultValue = "0") int page,
-        @RequestParam(defaultValue = "20") int size
+        @RequestParam(defaultValue = "20") int size,
+        @RequestParam(required = false) String search
     ) {
         UUID userId = getUserId(userDetails);
-        log.debug("User timeline request from user: {}", userId);
+        log.debug("User timeline request from user: {} (search: {})", userId, search);
 
         // Sort by activity start date descending (latest first)
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt"));
-        Page<TimelineActivityDTO> timeline = timelineService.getUserTimeline(userId, pageable);
+
+        // Use search if filters provided, otherwise use standard timeline
+        Page<TimelineActivityDTO> timeline;
+        if (search != null) {
+            timeline = timelineService.searchUserTimeline(
+                userId, search, pageable
+            );
+        } else {
+            timeline = timelineService.getUserTimeline(userId, pageable);
+        }
 
         return ResponseEntity.ok(timeline);
     }

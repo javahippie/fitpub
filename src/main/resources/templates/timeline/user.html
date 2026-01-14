@@ -34,6 +34,34 @@
                     Your fitness activities
                 </p>
 
+                <!-- Search Bar -->
+                <div class="card mb-4" id="searchCard">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-10">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="searchInput"
+                                        placeholder="Search activities by title or description..."
+                                        autocomplete="off"
+                                    >
+                                </div>
+                                <small class="form-text text-muted mt-1 d-block" id="searchHint"></small>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-secondary w-100" id="clearSearchBtn">
+                                    <i class="bi bi-x-circle"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Loading Indicator -->
                 <div id="loadingIndicator" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">

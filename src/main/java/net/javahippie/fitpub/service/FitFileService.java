@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -386,6 +387,41 @@ public class FitFileService {
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<Activity> getPublicActivitiesByUserId(UUID userId, org.springframework.data.domain.Pageable pageable) {
         return activityRepository.findByUserIdAndVisibilityOrderByStartedAtDesc(userId, Activity.Visibility.PUBLIC, pageable);
+    }
+
+    /**
+     * Search user's activities with text and date filters.
+     * Used for "My Activities" page with search functionality.
+     *
+     * @param userId the user ID
+     * @param searchText text to search in title and description (null to skip)
+     * @param startOfDay start of date range (null to skip)
+     * @param endOfDay end of date range (null to skip)
+     * @param page page number (0-indexed)
+     * @param size page size
+     * @return page of activities
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Activity> searchUserActivities(
+        UUID userId,
+        String searchText,
+        int page,
+        int size
+    ) {
+        org.springframework.data.domain.Pageable pageable =
+            org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("startedAt").descending());
+
+        // If no filters, use existing optimized method
+        if (searchText == null ) {
+            return getUserActivitiesPaginated(userId, page, size);
+        }
+
+        // Use search query with filters
+        return activityRepository.searchByUserIdAndFilters(
+            userId,
+            searchText,
+            pageable
+        );
     }
 
     /**
