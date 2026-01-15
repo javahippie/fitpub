@@ -1,0 +1,1 @@
+ogr2ogr -nln public.gadm_410 -lco GEOMETRY_NAME=geom -lco FID=fid -f PostgreSQL PG:"host=localhost port=49812 dbname=testdb user=test password=test" -progress  gadm_410.gpkg

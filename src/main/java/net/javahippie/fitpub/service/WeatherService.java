@@ -1,12 +1,15 @@
 package net.javahippie.fitpub.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javahippie.fitpub.model.entity.Activity;
+import net.javahippie.fitpub.model.entity.TrackPoint;
 import net.javahippie.fitpub.model.entity.WeatherData;
 import net.javahippie.fitpub.repository.WeatherDataRepository;
+import org.locationtech.jts.geom.Point;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,8 +56,8 @@ public class WeatherService {
     public Optional<WeatherData> fetchWeatherForActivity(Activity activity) {
         log.info("=== Weather fetch requested for activity {} ===", activity.getId());
         log.info("Weather configuration: enabled={}, API key configured={}, API key length={}",
-                 weatherEnabled, (apiKey != null && !apiKey.isBlank()),
-                 (apiKey != null ? apiKey.length() : 0));
+                weatherEnabled, (apiKey != null && !apiKey.isBlank()),
+                (apiKey != null ? apiKey.length() : 0));
 
         if (!weatherEnabled) {
             log.warn("Weather fetching is DISABLED in configuration (fitpub.weather.enabled=false). " +
@@ -64,12 +67,12 @@ public class WeatherService {
 
         if (apiKey == null || apiKey.isBlank()) {
             log.error("Weather API key is NOT CONFIGURED (fitpub.weather.api-key is empty). " +
-                     "Please set fitpub.weather.api-key in application properties.");
+                      "Please set fitpub.weather.api-key in application properties.");
             return Optional.empty();
         }
 
-        log.info("Weather API key present: length={} chars, first 4 chars={}...",
-                 apiKey.length(), apiKey.length() > 4 ? apiKey.substring(0, 4) : "???");
+        log.debug("Weather API key present: length={} chars, first 4 chars={}...",
+                apiKey.length(), apiKey.length() > 4 ? apiKey.substring(0, 4) : "???");
 
         // Check if weather data already exists
         if (weatherDataRepository.existsByActivityId(activity.getId())) {
@@ -86,73 +89,46 @@ public class WeatherService {
         log.debug("Track points JSON length: {} chars", activity.getTrackPointsJson().length());
 
         try {
-            // Get first track point for location
-            JsonNode trackPoints = objectMapper.readTree(activity.getTrackPointsJson());
-            log.debug("Parsed track points, is array: {}, size: {}",
-                      trackPoints.isArray(), trackPoints.isArray() ? trackPoints.size() : "N/A");
+            Optional<TrackPoint> trackPoint = activity.findFirstTrackpoint();
 
-            if (!trackPoints.isArray() || trackPoints.isEmpty()) {
-                log.warn("Track points is not an array or is empty for activity {}", activity.getId());
+            if (trackPoint.isEmpty()) {
                 return Optional.empty();
-            }
-
-            JsonNode firstPoint = trackPoints.get(0);
-            log.info("First track point JSON: {}", firstPoint.toString());
-
-            // Check if lat/lon fields exist (support both "lat"/"lon" and "latitude"/"longitude")
-            boolean hasLat = firstPoint.has("lat") || firstPoint.has("latitude");
-            boolean hasLon = firstPoint.has("lon") || firstPoint.has("longitude");
-
-            if (!hasLat || !hasLon) {
-                // Collect field names from iterator
-                java.util.List<String> fieldNames = new java.util.ArrayList<>();
-                firstPoint.fieldNames().forEachRemaining(fieldNames::add);
-
-                log.error("First track point MISSING lat/lon fields for activity {}.", activity.getId());
-                log.error("Available fields in track point: {}", fieldNames);
-                log.error("First track point content: {}", firstPoint.toString());
-                return Optional.empty();
-            }
-
-            // Extract coordinates (try both short and long field names)
-            double lat = firstPoint.has("lat") ? firstPoint.get("lat").asDouble() : firstPoint.get("latitude").asDouble();
-            double lon = firstPoint.has("lon") ? firstPoint.get("lon").asDouble() : firstPoint.get("longitude").asDouble();
-            log.info("Extracted location from first track point: lat={}, lon={}", lat, lon);
-
-            // Check if activity is recent (within 5 days) - use current weather API
-            // Otherwise use historical data API (requires paid plan)
-            long activityTimestamp = activity.getStartedAt().atZone(ZoneId.systemDefault()).toEpochSecond();
-            long currentTimestamp = Instant.now().getEpochSecond();
-            long daysDifference = (currentTimestamp - activityTimestamp) / 86400;
-
-            log.info("Activity started at: {}, days ago: {}", activity.getStartedAt(), daysDifference);
-
-            WeatherData weatherData;
-            if (daysDifference <= 5) {
-                log.info("Activity is RECENT ({} days old, within 5 day threshold), fetching current weather from OpenWeatherMap", daysDifference);
-                weatherData = fetchCurrentWeather(lat, lon, activity.getId());
             } else {
-                log.warn("Activity is {} days old (exceeds 5 day threshold). Historical weather data requires OpenWeatherMap paid API plan. Skipping weather fetch.", daysDifference);
-                return Optional.empty();
-            }
+                var resolvedTrackPoint = trackPoint.get();
+                // Check if activity is recent (within 5 days) because it's free to use. Don't call other timeframes, expensive.
+                long activityTimestamp = activity.getStartedAt().atZone(ZoneId.systemDefault()).toEpochSecond();
+                long currentTimestamp = Instant.now().getEpochSecond();
+                long daysDifference = (currentTimestamp - activityTimestamp) / 86400;
 
-            if (weatherData != null) {
-                log.info("Successfully fetched and parsed weather data. Attempting to save to database...");
-                try {
-                    WeatherData saved = weatherDataRepository.save(weatherData);
-                    log.info("Weather data SUCCESSFULLY SAVED to database with ID: {}", saved.getId());
-                    return Optional.of(saved);
-                } catch (Exception e) {
-                    log.error("FAILED to save weather data to database: {}", e.getMessage(), e);
+                log.info("Activity started at: {}, days ago: {}", activity.getStartedAt(), daysDifference);
+
+                WeatherData weatherData;
+                if (daysDifference <= 5) {
+                    log.info("Activity is RECENT ({} days old, within 5 day threshold), fetching current weather from OpenWeatherMap", daysDifference);
+                    weatherData = fetchCurrentWeather(resolvedTrackPoint.lat(), resolvedTrackPoint.lon(), activity.getId());
+                } else {
+                    log.warn("Activity is {} days old (exceeds 5 day threshold). Historical weather data requires OpenWeatherMap paid API plan. Skipping weather fetch.", daysDifference);
                     return Optional.empty();
                 }
-            } else {
-                log.error("Weather data fetch returned NULL - check API errors above");
-            }
 
+                if (weatherData != null) {
+                    log.info("Successfully fetched and parsed weather data. Attempting to save to database...");
+                    try {
+                        WeatherData saved = weatherDataRepository.save(weatherData);
+                        log.info("Weather data SUCCESSFULLY SAVED to database with ID: {}", saved.getId());
+                        return Optional.of(saved);
+                    } catch (Exception e) {
+                        log.error("FAILED to save weather data to database: {}", e.getMessage(), e);
+                        return Optional.empty();
+                    }
+                } else {
+                    log.error("Weather data fetch returned NULL - check API errors above");
+                }
+
+            }
         } catch (Exception e) {
             log.error("EXCEPTION while fetching weather data for activity {}: {}",
-                      activity.getId(), e.getMessage(), e);
+                    activity.getId(), e.getMessage(), e);
         }
 
         return Optional.empty();
@@ -185,7 +161,7 @@ public class WeatherService {
 
             log.info("API response received: {} characters", response.length());
             log.info("API response (first 300 chars): {}",
-                     response.length() > 300 ? response.substring(0, 300) + "..." : response);
+                    response.length() > 300 ? response.substring(0, 300) + "..." : response);
 
             log.info("Parsing weather response JSON...");
             WeatherData weatherData = parseWeatherResponse(response, activityId);
@@ -194,13 +170,13 @@ public class WeatherService {
                 log.error("FAILED to parse weather response - see parsing errors above");
             } else {
                 log.info("Successfully parsed weather data: temp={}°C, feels_like={}°C, condition='{}', description='{}', humidity={}%, pressure={} hPa, wind={} m/s",
-                         weatherData.getTemperatureCelsius(),
-                         weatherData.getFeelsLikeCelsius(),
-                         weatherData.getWeatherCondition(),
-                         weatherData.getWeatherDescription(),
-                         weatherData.getHumidity(),
-                         weatherData.getPressure(),
-                         weatherData.getWindSpeedMps());
+                        weatherData.getTemperatureCelsius(),
+                        weatherData.getFeelsLikeCelsius(),
+                        weatherData.getWeatherCondition(),
+                        weatherData.getWeatherDescription(),
+                        weatherData.getHumidity(),
+                        weatherData.getPressure(),
+                        weatherData.getWindSpeedMps());
             }
 
             log.info("=== fetchCurrentWeather END === success={}", (weatherData != null));
@@ -274,8 +250,8 @@ public class WeatherService {
                 weatherData.setHumidity(getInteger(main, "humidity"));
                 weatherData.setPressure(getInteger(main, "pressure"));
                 log.debug("Extracted main data: temp={}, feels_like={}, humidity={}, pressure={}",
-                          weatherData.getTemperatureCelsius(), weatherData.getFeelsLikeCelsius(),
-                          weatherData.getHumidity(), weatherData.getPressure());
+                        weatherData.getTemperatureCelsius(), weatherData.getFeelsLikeCelsius(),
+                        weatherData.getHumidity(), weatherData.getPressure());
             } else {
                 log.warn("Response JSON does not contain 'main' section");
             }
@@ -287,7 +263,7 @@ public class WeatherService {
                 weatherData.setWindSpeedMps(getBigDecimal(wind, "speed"));
                 weatherData.setWindDirection(getInteger(wind, "deg"));
                 log.debug("Extracted wind data: speed={} m/s, direction={} degrees",
-                          weatherData.getWindSpeedMps(), weatherData.getWindDirection());
+                        weatherData.getWindSpeedMps(), weatherData.getWindDirection());
             } else {
                 log.debug("Response JSON does not contain 'wind' section");
             }
@@ -300,8 +276,8 @@ public class WeatherService {
                 weatherData.setWeatherDescription(getString(weather, "description"));
                 weatherData.setWeatherIcon(getString(weather, "icon"));
                 log.debug("Extracted weather condition: main='{}', description='{}', icon='{}'",
-                          weatherData.getWeatherCondition(), weatherData.getWeatherDescription(),
-                          weatherData.getWeatherIcon());
+                        weatherData.getWeatherCondition(), weatherData.getWeatherDescription(),
+                        weatherData.getWeatherIcon());
             } else {
                 log.warn("Response JSON does not contain valid 'weather' array");
             }

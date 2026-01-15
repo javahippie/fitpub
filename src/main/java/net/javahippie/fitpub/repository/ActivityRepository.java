@@ -234,7 +234,8 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
             u.username, u.display_name, u.avatar_url,
             COUNT(DISTINCT l.id) AS likes_count,
             COUNT(DISTINCT c.id) AS comments_count,
-            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user,
+            a.activity_location
         FROM activities a
         INNER JOIN users u ON a.user_id = u.id
         LEFT JOIN likes l ON a.id = l.activity_id
@@ -268,7 +269,8 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
             u.username, u.display_name, u.avatar_url,
             COUNT(DISTINCT l.id) AS likes_count,
             COUNT(DISTINCT c.id) AS comments_count,
-            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user,
+            a.activity_location
         FROM activities a
         INNER JOIN users u ON a.user_id = u.id
         LEFT JOIN likes l ON a.id = l.activity_id
@@ -303,7 +305,8 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
             u.username, u.display_name, u.avatar_url,
             COUNT(DISTINCT l.id) AS likes_count,
             COUNT(DISTINCT c.id) AS comments_count,
-            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user,
+            a.activity_location
         FROM activities a
         INNER JOIN users u ON a.user_id = u.id
         LEFT JOIN likes l ON a.id = l.activity_id
@@ -350,7 +353,8 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
             u.username, u.display_name, u.avatar_url,
             COUNT(DISTINCT l.id) AS likes_count,
             COUNT(DISTINCT c.id) AS comments_count,
-            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user,
+            a.activity_location
         FROM activities a
         INNER JOIN users u ON a.user_id = u.id
         LEFT JOIN likes l ON a.id = l.activity_id
@@ -360,6 +364,7 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
           AND (:searchText IS NULL OR (
               LOWER(a.title) LIKE LOWER(CONCAT('%', :searchText, '%'))
               OR LOWER(a.description) LIKE LOWER(CONCAT('%', :searchText, '%'))
+              OR LOWER(a.activity_location) LIKE LOWER(CONCAT('%', :searchText, '%'))
           ))
         GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
                  a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
@@ -390,7 +395,8 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
             u.username, u.display_name, u.avatar_url,
             COUNT(DISTINCT l.id) AS likes_count,
             COUNT(DISTINCT c.id) AS comments_count,
-            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user,
+            a.activity_location
         FROM activities a
         INNER JOIN users u ON a.user_id = u.id
         LEFT JOIN likes l ON a.id = l.activity_id
@@ -400,6 +406,7 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
           AND (:searchText IS NULL OR (
               LOWER(a.title) LIKE LOWER(CONCAT('%', :searchText, '%'))
               OR LOWER(a.description) LIKE LOWER(CONCAT('%', :searchText, '%'))
+              OR LOWER(a.activity_location) LIKE LOWER(CONCAT('%', :searchText, '%'))
           ))
         GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
                  a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,
@@ -431,7 +438,8 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
             u.username, u.display_name, u.avatar_url,
             COUNT(DISTINCT l.id) AS likes_count,
             COUNT(DISTINCT c.id) AS comments_count,
-            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user
+            CASE WHEN ul.id IS NOT NULL THEN true ELSE false END AS liked_by_current_user,
+            a.activity_location
         FROM activities a
         INNER JOIN users u ON a.user_id = u.id
         LEFT JOIN likes l ON a.id = l.activity_id
@@ -442,6 +450,7 @@ public interface ActivityRepository extends JpaRepository<Activity, UUID> {
           AND (:searchText IS NULL OR (
               LOWER(a.title) LIKE LOWER(CONCAT('%', :searchText, '%'))
               OR LOWER(a.description) LIKE LOWER(CONCAT('%', :searchText, '%'))
+              OR LOWER(a.activity_location) LIKE LOWER(CONCAT('%', :searchText, '%'))
           ))
         GROUP BY a.id, a.user_id, a.activity_type, a.title, a.description, a.started_at, a.ended_at,
                  a.timezone, a.visibility, a.total_distance, a.total_duration_seconds, a.elevation_gain, a.elevation_loss,

@@ -46,6 +46,7 @@ public class ActivityDTO {
     private ActivityMetricsDTO metrics;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String activityLocation;
 
     // Map rendering data
     private Map<String, Object> simplifiedTrack; // GeoJSON LineString
@@ -124,7 +125,8 @@ public class ActivityDTO {
             .elevationGain(activity.getElevationGain())
             .elevationLoss(activity.getElevationLoss())
             .createdAt(activity.getCreatedAt())
-            .updatedAt(activity.getUpdatedAt());
+            .updatedAt(activity.getUpdatedAt())
+            .activityLocation(activity.getActivityLocation());
 
         if (activity.getTotalDurationSeconds() != null) {
             builder.totalDurationSeconds(activity.getTotalDurationSeconds());
@@ -237,6 +239,7 @@ public class ActivityDTO {
                 .subSport(activity.getSubSport())
                 .indoorDetectionMethod(activity.getIndoorDetectionMethod())
                 .race(activity.getRace() != null ? activity.getRace() : false)
+                .activityLocation(activity.getActivityLocation())
                 .build();
         }
 
@@ -255,7 +258,8 @@ public class ActivityDTO {
             .elevationGain(activity.getElevationGain())
             .elevationLoss(activity.getElevationLoss())
             .createdAt(activity.getCreatedAt())
-            .updatedAt(activity.getUpdatedAt());
+            .updatedAt(activity.getUpdatedAt())
+            .activityLocation(activity.getActivityLocation());
 
         if (activity.getTotalDurationSeconds() != null) {
             builder.totalDurationSeconds(activity.getTotalDurationSeconds());

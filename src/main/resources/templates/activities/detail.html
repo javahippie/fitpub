@@ -44,6 +44,10 @@
                                     <i class="bi bi-calendar"></i>
                                     <span id="activityDate"></span>
                                 </span>
+                                <span class="ms-2">
+                                    <i class="bi bi-geo-alt"></i>
+                                    <span id="activityLocation"></span>
+                                </span>
                                 <span class="ms-2" id="visibilityBadge">
                                     <i class="bi bi-globe"></i>
                                     <span id="activityVisibility"></span>
@@ -506,6 +510,7 @@
                         activity.startedAt,
                         activity.timezone || 'UTC'
                     );
+                    document.getElementById('activityLocation').textContent = activity.activityLocation;
                     document.getElementById('activityVisibility').textContent = activity.visibility;
 
                     // Visibility icon

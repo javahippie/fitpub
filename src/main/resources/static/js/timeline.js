@@ -141,7 +141,7 @@ const FitPubTimeline = {
                                         @${this.escapeHtml(activity.username)}
                                     </a>
                                     ${!activity.isLocal ? ' <span class="badge bg-info ms-1" title="Federated Activity"><i class="bi bi-globe2"></i> Remote</span>' : ''}
-                                    • ${this.formatTimeAgo(activity.startedAt)}
+                                    • ${this.formatTimeAgo(activity.startedAt)} • ${activity.activityLocation}
                                 </div>
                             </div>
                             <div>

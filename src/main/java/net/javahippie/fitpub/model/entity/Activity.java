@@ -1,15 +1,21 @@
 package net.javahippie.fitpub.model.entity;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.locationtech.jts.geom.LineString;
 
+import javax.sound.midi.Track;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -28,6 +34,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Slf4j
 public class Activity {
 
     @Id
@@ -93,6 +100,9 @@ public class Activity {
     @Column(name = "elevation_loss", precision = 8, scale = 2)
     private BigDecimal elevationLoss;
 
+    @Column(name = "activity_location")
+    private String activityLocation;
+
     /**
      * Original activity file (FIT or GPX) for re-processing if needed.
      * Allows us to re-parse with updated algorithms.
@@ -148,6 +158,42 @@ public class Activity {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public Optional<TrackPoint> findFirstTrackpoint() throws JsonProcessingException {
+        // Get first track point for location
+        JsonNode trackPoints = new ObjectMapper().readTree(this.getTrackPointsJson());
+        log.debug("Parsed track points, is array: {}, size: {}",
+                trackPoints.isArray(), trackPoints.isArray() ? trackPoints.size() : "N/A");
+
+        if (!trackPoints.isArray() || trackPoints.isEmpty()) {
+            log.warn("Track points is not an array or is empty for activity {}", this.getId());
+            return Optional.empty();
+        }
+
+        JsonNode firstPoint = trackPoints.get(0);
+        log.debug("First track point JSON: {}", firstPoint.toString());
+
+        // Check if lat/lon fields exist (support both "lat"/"lon" and "latitude"/"longitude")
+        boolean hasLat = firstPoint.has("lat") || firstPoint.has("latitude");
+        boolean hasLon = firstPoint.has("lon") || firstPoint.has("longitude");
+
+        if (!hasLat || !hasLon) {
+            // Collect field names from iterator
+            java.util.List<String> fieldNames = new java.util.ArrayList<>();
+            firstPoint.fieldNames().forEachRemaining(fieldNames::add);
+
+            log.error("First track point MISSING lat/lon fields for activity {}.", this.getId());
+            log.error("Available fields in track point: {}", fieldNames);
+            log.error("First track point content: {}", firstPoint);
+            return Optional.empty();
+        }
+
+        // Extract coordinates (try both short and long field names)
+        double lat = firstPoint.has("lat") ? firstPoint.get("lat").asDouble() : firstPoint.get("latitude").asDouble();
+        double lon = firstPoint.has("lon") ? firstPoint.get("lon").asDouble() : firstPoint.get("longitude").asDouble();
+        log.debug("Extracted location from first track point: lat={}, lon={}", lat, lon);
+        return Optional.of(new TrackPoint(lon, lat));
+    }
 
     /**
      * Helper method to set metrics for this activity

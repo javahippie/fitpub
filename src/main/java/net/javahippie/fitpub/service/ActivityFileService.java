@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javahippie.fitpub.repository.ReverseGeolocationRepository;
 import net.javahippie.fitpub.util.ActivityFormatter;
 import net.javahippie.fitpub.util.FitFileValidator;
 import net.javahippie.fitpub.util.FitParser;
@@ -113,6 +114,7 @@ public class ActivityFileService {
     private final AchievementService achievementService;
     private final TrainingLoadService trainingLoadService;
     private final ActivitySummaryService activitySummaryService;
+    private final ReverseGeolocationRepository reverseGeolocationRepository;
 
     /**
      * Processes an uploaded activity file (FIT or GPX) and creates an activity.
@@ -243,7 +245,7 @@ public class ActivityFileService {
         Activity.Visibility visibility,
         byte[] rawFile,
         ProcessingOptions options
-    ) {
+    ) throws JsonProcessingException {
         // Generate title if not provided
         String activityTitle = title != null && !title.isBlank()
             ? title
@@ -298,6 +300,11 @@ public class ActivityFileService {
             calculateAdditionalMetrics(metrics, parsedData.getTrackPoints());
             activity.setMetrics(metrics);
         }
+
+        var res = activity.findFirstTrackpoint()
+                .map(tp -> reverseGeolocationRepository.findForLocation(tp.lon(), tp.lat()));
+
+        res.ifPresent(reverseGeolocation -> activity.setActivityLocation(reverseGeolocation.formatWithHighestResolution()));
 
         // Save activity (single INSERT instead of 855!)
         Activity savedActivity = activityRepository.save(activity);

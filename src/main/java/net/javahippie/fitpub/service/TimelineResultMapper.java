@@ -74,6 +74,7 @@ public class TimelineResultMapper {
             Long likesCount = ((Number) result[idx++]).longValue();
             Long commentsCount = ((Number) result[idx++]).longValue();
             Boolean likedByCurrentUser = (Boolean) result[idx++];
+            String activityLocation = (String) result[idx++];
 
             // Build DTO
             return TimelineActivityDTO.builder()
@@ -97,6 +98,7 @@ public class TimelineResultMapper {
                 .commentsCount(commentsCount)
                 .likedByCurrentUser(likedByCurrentUser)
                 .hasGpsTrack(true)  // Will be refined based on actual data
+                .activityLocation(activityLocation)
                 .build();
 
         } catch (Exception e) {

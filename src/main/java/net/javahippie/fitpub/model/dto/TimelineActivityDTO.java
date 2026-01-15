@@ -38,6 +38,7 @@ public class TimelineActivityDTO {
     private Double elevationLoss;
     private String visibility;
     private LocalDateTime createdAt;
+    private String activityLocation;
 
     // User information
     private String username;
@@ -99,6 +100,7 @@ public class TimelineActivityDTO {
             .indoorDetectionMethod(activity.getIndoorDetectionMethod())
             .race(activity.getRace() != null ? activity.getRace() : false)
             .metrics(activity.getMetrics() != null ? ActivityMetricsSummary.fromMetrics(activity.getMetrics()) : null)
+            .activityLocation(activity.getActivityLocation())
             .build();
     }
 
