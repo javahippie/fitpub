@@ -39,7 +39,6 @@ public class ActivitySummaryService {
      * Update summary for an activity's period.
      * Called after an activity is saved.
      */
-    @Async
     @Transactional
     public void updateSummariesForActivity(Activity activity) {
         if (activity.getUserId() == null || activity.getStartedAt() == null) {
