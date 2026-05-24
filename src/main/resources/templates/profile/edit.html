@@ -39,9 +39,10 @@
                             <!-- Bio -->
                             <div class="mb-3">
                                 <label for="bio" class="form-label">Bio</label>
-                                <textarea class="form-control" id="bio" name="bio" rows="4" maxlength="500"></textarea>
+                                <textarea class="form-control" id="bio" name="bio" rows="4"
+                                          th:attr="maxlength=${bioMaxLength}"></textarea>
                                 <div class="form-text">
-                                    <span id="bioCharCount">0</span>/500 characters
+                                    <span id="bioCharCount">0</span>/<span th:text="${bioMaxLength}">500</span> characters
                                 </div>
                             </div>
 

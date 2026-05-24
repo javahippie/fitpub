@@ -21,6 +21,7 @@ import net.javahippie.fitpub.service.WeatherService;
 import net.javahippie.fitpub.service.FitFileService;
 import net.javahippie.fitpub.service.PrivacyZoneService;
 import net.javahippie.fitpub.service.ReactionEnricher;
+import net.javahippie.fitpub.service.TextValidationService;
 import net.javahippie.fitpub.service.TrackPrivacyFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -48,6 +49,7 @@ import java.util.UUID;
 @Slf4j
 public class ActivityController {
 
+    private final TextValidationService textValidationService;
     private final ActivityFileService activityFileService;
     private final FitFileService fitFileService;
     private final UserRepository userRepository;
@@ -152,6 +154,9 @@ public class ActivityController {
         @AuthenticationPrincipal UserDetails userDetails
     ) {
         log.info("User {} uploading activity file: {}", userDetails.getUsername(), file.getOriginalFilename());
+
+        textValidationService.validateActivityTitle(request.getTitle());
+        textValidationService.validateActivityDescription(request.getDescription());
 
         User user = userRepository.findByUsername(userDetails.getUsername())
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -310,6 +315,9 @@ public class ActivityController {
         log.info("User {} updating activity {}", userDetails.getUsername(), id);
 
         UUID userId = getUserId(userDetails);
+
+        textValidationService.validateActivityTitle(request.getTitle());
+        textValidationService.validateActivityDescription(request.getDescription());
 
         try {
             Activity updated = fitFileService.updateActivity(

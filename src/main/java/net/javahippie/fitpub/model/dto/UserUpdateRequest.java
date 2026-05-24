@@ -21,7 +21,6 @@ public class UserUpdateRequest {
     @Size(max = 100, message = "Display name must not exceed 100 characters")
     private String displayName;
 
-    @Size(max = 500, message = "Bio must not exceed 500 characters")
     private String bio;
 
     @URL(message = "Avatar URL must be a valid URL")

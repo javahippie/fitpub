@@ -51,7 +51,7 @@
                                        id="title"
                                        name="title"
                                        placeholder="e.g., Morning Run"
-                                       maxlength="200"
+                                       th:attr="maxlength=${activityTitleMaxLength}"
                                        required>
                                 <div class="invalid-feedback">
                                     Please provide a title for your activity.
@@ -83,9 +83,9 @@
                                           name="description"
                                           rows="4"
                                           placeholder="Share details about your activity..."
-                                          maxlength="5000"></textarea>
+                                          th:attr="maxlength=${activityDescriptionMaxLength}"></textarea>
                                 <div class="form-text">
-                                    <span id="descCharCount">0</span>/5000 characters
+                                    <span id="descCharCount">0</span>/<span th:text="${activityDescriptionMaxLength}">5000</span> characters
                                 </div>
                             </div>
 

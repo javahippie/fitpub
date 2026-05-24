@@ -84,6 +84,18 @@ fitpub:
     # Leave empty to allow open registration
     password: ${REGISTRATION_PASSWORD:}
 
+# User settings
+  user:
+    bio:
+      max-length: ${FITPUB_USER_BIO_MAX_LENGTH:500}
+
+# Activity settings
+  activity:
+    title:
+      max-length: ${FITPUB_ACTIVITY_TITLE_MAX_LENGTH:200}
+    description:
+      max-length: ${FITPUB_ACTIVITY_DESCRIPTION_MAX_LENGTH:5000}
+
   # Storage settings
   storage:
     fit-files:

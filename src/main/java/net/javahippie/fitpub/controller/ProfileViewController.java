@@ -1,5 +1,7 @@
 package net.javahippie.fitpub.controller;
 
+import lombok.RequiredArgsConstructor;
+import net.javahippie.fitpub.service.TextValidationService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,7 +11,10 @@ import org.springframework.web.bind.annotation.PathVariable;
  * Controller for user profile view pages.
  */
 @Controller
+@RequiredArgsConstructor
 public class ProfileViewController {
+
+    private final TextValidationService textValidationService;
 
     /**
      * Current user's profile page.
@@ -34,6 +39,7 @@ public class ProfileViewController {
     @GetMapping("/profile/edit")
     public String editProfile(Model model) {
         model.addAttribute("pageTitle", "Edit Profile");
+        model.addAttribute("bioMaxLength", textValidationService.getUserBioMaxLength());
         return "profile/edit";
     }
 
