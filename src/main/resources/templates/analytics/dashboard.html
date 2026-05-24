@@ -317,6 +317,9 @@
                 }
                 return `${minutes}:${seconds.toString().padStart(2, '0')}`;
             } else if (unit === 'meters') {
+                if (type === 'HIGHEST_ELEVATION_GAIN') {
+                    return `${Math.round(value)} m`;
+                }
                 return `${(value / 1000).toFixed(2)} km`;
             } else if (unit === 'mps') {
                 return `${(value * 3.6).toFixed(2)} km/h`;

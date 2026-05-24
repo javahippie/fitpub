@@ -202,6 +202,9 @@
                 }
                 return `${minutes}:${seconds.toString().padStart(2, '0')}`;
             } else if (unit === 'meters') {
+                if (type === 'HIGHEST_ELEVATION_GAIN') {
+                    return `${Math.round(value)} m`;
+                }
                 return `${(value / 1000).toFixed(2)} km`;
             } else if (unit === 'mps') {
                 return `${(value * 3.6).toFixed(2)} km/h`;
@@ -226,6 +229,9 @@
                 const diff = current - previous;
                 const percentImprove = (diff / previous * 100).toFixed(1);
                 if (pr.unit === 'meters') {
+                    if (pr.recordType === 'HIGHEST_ELEVATION_GAIN') {
+                        return `${Math.round(diff)} m more (${percentImprove}% improvement)`;
+                    }
                     return `${(diff / 1000).toFixed(2)} km more (${percentImprove}% improvement)`;
                 } else if (pr.unit === 'mps') {
                     return `${(diff * 3.6).toFixed(2)} km/h faster (${percentImprove}% improvement)`;
